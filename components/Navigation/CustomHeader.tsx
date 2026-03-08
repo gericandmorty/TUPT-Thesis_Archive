@@ -1,0 +1,510 @@
+'use client';
+
+import { useState, useRef, useEffect, ReactElement } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import {
+    FaBars,
+    FaSearch,
+    FaTimes,
+    FaBell,
+    FaFilter,
+    FaFolder,
+    FaCalendarAlt,
+    FaFileAlt
+} from 'react-icons/fa';
+
+// API Base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
+
+interface Thesis {
+    id?: string;
+    title?: string;
+    abstract?: string;
+    author?: string;
+    filename?: string;
+    year_range?: string;
+    [key: string]: unknown;
+}
+
+interface SearchResult extends Thesis {
+    score: number;
+    relevance: string;
+}
+
+interface Filters {
+    year: string;
+    category: string;
+    searchType: string;
+}
+
+interface ThesisData {
+    theses?: Thesis[];
+}
+
+interface CustomHeaderProps {
+    onMenuPress?: () => void;
+    onSearch?: () => void;
+    searchQuery?: string;
+    onSearchChange?: (value: string) => void;
+    isLanding?: boolean;
+}
+
+const CustomHeader = ({
+    onMenuPress = () => { },
+    onSearch = () => { },
+    searchQuery = '',
+    onSearchChange = () => { },
+    isLanding = false
+}: CustomHeaderProps) => {
+    const router = useRouter();
+    const pathname = usePathname();
+    const [scrolled, setScrolled] = useState(false);
+    const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery || '');
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [showSearchResults, setShowSearchResults] = useState(false);
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [showSearch, setShowSearch] = useState(true);
+    const lastScrollY = useRef(0);
+    const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
+    const [filters, setFilters] = useState<Filters>({
+        year: 'all',
+        category: 'all',
+        searchType: 'all'
+    });
+    const [showFilters, setShowFilters] = useState(false);
+    const searchContainerRef = useRef<HTMLDivElement>(null);
+    const resultsRef = useRef<HTMLDivElement>(null);
+
+    const [years, setYears] = useState<string[]>(['all']);
+    const [categories, setCategories] = useState<string[]>(['all']);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchFilters = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const headers: Record<string, string> = {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                };
+
+                // Fetch Years
+                const yearsUrl = `${API_BASE_URL}/thesis/years`;
+                console.log('Fetching years from:', yearsUrl);
+                const yearsRes = await fetch(yearsUrl, { headers });
+                if (yearsRes.ok) {
+                    const yearsData = await yearsRes.json();
+                    console.log('Years received:', yearsData);
+                    if (Array.isArray(yearsData)) setYears(['all', ...yearsData]);
+                } else {
+                    console.error(`Failed to fetch years (${yearsRes.status}) from ${yearsUrl}`);
+                }
+
+                // Fetch Categories
+                const catUrl = `${API_BASE_URL}/thesis/categories`;
+                console.log('Fetching categories from:', catUrl);
+                const catRes = await fetch(catUrl, { headers });
+                if (catRes.ok) {
+                    const catData = await catRes.json();
+                    console.log('Categories received:', catData);
+                    if (Array.isArray(catData)) {
+                        const uniqueCats = Array.from(new Set(['all', ...catData]));
+                        setCategories(uniqueCats);
+                    }
+                } else {
+                    const errorText = await catRes.text();
+                    console.error(`Failed to fetch categories (${catRes.status}) from ${catUrl}. Response:`, errorText);
+                }
+            } catch (err) {
+                console.error('Error fetching filters:', err);
+            }
+        };
+        fetchFilters();
+    }, []);
+
+    const performSearch = async () => {
+        const query = localSearchQuery.trim();
+        if (!query) { setSearchResults([]); return; }
+        try {
+            const token = localStorage.getItem('token');
+            const url = new URL(`${API_BASE_URL}/thesis/search`);
+            url.searchParams.append('query', query);
+            if (filters.year !== 'all') url.searchParams.append('year', filters.year);
+            if (filters.category !== 'all') url.searchParams.append('category', filters.category);
+            if (filters.searchType !== 'all') url.searchParams.append('type', filters.searchType);
+
+            const res = await fetch(url.toString(), {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
+            const contentType = res.headers.get("content-type");
+            if (!res.ok || !contentType || !contentType.includes("application/json")) {
+                throw new Error(`Invalid search response: ${res.status}`);
+            }
+            const data = await res.json();
+
+            const processedResults: SearchResult[] = data.map((thesis: Thesis) => ({
+                ...thesis,
+                score: 1,
+                relevance: 'High'
+            }));
+
+            setSearchResults(processedResults);
+            setShowSearchResults(true);
+            onSearch();
+        } catch (err) {
+            console.error('Search error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getRelevanceLabel = (score: number): string => {
+        if (score >= 3) return 'High';
+        if (score >= 2) return 'Medium';
+        return 'Low';
+    };
+
+    const highlightText = (text: string | undefined, query: string): ReactElement | string => {
+        if (!text || !query) return text || '';
+        const regex = new RegExp(`(${query})`, 'gi');
+        const parts = text.split(regex);
+        return (
+            <>
+                {parts.map((part, index) =>
+                    regex.test(part) ? <mark key={index}>{part}</mark> : part
+                )}
+            </>
+        );
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            const query = localSearchQuery.trim();
+            if (query) {
+                const params = new URLSearchParams();
+                params.append('query', query);
+                if (filters.year !== 'all') params.append('year', filters.year);
+                if (filters.category !== 'all') params.append('category', filters.category);
+                if (filters.searchType !== 'all') params.append('type', filters.searchType);
+
+                router.push(`/search_result?${params.toString()}`);
+                setShowSearchResults(false);
+            } else {
+                performSearch();
+            }
+            (e.target as HTMLInputElement).blur();
+        }
+    };
+
+    useEffect(() => {
+        setLocalSearchQuery(searchQuery);
+    }, [searchQuery]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (localSearchQuery.trim()) { performSearch(); }
+            else { setSearchResults([]); setShowSearchResults(false); }
+        }, 300);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [localSearchQuery, filters]);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            setScrolled(currentScrollY > 50);
+
+            // Search Bar Visibility Logic
+            if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+                // Scrolling down - Hide search
+                setShowSearch(false);
+            } else {
+                // Scrolling up - Show search
+                setShowSearch(true);
+            }
+            lastScrollY.current = currentScrollY;
+
+            // Show search when scrolling stops
+            if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+            scrollTimeout.current = setTimeout(() => {
+                setShowSearch(true);
+            }, 800);
+        };
+
+        const checkAuth = () => {
+            setIsLoggedIn(!!localStorage.getItem('userData'));
+        };
+
+        checkAuth();
+        window.addEventListener('scroll', handleScroll);
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (resultsRef.current && !resultsRef.current.contains(event.target as Node) &&
+                searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+                setShowSearchResults(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSearchFocus = () => {
+        setIsSearchFocused(true);
+        if (searchQuery.trim() && searchResults.length > 0) setShowSearchResults(true);
+    };
+
+    const handleSearchBlur = () => {
+        if (!localSearchQuery) setIsSearchFocused(false);
+    };
+
+    const clearSearch = () => {
+        setLocalSearchQuery('');
+        onSearchChange('');
+        setSearchResults([]);
+        setShowSearchResults(false);
+        setIsSearchFocused(false);
+    };
+
+    const handleFilterChange = (filterType: keyof Filters, value: string) => {
+        setFilters(prev => ({ ...prev, [filterType]: value }));
+
+        // If we are on search_result page, we might want to update the URL immediately
+        if (pathname === '/search_result') {
+            const params = new URLSearchParams(window.location.search);
+            params.set(filterType === 'searchType' ? 'type' : filterType, value);
+            router.push(`/search_result?${params.toString()}`);
+        } else if ((filterType === 'year' || filterType === 'category') && value !== 'all') {
+            // Redirect to search_result page if year or category is filtered to a specific value from home
+            const params = new URLSearchParams();
+            if (filterType === 'year') params.append('year', value);
+            if (filterType === 'category') params.append('category', value);
+            router.push(`/search_result?${params.toString()}`);
+            setShowFilters(false);
+            setShowSearchResults(false);
+        }
+    };
+
+    const relevanceBadgeColors: Record<string, string> = {
+        high: 'bg-gradient-to-r from-green-500 to-emerald-500 text-white',
+        medium: 'bg-gradient-to-r from-yellow-400 to-amber-400 text-gray-800',
+        low: 'bg-gradient-to-r from-[#8b0000] to-red-600 text-white',
+    };
+
+    const isTransparentPage = isLanding || pathname === '/home';
+
+    const headerBgClass = isTransparentPage
+        ? (scrolled ? 'bg-white/95 backdrop-blur-md shadow-lg py-3' : 'bg-transparent py-6')
+        : 'bg-gradient-to-r from-[#8b0000] to-[#660000] shadow-xl py-3';
+
+    const textClass = (isTransparentPage && !scrolled) ? 'text-white' : (isLanding || pathname === '/home' ? 'text-[#8b0000]' : 'text-white');
+    const iconClass = (isTransparentPage && !scrolled) ? 'text-white' : 'text-[#8b0000]';
+
+    return (
+        <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 flex items-center justify-between px-6 ${headerBgClass}`}>
+            {/* Left Section: Menu + Branding */}
+            <div className="flex items-center gap-3 md:gap-4 z-10">
+                {(!isLanding && isLoggedIn) && (
+                    <button
+                        className={`p-3 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 border-none cursor-pointer ${scrolled || !isTransparentPage ? 'bg-[#8b0000]/5 text-[#8b0000] hover:bg-[#8b0000]/10' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                        onClick={onMenuPress}
+                        aria-label="Menu"
+                    >
+                        <FaBars />
+                    </button>
+                )}
+                <div
+                    className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity active:scale-95 transform duration-200"
+                    onClick={() => router.push(isLoggedIn ? '/home' : '/')}
+                    role="button"
+                    aria-label="Go to Home"
+                >
+                    <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center p-1.5 shadow-sm overflow-hidden">
+                        <img
+                            src="/assets/tup-logo.png"
+                            alt="TUP Logo"
+                            className="w-full h-full object-contain"
+                        />
+                    </div>
+                    <span className={`text-lg font-black tracking-tighter uppercase leading-none transition-colors duration-500 ${textClass}`}>
+                        TUPT-Thesis Archive
+                    </span>
+                </div>
+            </div>
+
+            {/* Centered Search Bar (Only if logged in) */}
+            {isLoggedIn && (
+                <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl px-4 transition-all duration-500 ease-out z-0 ${showSearch ? 'opacity-100 scale-100' : 'opacity-0 scale-95 -translate-y-[150%]'}`}>
+                    <div
+                        ref={searchContainerRef}
+                        className="relative flex items-center"
+                    >
+                        <div className="relative flex items-center w-full">
+                            <input
+                                type="text"
+                                className={`w-full py-2.5 pl-4 pr-20 rounded-full border-2 text-gray-800 text-sm font-medium placeholder:text-gray-400 outline-none transition-all duration-300 focus:bg-white focus:shadow-lg ${scrolled || !isTransparentPage ? 'bg-white/95 border-gray-200 focus:border-[#8b0000]' : 'bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white focus:text-gray-800'}`}
+                                placeholder="Search thesis titles, abstracts..."
+                                value={localSearchQuery}
+                                onChange={(e) => {
+                                    setLocalSearchQuery(e.target.value);
+                                    onSearchChange(e.target.value);
+                                }}
+                                onFocus={handleSearchFocus}
+                                onBlur={handleSearchBlur}
+                                onKeyPress={handleKeyPress}
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                autoComplete="off"
+                            />
+                            <button
+                                className={`absolute right-10 text-sm bg-transparent border-none cursor-pointer p-1.5 transition-colors ${scrolled || !isTransparentPage ? 'text-[#8b0000] hover:text-[#660000]' : 'text-white/80 hover:text-white'}`}
+                                onClick={() => setShowFilters(!showFilters)}
+                                aria-label="Search filters"
+                            >
+                                <FaFilter />
+                            </button>
+                            <button
+                                className={`absolute right-3 text-sm bg-transparent border-none cursor-pointer p-1.5 transition-colors ${scrolled || !isTransparentPage ? 'text-gray-400 hover:text-gray-600' : 'text-white/50 hover:text-white'}`}
+                                onClick={clearSearch}
+                                aria-label="Clear search"
+                            >
+                                <FaTimes />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Filters Dropdown */}
+                    {showFilters && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl p-4 z-50 border border-gray-100 animate-fade-in">
+                            <div className="flex flex-col gap-3">
+                                {[
+                                    { icon: <FaCalendarAlt className="text-[#8b0000]" />, label: 'Year:', value: filters.year, options: years, field: 'year' as keyof Filters, labelFn: (v: string) => v === 'all' ? 'All Years' : v },
+                                    { icon: <FaFolder className="text-[#8b0000]" />, label: 'Department:', value: filters.category, options: categories, field: 'category' as keyof Filters, labelFn: (v: string) => v === 'all' ? 'All Departments' : v },
+                                    { icon: <FaFileAlt className="text-[#8b0000]" />, label: 'Search in:', value: filters.searchType, options: ['all', 'title', 'abstract'], field: 'searchType' as keyof Filters, labelFn: (v: string) => v === 'all' ? 'All Fields' : v === 'title' ? 'Title Only' : 'Abstract Only' },
+                                ].map(({ icon, label, value, options, field, labelFn }) => (
+                                    <div key={field} className="flex items-center gap-2">
+                                        <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 min-w-[100px]">
+                                            {icon} {label}
+                                        </label>
+                                        <select
+                                            className="flex-1 py-2 px-3 rounded-lg border border-gray-200 text-sm text-gray-700 bg-gray-50 outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000]/20 transition-all"
+                                            value={value}
+                                            onChange={(e) => handleFilterChange(field, e.target.value)}
+                                        >
+                                            {options.map((opt: string) => (
+                                                <option key={opt} value={opt}>{labelFn(opt)}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Search Results Dropdown */}
+                    {showSearchResults && searchResults.length > 0 && (
+                        <div ref={resultsRef} className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl z-50 border border-gray-100 max-h-[70vh] overflow-hidden flex flex-col animate-fade-in">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/80">
+                                <span className="text-sm font-semibold text-gray-600">
+                                    {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+                                </span>
+                                <button
+                                    className="text-gray-400 text-sm bg-transparent border-none cursor-pointer hover:text-gray-600 p-1"
+                                    onClick={() => setShowSearchResults(false)}
+                                    aria-label="Close results"
+                                >
+                                    <FaTimes />
+                                </button>
+                            </div>
+
+                            <div className="overflow-y-auto flex-1">
+                                {searchResults.map((result, index) => (
+                                    <div
+                                        key={`${result.id}-${index}`}
+                                        className="px-4 py-3.5 border-b border-gray-50 hover:bg-gray-50/80 transition-colors cursor-pointer"
+                                        onClick={() => {
+                                            router.push(`/search_result?id=${result.id}`);
+                                            setShowSearchResults(false);
+                                        }}
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide shadow-sm ${relevanceBadgeColors[result.relevance.toLowerCase()]}`}>
+                                                {result.relevance}
+                                            </span>
+                                            <span className="flex items-center gap-1 text-xs text-gray-500 font-semibold">
+                                                <FaCalendarAlt className="text-[10px] text-[#8b0000]" /> {String(result.year_range && result.year_range !== 'unknown' ? result.year_range : 'N/A')}
+                                            </span>
+                                        </div>
+                                        <h4 className="text-sm font-bold text-gray-800 mb-1.5 leading-snug">
+                                            {highlightText(result.title, localSearchQuery)}
+                                        </h4>
+                                        <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-2">
+                                            {highlightText(
+                                                result.abstract && result.abstract.length > 120
+                                                    ? `${result.abstract.substring(0, 120)}...`
+                                                    : result.abstract,
+                                                localSearchQuery
+                                            )}
+                                        </p>
+                                        <div className="flex items-center gap-3 text-xs text-gray-400 font-semibold">
+                                            {/* Date info already shown in header badge area */}
+                                            <span className="flex items-center gap-1">
+                                                <FaFileAlt className="text-[10px] text-[#8b0000]" /> {result.filename}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="px-4 py-2.5 bg-gray-50/80 border-t border-gray-100 text-center">
+                                <span className="text-xs text-gray-400 font-medium">
+                                    {loading ? 'Searching...' : 'API Powered Search Engine'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Right Section: Auth or Notifications */}
+            <div className="flex items-center gap-4 z-10">
+                {!isLoggedIn ? (
+                    <>
+                        <button
+                            onClick={() => router.push('/login')}
+                            className={`hidden sm:block text-[11px] font-black uppercase tracking-widest px-6 py-2.5 rounded-lg transition-all relative group ${isTransparentPage && !scrolled ? 'text-white hover:bg-white/10' : 'text-white hover:bg-white/10'} ${pathname === '/login' ? 'bg-white/20' : ''}`}
+                        >
+                            Sign In
+                            {pathname === '/login' && <div className="absolute bottom-1 left-6 right-6 h-[2.5px] bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]" />}
+                        </button>
+                        <button
+                            onClick={() => router.push('/register')}
+                            className={`text-[11px] font-black uppercase tracking-widest px-6 py-2.5 rounded-lg shadow-lg transition-all transform active:scale-95 relative group ${pathname === '/register' ? 'bg-white text-[#8b0000] scale-105 ring-4 ring-white/20' : 'bg-[#8b0000] text-white hover:bg-red-700'}`}
+                        >
+                            Register
+                            {pathname === '/register' && <div className="absolute bottom-1 left-6 right-6 h-[2px] bg-[#8b0000]/50 rounded-full" />}
+                        </button>
+                    </>
+                ) : (
+                    <button
+                        className={`p-3 rounded-xl transition-all duration-300 hover:scale-110 active:scale-95 border-none cursor-pointer ${scrolled || !isTransparentPage ? 'bg-[#8b0000]/5 text-[#8b0000] hover:bg-[#8b0000]/10' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                        aria-label="Notifications"
+                    >
+                        <FaBell />
+                    </button>
+                )}
+            </div>
+        </header>
+    );
+};
+
+export default CustomHeader;
