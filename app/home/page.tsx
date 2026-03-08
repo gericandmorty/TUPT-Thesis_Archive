@@ -11,7 +11,10 @@ import {
     FaGraduationCap,
     FaChevronDown,
     FaChevronUp,
-    FaTrash
+    FaTrash,
+    FaRobot,
+    FaBrain,
+    FaTimes
 } from 'react-icons/fa';
 import CustomHeader from '@/components/Navigation/CustomHeader';
 import HamburgerMenu from '@/components/Navigation/HamburgerMenu';
@@ -39,6 +42,13 @@ interface UserData {
     [key: string]: unknown;
 }
 
+interface AiHistoryItem {
+    _id: string;
+    prompt: string;
+    recommendation: string;
+    createdAt: string;
+}
+
 const HomePage: React.FC = () => {
     const router = useRouter();
     const [menuVisible, setMenuVisible] = useState(false);
@@ -49,6 +59,14 @@ const HomePage: React.FC = () => {
     const [recentTheses, setRecentTheses] = useState<any[]>([]);
     const [deptCounts, setDeptCounts] = useState<{ category: string, count: number }[]>([]);
     const [isDeptDropdownOpen, setIsDeptDropdownOpen] = useState(false);
+
+    // AI History
+    const [aiHistory, setAiHistory] = useState<AiHistoryItem[]>([]);
+    const [loadingAi, setLoadingAi] = useState(false);
+    const [expandedAiItems, setExpandedAiItems] = useState<Record<string, boolean>>({});
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
     useEffect(() => {
         setMounted(true);
         const userData = localStorage.getItem('userData');
@@ -87,6 +105,28 @@ const HomePage: React.FC = () => {
                 }
             };
             fetchCount();
+
+            // Fetch AI History
+            const fetchAiHistory = async () => {
+                setLoadingAi(true);
+                try {
+                    const res = await fetch(`${API_BASE_URL}/user/ai-history`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        setAiHistory(data.data || []);
+                    }
+                } catch (err) {
+                    console.error('Error fetching AI history:', err);
+                } finally {
+                    setLoadingAi(false);
+                }
+            };
+            fetchAiHistory();
+
         } else {
             router.push('/login');
         }
@@ -109,6 +149,44 @@ const HomePage: React.FC = () => {
     const clearHistory = () => {
         localStorage.removeItem('recent_theses');
         setRecentTheses([]);
+    };
+
+    const handleDeleteAiHistory = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setItemToDelete(id);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDeleteAiHistory = async () => {
+        if (!itemToDelete) return;
+
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(`${API_BASE_URL}/user/ai-history/${itemToDelete}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                setAiHistory(prev => prev.filter(item => item._id !== itemToDelete));
+            } else {
+                alert('Failed to delete history item');
+            }
+        } catch (err) {
+            console.error('Error deleting AI history:', err);
+            alert('An error occurred while deleting.');
+        } finally {
+            setDeleteModalOpen(false);
+            setItemToDelete(null);
+        }
+    };
+
+    const toggleAiItem = (id: string) => {
+        setExpandedAiItems(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
     };
 
 
@@ -187,8 +265,87 @@ const HomePage: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* AI History section */}
+                    <div className="mt-8">
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-sm font-black text-gray-900 tracking-[0.2em] uppercase flex items-center gap-4">
+                                <span className="w-2 h-7 bg-[#8b0000] rounded-full" />
+                                My AI Title Ideas
+                            </h2>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full border border-blue-100 flex items-center gap-2">
+                                <FaBrain /> AI Powered
+                            </span>
+                        </div>
+
+                        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl shadow-black/5 overflow-hidden transition-all duration-500">
+                            {loadingAi ? (
+                                <div className="p-12 text-center text-gray-400 text-sm font-medium">Loading AI history...</div>
+                            ) : aiHistory.length > 0 ? (
+                                <div className="divide-y divide-gray-50">
+                                    {aiHistory.map((item) => {
+                                        const isExpanded = !!expandedAiItems[item._id];
+                                        return (
+                                            <div key={item._id} className="p-8 hover:bg-gray-50 transition-colors group relative">
+                                                <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                                                    <div className="flex-1 w-full">
+                                                        {/* Header/Toggle Area */}
+                                                        <div
+                                                            className="flex items-center gap-3 mb-2 cursor-pointer group/title"
+                                                            onClick={() => toggleAiItem(item._id)}
+                                                        >
+                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isExpanded ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500 group-hover/title:bg-blue-50 group-hover/title:text-blue-500'}`}>
+                                                                <FaRobot />
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <h3 className="text-sm font-black text-gray-800 tracking-tight group-hover/title:text-blue-600 transition-colors flex items-center gap-2">
+                                                                    AI_Recommendations_({item.prompt.length > 30 ? item.prompt.substring(0, 30) + '...' : item.prompt})
+                                                                    <span className="text-gray-400 text-[10px] bg-white border border-gray-100 px-2 py-0.5 rounded shadow-sm">
+                                                                        {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+                                                                    </span>
+                                                                </h3>
+                                                                <span className="text-[10px] text-gray-400 font-bold">
+                                                                    {new Date(item.createdAt).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Collapsible Content */}
+                                                        <div className={`transition-all duration-300 overflow-hidden ${isExpanded ? 'max-h-[2000px] mt-4 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                                            <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-inner whitespace-pre-wrap text-sm text-gray-700 font-medium leading-relaxed ml-11">
+                                                                {item.recommendation}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Action Area */}
+                                                    <div className="flex-shrink-0 flex items-start pt-1">
+                                                        <button
+                                                            onClick={(e) => handleDeleteAiHistory(item._id, e)}
+                                                            className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-3 rounded-xl transition-all"
+                                                            title="Delete History"
+                                                        >
+                                                            <FaTrash />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="p-12 text-center flex flex-col items-center justify-center">
+                                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                                        <FaRobot className="text-blue-200 text-2xl" />
+                                    </div>
+                                    <p className="text-gray-400 font-medium text-sm">No AI title recommendations found.</p>
+                                    <p className="text-gray-300 text-xs mt-2">Try searching for a topic using the AI Recommendation feature!</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Department Distributions */}
-                    <div className="mt-12">
+                    <div className="mt-8">
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-sm font-black text-gray-900 tracking-[0.2em] uppercase flex items-center gap-4">
                                 <span className="w-2 h-7 bg-[#8b0000] rounded-full" />
@@ -257,6 +414,43 @@ const HomePage: React.FC = () => {
 
             {/* Footer */}
             <Footer />
+
+            {/* Delete Confirmation Modal */}
+            {deleteModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl transform transition-all scale-100 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-bl-full pointer-events-none -z-0" />
+
+                        <div className="relative z-10 flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                                <FaTrash className="text-red-500 text-2xl" />
+                            </div>
+                            <h3 className="text-xl font-black text-gray-900 mb-2">Delete Recommendation?</h3>
+                            <p className="text-sm text-gray-500 font-medium mb-8">
+                                Are you sure you want to permanently delete this AI title recommendation? This action cannot be undone.
+                            </p>
+
+                            <div className="flex w-full gap-3">
+                                <button
+                                    onClick={() => {
+                                        setDeleteModalOpen(false);
+                                        setItemToDelete(null);
+                                    }}
+                                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition-colors text-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDeleteAiHistory}
+                                    className="flex-1 bg-[#8b0000] hover:bg-red-800 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 text-sm"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

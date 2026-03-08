@@ -11,7 +11,9 @@ import {
     FaFolder,
     FaCalendarAlt,
     FaFileAlt,
-    FaSignOutAlt
+    FaSignOutAlt,
+    FaRobot,
+    FaMagic
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
@@ -82,6 +84,10 @@ const CustomHeader = ({
     const [years, setYears] = useState<string[]>(['all']);
     const [categories, setCategories] = useState<string[]>(['all']);
     const [loading, setLoading] = useState(false);
+
+    // AI Recommendation states
+    const [aiRecommendation, setAiRecommendation] = useState<string | null>(null);
+    const [isLoadingAi, setIsLoadingAi] = useState(false);
 
     useEffect(() => {
         const fetchFilters = async () => {
@@ -281,6 +287,59 @@ const CustomHeader = ({
         setSearchResults([]);
         setShowSearchResults(false);
         setIsSearchFocused(false);
+        setAiRecommendation(null);
+    };
+
+    const handleRecommendByAi = async () => {
+        if (!localSearchQuery.trim()) return;
+        setIsLoadingAi(true);
+        setAiRecommendation(null);
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/thesis/recommendations`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    prompt: `I am looking for theses related to "${localSearchQuery}". Based on this query, please recommend a better or more specific thesis title. Your response MUST include three distinct sections formatted exactly like this:\n\nFunctional Requirements:\n[Your text here]\n\nConclusion:\n[Your text here]\n\nRecommendations:\n[Your text here]`
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch AI recommendation: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setAiRecommendation(data.recommendation);
+
+            // Save the history to the backend for the user
+            if (token) {
+                try {
+                    await fetch(`${API_BASE_URL}/user/ai-history`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            prompt: localSearchQuery,
+                            recommendation: data.recommendation
+                        })
+                    });
+                } catch (saveError) {
+                    console.error('Quietly failed to save AI history:', saveError);
+                }
+            }
+
+        } catch (error) {
+            console.error('Error getting AI recommendation:', error);
+            toast.error('Failed to get AI recommendation. Please try again.');
+        } finally {
+            setIsLoadingAi(false);
+        }
     };
 
     const handleLogout = () => {
@@ -450,14 +509,36 @@ const CustomHeader = ({
                                 <span className="text-sm font-semibold text-gray-600">
                                     {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
                                 </span>
-                                <button
-                                    className="text-gray-400 text-sm bg-transparent border-none cursor-pointer hover:text-gray-600 p-1"
-                                    onClick={() => setShowSearchResults(false)}
-                                    aria-label="Close results"
-                                >
-                                    <FaTimes />
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={handleRecommendByAi}
+                                        disabled={isLoadingAi}
+                                        className="flex items-center gap-1.5 text-xs font-bold text-[#8b0000] bg-red-50 px-2 py-1 rounded-md hover:bg-red-100 transition-colors disabled:opacity-50"
+                                    >
+                                        <FaMagic className="text-[10px]" />
+                                        {isLoadingAi ? 'Generating...' : 'Recommend via AI'}
+                                    </button>
+                                    <button
+                                        className="text-gray-400 text-sm bg-transparent border-none cursor-pointer hover:text-gray-600 p-1"
+                                        onClick={() => setShowSearchResults(false)}
+                                        aria-label="Close results"
+                                    >
+                                        <FaTimes />
+                                    </button>
+                                </div>
                             </div>
+
+                            {/* AI Recommendation Banner */}
+                            {aiRecommendation && (
+                                <div className="px-4 py-3 bg-blue-50/50 border-b border-blue-100">
+                                    <div className="flex items-start gap-2">
+                                        <FaRobot className="text-blue-500 mt-0.5 shrink-0" />
+                                        <div className="flex-1 whitespace-pre-wrap text-xs text-gray-700 font-medium">
+                                            {aiRecommendation}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="overflow-y-auto flex-1">
                                 {searchResults.map((result, index) => (
