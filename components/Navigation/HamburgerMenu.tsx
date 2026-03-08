@@ -12,7 +12,9 @@ import {
     FaSignOutAlt,
     FaSignInAlt,
     FaChevronRight,
-    FaUserShield
+    FaUserShield,
+    FaFolderOpen,
+    FaUpload
 } from 'react-icons/fa';
 import { IconType } from 'react-icons';
 
@@ -55,7 +57,9 @@ const HamburgerMenu = ({ isVisible, onClose }: HamburgerMenuProps) => {
     const menuItems: MenuItem[] = [
         { icon: FaHome, label: 'Home', path: '/home' },
         ...(user?.isAdmin ? [{ icon: FaUserShield, label: 'Admin Panel', path: '/admin' }] : []),
-        { icon: FaFileAlt, label: 'My Documents', path: '/documents' },
+        { icon: FaFileAlt, label: 'Analysis Workspace', path: '/documents' },
+        { icon: FaUpload, label: 'Submit Thesis', path: '/documents/create' },
+        { icon: FaFolderOpen, label: 'My Submissions', path: '/documents/submissions' },
     ];
 
     const handleMenuItemPress = (path: string) => {
@@ -93,7 +97,7 @@ const HamburgerMenu = ({ isVisible, onClose }: HamburgerMenuProps) => {
             />
 
             {/* Menu */}
-            <div className="fixed top-0 left-0 h-full w-[320px] max-w-[85vw] bg-white shadow-2xl z-[1000] flex flex-col animate-[slide-in-left_0.3s_ease] border-r border-gray-100">
+            <div className="fixed top-0 left-0 h-full w-[340px] max-w-[85vw] bg-white shadow-2xl z-[1000] flex flex-col animate-[slide-in-left_0.3s_ease] border-r border-gray-100">
                 {/* Header Section with TUPT Theme Gradient */}
                 <div className="bg-gradient-to-br from-[#8b0000] to-[#500000] pt-16 pb-8 px-6 relative overflow-hidden border-b-4 border-white/10">
                     {/* Background decoration */}
@@ -139,15 +143,15 @@ const HamburgerMenu = ({ isVisible, onClose }: HamburgerMenuProps) => {
                                     className="w-full flex items-center justify-between py-4 px-4 rounded-2xl bg-transparent border-none cursor-pointer transition-all duration-300 hover:bg-gray-50 group"
                                     onClick={() => handleMenuItemPress(item.path)}
                                 >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center transition-all duration-300 group-hover:bg-[#8b0000] group-hover:shadow-lg">
+                                    <div className="flex items-center gap-4 flex-1 pr-4">
+                                        <div className="w-10 h-10 shrink-0 rounded-xl bg-gray-50 flex items-center justify-center transition-all duration-300 group-hover:bg-[#8b0000] group-hover:shadow-lg">
                                             <IconComponent className="text-lg text-[#8b0000] transition-colors duration-300 group-hover:text-white" />
                                         </div>
-                                        <span className="text-sm font-black text-gray-700 uppercase tracking-wider group-hover:text-[#8b0000] transition-colors duration-300">
+                                        <span className="text-sm font-black text-left leading-tight text-gray-700 uppercase tracking-wider group-hover:text-[#8b0000] transition-colors duration-300">
                                             {item.label}
                                         </span>
                                     </div>
-                                    <FaChevronRight className="text-xs text-gray-300 group-hover:text-[#8b0000] transition-all duration-300 group-hover:translate-x-1" />
+                                    <FaChevronRight className="text-xs shrink-0 text-gray-300 group-hover:text-[#8b0000] transition-all duration-300 group-hover:translate-x-1" />
                                 </button>
                             );
                         })}
