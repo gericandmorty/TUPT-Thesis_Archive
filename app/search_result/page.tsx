@@ -6,7 +6,7 @@ import CustomHeader from '@/components/Navigation/CustomHeader';
 import HamburgerMenu from '@/components/Navigation/HamburgerMenu';
 import Footer from '@/components/Navigation/Footer';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-import { FaCalendarAlt, FaFileAlt, FaUserGraduate, FaArrowLeft, FaBookOpen, FaTimes } from 'react-icons/fa';
+import { FaCalendarAlt, FaFileAlt, FaUserGraduate, FaArrowLeft, FaBookOpen, FaTimes, FaMagic, FaSave, FaRobot } from 'react-icons/fa';
 import Link from 'next/link';
 
 interface Thesis {
@@ -33,9 +33,10 @@ const SearchResultContent = () => {
     const [singleThesis, setSingleThesis] = useState<Thesis | null>(null);
     const [loading, setLoading] = useState(true);
 
-
-
-    useEffect(() => {
+    // AI Feature States
+    const [aiRecommendation, setAiRecommendation] = useState<string | null>(null);
+    const [isLoadingAi, setIsLoadingAi] = useState(false);
+    const [savedPromptSuccess, setSavedPromptSuccess] = useState(false); useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
@@ -115,6 +116,77 @@ const SearchResultContent = () => {
         return match ? match[1].trim() : 'Academic Research Group';
     };
 
+    const handleRecommendByAi = async () => {
+        if (!query) return;
+        setIsLoadingAi(true);
+        setAiRecommendation(null);
+        setSavedPromptSuccess(false);
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/thesis/recommendations`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    prompt: `I am looking for theses related to "${query}". Based on this query, please recommend a better or more specific thesis title. Your response MUST include three distinct sections formatted exactly like this:\n\nFunctional Requirements:\n[Your text here]\n\nConclusion:\n[Your text here]\n\nRecommendations:\n[Your text here]`
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch AI recommendation`);
+            }
+
+            const data = await response.json();
+            setAiRecommendation(data.recommendation);
+
+            // Save the history to the backend for the user
+            if (token) {
+                try {
+                    await fetch(`${API_BASE_URL}/user/ai-history`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            prompt: query,
+                            recommendation: data.recommendation
+                        })
+                    });
+                } catch (saveError) {
+                    console.error('Quietly failed to save AI history:', saveError);
+                }
+            }
+
+        } catch (error) {
+            console.error('Error getting AI recommendation:', error);
+            alert('Failed to get AI recommendation. Please try again.');
+        } finally {
+            setIsLoadingAi(false);
+        }
+    };
+
+    const handleSavePrompt = () => {
+        if (!aiRecommendation || !query) return;
+
+        // Create a blob and download it as a .txt file
+        const blob = new Blob([`Original Search Query: ${query}\n\nAI Recommended Structure:\n\n${aiRecommendation}`], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `AI_Thesis_Recommendation_${query.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        setSavedPromptSuccess(true);
+        setTimeout(() => setSavedPromptSuccess(false), 3000);
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col relative overflow-hidden">
             {/* Background Glows */}
@@ -168,6 +240,53 @@ const SearchResultContent = () => {
                                 )}
                             </div>
                         </div>
+
+                        {/* AI Recommendation Feature for Search Queries */}
+                        {!singleThesis && query && (
+                            <div className="mb-8 bg-white rounded-2xl shadow-lg border border-[#8b0000]/20 overflow-hidden animate-fade-in relative">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-50 to-[#8b0000]/10 rounded-bl-full pointer-events-none -z-0" />
+
+                                <div className="p-6 md:p-8 relative z-10">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-[#8b0000]/10 rounded-xl flex items-center justify-center">
+                                                <FaRobot className="text-[#8b0000] text-xl" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-black text-gray-800 tracking-tight">AI Title Recommendation</h3>
+                                                <p className="text-xs text-gray-500 font-medium tracking-wide">Get a professional thesis title tailored to your search</p>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={handleRecommendByAi}
+                                            disabled={isLoadingAi}
+                                            className="flex items-center justify-center gap-2 bg-[#8b0000] text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-red-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed active:scale-95"
+                                        >
+                                            <FaMagic className={isLoadingAi ? 'animate-spin' : ''} />
+                                            {isLoadingAi ? 'Generating Idea...' : 'Recommend by AI'}
+                                        </button>
+                                    </div>
+
+                                    {aiRecommendation && (
+                                        <div className="mt-4 animate-fade-in">
+                                            <div className="bg-gray-50 border border-gray-100 rounded-xl p-5 md:p-6 shadow-inner whitespace-pre-wrap text-sm text-gray-700 font-medium leading-relaxed">
+                                                {aiRecommendation}
+                                            </div>
+                                            <div className="mt-4 flex justify-end">
+                                                <button
+                                                    onClick={handleSavePrompt}
+                                                    className={`flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold transition-all shadow-sm ${savedPromptSuccess ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'}`}
+                                                >
+                                                    <FaSave className={savedPromptSuccess ? 'text-green-600' : 'text-gray-500'} />
+                                                    {savedPromptSuccess ? 'Saved Locally!' : 'Save Prompt'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {singleThesis ? (
                             /* Detail View */
