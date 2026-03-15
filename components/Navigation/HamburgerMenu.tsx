@@ -44,8 +44,17 @@ const HamburgerMenu = ({ isVisible, onClose }: HamburgerMenuProps) => {
     const [user, setUser] = useState<UserData | null>(null);
 
     useEffect(() => {
-        if (isVisible) loadUserData();
-    }, [isVisible]);
+        loadUserData();
+
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'userData') {
+                loadUserData();
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     const loadUserData = async () => {
         try {
