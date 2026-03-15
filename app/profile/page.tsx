@@ -39,15 +39,36 @@ const ProfilePage = () => {
     const [menuVisible, setMenuVisible] = useState(false);
 
     useEffect(() => {
-        const userData = localStorage.getItem('userData');
-        const token = localStorage.getItem('token');
+        const fetchUserProfile = async () => {
+            const rawUserData = localStorage.getItem('userData');
+            const token = localStorage.getItem('token');
 
-        if (!userData || !token) {
-            router.push('/login');
-            return;
-        }
+            if (!rawUserData || !token) {
+                router.push('/login');
+                return;
+            }
 
-        setUser(JSON.parse(userData));
+            const storedUser = JSON.parse(rawUserData);
+            setUser(storedUser);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/user/profile?userId=${storedUser._id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setUser(data.data.user);
+                    localStorage.setItem('userData', JSON.stringify(data.data.user));
+                }
+            } catch (error) {
+                console.error('Error fetching latest profile:', error);
+            }
+        };
+
+        fetchUserProfile();
     }, [router]);
 
     if (!user) return null;

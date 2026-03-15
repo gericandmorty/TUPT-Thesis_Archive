@@ -71,15 +71,7 @@ const Login: React.FC = () => {
             const data = await response.json();
 
             if (response.ok) {
-                const userData = {
-                    _id: data.user._id,
-                    name: data.user.name,
-                    idNumber: data.user.idNumber,
-                    birthdate: data.user.birthdate,
-                    age: data.user.age,
-                    createdAt: data.user.createdAt,
-                    isAdmin: data.user.isAdmin,
-                };
+                const userData = data.user;
 
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('userData', JSON.stringify(userData));
