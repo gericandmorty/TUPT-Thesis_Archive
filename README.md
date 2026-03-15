@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TUPT Thesis Archive - Web Application
 
-## Getting Started
+The official web platform for the Technological University of the Philippines Taguig Thesis Archive. A centralized digital repository designed to preserve, manage, and explore years of institutional research excellence.
 
-First, run the development server:
+**🌐 Live Site:** [https://tupt-thesis-archive.vercel.app](https://tupt-thesis-archive.vercel.app)
 
+---
+
+## 🌟 Features
+
+- **Advanced Search Interface**: Semantic search with real-time suggestions and comprehensive indexing of titles, abstracts, and authors.
+- **Interactive Dashboard**: Visualized research analytics using Recharts, showing trends in departments and academic years.
+- **Premium UI Design**: Built with Tailwind CSS and Framer Motion for a modern, responsive, and institutional experience.
+- **Secure Research Portal**: User authentication for students and faculty to manage their own research submissions.
+- **Admin Management**: Dedicated controls for institutional oversight and archive management.
+- **Responsive Layout**: Fully optimized for Desktop, Tablet, and Mobile browsers.
+
+---
+
+## 🛠️ Technical Stack
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **Language**: TypeScript
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Charts**: [Recharts](https://recharts.org/)
+- **Icons**: React Icons (Ionicons, Fa, etc.)
+- **Notifications**: React Toastify
+
+---
+
+## 📋 Prerequisites
+
+- **Node.js**: v18.x or later recommended.
+- **Backend API**: The [TUPT-Thesis Backend](https://github.com/gericandmorty/TUPT-Thesis) must be running for data fetching.
+
+---
+
+## ⚙️ Setup Instructions
+
+### 1. Clone the Repository
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/gericandmorty/TUPT-Thesis.git
+cd web
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Environment Variables
+Create a `.env.local` file in the `web` directory:
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📂 Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `app/`: Next.js App Router pages and layouts.
+- `components/`: Reusable UI components (Navigation, Tables, Charts).
+- `lib/`: Utility functions and helper classes.
+- `public/`: Static assets (Logos, SVGs, Fonts).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🤝 Institutional Note
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This platform is developed specifically for **TUP Taguig** to modernize the academic research archiving process. All rights reserved by the institutional contributors.
