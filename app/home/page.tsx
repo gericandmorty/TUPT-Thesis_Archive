@@ -275,7 +275,7 @@ const HomePage: React.FC = () => {
                                 Welcome back, <span className="text-primary">{user?.name || 'Researcher'}</span>
                             </h1>
                             <p className="text-sm text-white/50 font-medium mt-4 max-w-2xl leading-relaxed">
-                                Access your institutional repository, manage active research projects, and leverage AI-assisted document analysis tools.
+                                Access your thesis repository, manage active research projects, and leverage AI-assisted document analysis tools.
                             </p>
                         </motion.div>
                     </div>
@@ -304,9 +304,9 @@ const HomePage: React.FC = () => {
                             transition={{ delay: 0.2 }}
                         >
                              <div>
-                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mb-1">Research Insights</p>
+                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mb-1">AI Help</p>
                                  <p className="text-3xl font-bold text-foreground leading-none tracking-tighter">{aiHistory.length + localHistory.length}</p>
-                                 <p className="text-[10px] text-purple-400/70 font-bold uppercase tracking-[0.1em] mt-3">Analyses Generated</p>
+                                 <p className="text-[10px] text-purple-400/70 font-bold uppercase tracking-[0.1em] mt-3">Results Found</p>
                              </div>
                             <div className="w-14 h-14 rounded-xl bg-purple-500/5 flex items-center justify-center border border-purple-500/20 group-hover:bg-purple-500/10 transition-colors">
                                 <FaRobot className="text-xl text-purple-400" />
@@ -322,7 +322,7 @@ const HomePage: React.FC = () => {
                             <div>
                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mb-1">Recently Viewed</p>
                                 <p className="text-3xl font-bold text-foreground leading-none tracking-tighter">{recentTheses.length}</p>
-                                <p className="text-[10px] text-orange-400/70 font-bold uppercase tracking-[0.1em] mt-3">Active Session</p>
+                                <p className="text-[10px] text-orange-400/70 font-bold uppercase tracking-[0.1em] mt-3">Recent Activity</p>
                             </div>
                             <div className="w-14 h-14 rounded-xl bg-orange-500/5 flex items-center justify-center border border-orange-500/20 group-hover:bg-orange-500/10 transition-colors">
                                 <FaHistory className="text-xl text-orange-400" />
@@ -335,7 +335,7 @@ const HomePage: React.FC = () => {
                             <div className="flex items-center justify-between">
                                  <h2 className="text-[10px] font-bold text-white/40 tracking-[0.3em] uppercase flex items-center gap-4">
                                      <span className="w-1 h-5 bg-primary rounded-full" />
-                                     Research Insight Log
+                                     Research History
                                  </h2>
                                 <div className="flex items-center gap-4">
                                     {(aiHistory.length > 0 || localHistory.length > 0) && (
@@ -343,18 +343,18 @@ const HomePage: React.FC = () => {
                                             onClick={() => setClearAllModalOpen(true)}
                                             className="text-[9px] font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors"
                                         >
-                                            Purge Log
+                                            Clear History
                                         </button>
                                     )}
                                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-300/70 bg-blue-900/20 px-4 py-1.5 rounded-lg border border-blue-800/30 flex items-center gap-2">
-                                        <FaBrain className="text-[10px]" /> Intelligence Enabled
+                                        <FaBrain className="text-[10px]" /> AI Analysis Ready
                                     </span>
                                 </div>
                             </div>
 
                             <div className="bg-card rounded-2xl border border-border-custom shadow-xl overflow-hidden backdrop-blur-md">
                                 {loadingAi ? (
-                                    <div className="p-16 text-center text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em]">Initialising Secure Log...</div>
+                                    <div className="p-16 text-center text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em]">Loading history...</div>
                                 ) : (aiHistory.length > 0 || localHistory.length > 0) ? (
                                     <div className="divide-y divide-white/[0.03]">
                                         {[
@@ -390,7 +390,7 @@ const HomePage: React.FC = () => {
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">
-                                                                            {item.type === 'local' ? 'Archive Audit' : 'AI Optimization'}
+                                                                            {item.type === 'local' ? 'Search Match' : 'AI Recommendation'}
                                                                         </span>
                                                                         <span className="text-white/10">•</span>
                                                                         <span className="text-[9px] text-gray-500 font-medium tracking-wide">
@@ -404,7 +404,7 @@ const HomePage: React.FC = () => {
                                                             <button
                                                                 onClick={(e) => handleDeleteAiHistory(item._id, e)}
                                                                 className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 p-2.5 rounded-xl hover:bg-red-400/5 transition-all"
-                                                                title="Purge Entry"
+                                                                title="Delete Entry"
                                                             >
                                                                 <FaTrash className="text-[10px]" />
                                                             </button>
@@ -417,7 +417,7 @@ const HomePage: React.FC = () => {
                                         {(aiHistory.length + localHistory.length) > 5 && (
                                             <div className="p-4 bg-white/[0.01] text-center border-t border-white/[0.03]">
                                                 <button className="text-[9px] font-bold text-gray-500 uppercase tracking-[0.25em] hover:text-primary transition-colors">
-                                                    Open Dimensional Audit Log
+                                                    View Full History
                                                 </button>
                                             </div>
                                         )}
@@ -427,7 +427,7 @@ const HomePage: React.FC = () => {
                                         <div className="w-16 h-16 bg-white/[0.02] rounded-2xl flex items-center justify-center mb-6 border border-white/[0.03]">
                                             <FaBrain className="text-gray-800 text-2xl" />
                                         </div>
-                                        <p className="text-gray-600 font-bold text-[10px] uppercase tracking-[0.3em]">Log sequence empty</p>
+                                        <p className="text-gray-600 font-bold text-[10px] uppercase tracking-[0.3em]">No history found</p>
                                     </div>
                                 )}
                             </div>
@@ -445,7 +445,7 @@ const HomePage: React.FC = () => {
                                             onClick={clearHistory}
                                             className="text-[9px] font-bold uppercase tracking-widest text-orange-400/40 hover:text-orange-400 transition-colors"
                                         >
-                                            Clear Manifest
+                                            Clear All
                                         </button>
                                     )}
                                 </div>
@@ -478,7 +478,7 @@ const HomePage: React.FC = () => {
                             <div className="flex flex-col">
                                 <h2 className="text-[10px] font-bold text-white/40 tracking-[0.3em] uppercase flex items-center gap-4 mb-6">
                                     <span className="w-0.5 h-4 bg-primary/40" />
-                                    Archive Analytics
+                                    Thesis Categories
                                 </h2>
                                 <div className="bg-card rounded-2xl border border-border-custom shadow-xl p-4 flex-grow">
                                     <div className="space-y-1.5">
@@ -500,8 +500,6 @@ const HomePage: React.FC = () => {
                 </div>
             </main>
 
-            <Footer />
-
             {deleteModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in text-white/90">
                     <motion.div
@@ -516,7 +514,7 @@ const HomePage: React.FC = () => {
                             <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center mb-6 border border-white/[0.05]">
                                 <FaTrash className="text-primary text-2xl" />
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-3">Purge Insight?</h3>
+                            <h3 className="text-xl font-bold text-white mb-3">Delete Analysis?</h3>
                             <p className="text-sm text-white/40 font-medium mb-10 leading-relaxed">
                                 Are you sure you want to permanently remove this insight from the research log? This action cannot be reversed.
                             </p>
@@ -535,7 +533,7 @@ const HomePage: React.FC = () => {
                                     onClick={confirmDeleteAiHistory}
                                     className="flex-1 bg-primary/10 border border-primary/20 text-primary font-bold text-[10px] uppercase tracking-[0.2em] py-3.5 rounded-xl transition-all duration-300 hover:bg-primary/20"
                                 >
-                                    Confirm Purge
+                                    Confirm Delete
                                 </button>
                             </div>
                         </div>
@@ -557,9 +555,9 @@ const HomePage: React.FC = () => {
                             <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center mb-6 border border-white/[0.05]">
                                 <FaTrash className="text-primary text-2xl" />
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-3">Complete Purge?</h3>
+                            <h3 className="text-xl font-bold text-white mb-3">Clear All History?</h3>
                             <p className="text-sm text-white/40 font-medium mb-10 leading-relaxed">
-                                You are about to wipe the entire research insight log. All dimensionality data and AI recommendations will be lost.
+                                You are about to wipe the entire research insight log. All search results and AI recommendations will be lost.
                             </p>
 
                             <div className="flex w-full gap-4">
@@ -573,7 +571,7 @@ const HomePage: React.FC = () => {
                                     onClick={confirmClearAllAiHistory}
                                     className="flex-1 bg-primary/10 border border-primary/20 text-primary font-bold text-[10px] uppercase tracking-[0.2em] py-3.5 rounded-xl transition-all duration-300 hover:bg-primary/20"
                                 >
-                                    Execute Purge
+                                    Clear All
                                 </button>
                             </div>
                         </div>
@@ -597,7 +595,7 @@ const HomePage: React.FC = () => {
                             </div>
                             <div>
                                 <h3 className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-none mb-2">
-                                    {selectedAiItem.similarity !== undefined ? 'Archive Dimensional Analysis' : 'Synthesis Optimization'}
+                                    {selectedAiItem.similarity !== undefined ? 'Thesis Analysis' : 'Research Recommendation'}
                                 </h3>
                                 <p className="text-xs text-white/40 font-bold uppercase tracking-[0.2em]">Target: "{selectedAiItem.prompt}"</p>
                             </div>
@@ -606,9 +604,9 @@ const HomePage: React.FC = () => {
                         {selectedAiItem.similarity !== undefined && (
                             <div className="mb-8 bg-white/[0.02] rounded-xl p-6 border border-white/[0.03] animate-fade-in flex-shrink-0">
                                 <div className="flex items-center justify-between mb-3">
-                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Similarity Metrics</span>
+                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Matching Details</span>
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-black tracking-widest uppercase ${selectedAiItem.similarity > 40 ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`}>
-                                        {selectedAiItem.similarity}% Structural Match
+                                        {selectedAiItem.similarity}% Similarity Score
                                     </span>
                                 </div>
                                 {selectedAiItem.match && (
@@ -654,7 +652,7 @@ const HomePage: React.FC = () => {
                                 className="flex items-center gap-3 px-10 py-4 rounded-xl text-[10px] font-bold tracking-[0.25em] uppercase transition-all duration-300 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/40 active:scale-95"
                             >
                                 <FaSave className="text-lg" />
-                                Export Protocol
+                                Download Analysis
                             </button>
                         </div>
                     </div>

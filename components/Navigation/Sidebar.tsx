@@ -72,12 +72,29 @@ const Sidebar = ({ isExpanded, onToggle }: SidebarProps) => {
         { icon: FaFolderOpen, label: 'My Submissions', path: '/documents/submissions' },
     ];
 
-    const handleLogout = () => {
-        const userName = user?.name || 'User';
-        localStorage.removeItem('userData');
-        localStorage.removeItem('token');
-        toast.success(`Goodbye, ${userName}! You have been logged out.`);
-        router.push('/login');
+    const handleLogout = async () => {
+        try {
+            const userName = user?.name || 'User';
+            
+            // Call backend logout endpoint
+            await fetch(`${API_BASE_URL}/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            localStorage.removeItem('userData');
+            localStorage.removeItem('token');
+            toast.success(`Goodbye, ${userName}! You have been logged out.`);
+            router.push('/login');
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Still clear local storage even if backend fails
+            localStorage.removeItem('userData');
+            localStorage.removeItem('token');
+            router.push('/login');
+        }
     };
 
     if (!mounted) return null;

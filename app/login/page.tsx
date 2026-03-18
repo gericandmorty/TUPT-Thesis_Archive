@@ -4,6 +4,7 @@ import { useState, KeyboardEvent, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import API_BASE_URL from '@/lib/api';
 import CustomHeader from '@/components/Navigation/CustomHeader';
 import LottieLoader from '@/components/UI/LottieLoader';
@@ -12,6 +13,7 @@ const Login: React.FC = () => {
     const router = useRouter();
     const [idNumber, setIdNumber] = useState<string>('');
     const [password, setPassword] = useState<string>('');
+    const [showPassword, setShowPassword] = useState<boolean>(false);
     const [birthdate, setBirthdate] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [mounted, setMounted] = useState(false);
@@ -150,15 +152,24 @@ const Login: React.FC = () => {
 
                             <div className="space-y-1">
                                 <label className="text-[13px] font-bold text-text-dim">Password:</label>
-                                <input
-                                    type="password"
-                                    className="w-full h-12 bg-surface border border-border-custom px-4 rounded-xl text-sm text-foreground placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:bg-card transition-all font-bold"
-                                    placeholder="Password"
-                                    value={password}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                                    onKeyPress={handleKeyPress}
-                                    suppressHydrationWarning={true}
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        className="w-full h-12 bg-surface border border-border-custom px-4 pr-12 rounded-xl text-sm text-foreground placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:bg-card transition-all font-bold"
+                                        placeholder="Password"
+                                        value={password}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                                        onKeyPress={handleKeyPress}
+                                        suppressHydrationWarning={true}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors focus:outline-none"
+                                    >
+                                        {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="space-y-1">

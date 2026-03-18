@@ -14,22 +14,11 @@ const Footer: React.FC = () => {
                         <p className="text-[10px] text-white/50 font-bold uppercase tracking-[0.4em] text-center">
                             Technological University of the Philippines &bull; Taguig
                         </p>
-                        <p className="text-[9px] text-white/30 font-bold uppercase tracking-[0.3em] text-center">
-                            Institutional Thesis Archive &copy; {new Date().getFullYear()}
-                        </p>
                     </div>
 
                     <div className="flex items-center gap-8">
-                        <div className="h-px w-12 bg-card/10" />
-                        <div className="flex gap-6">
-                            <span className="text-[8px] font-bold text-white/20 uppercase tracking-[0.2em] hover:text-white/40 transition-colors cursor-default">
-                                Build v1.2.0
-                            </span>
-                            <span className="text-[8px] font-bold text-white/20 uppercase tracking-[0.2em] hover:text-white/40 transition-colors cursor-default">
-                                Secure Archive Portal
-                            </span>
-                        </div>
-                        <div className="h-px w-12 bg-card/10" />
+                        <div className="h-px w-24 bg-card/10" />
+                        <div className="h-px w-24 bg-card/10" />
                     </div>
                 </div>
             </div>

@@ -330,13 +330,29 @@ const CustomHeader = ({
         }
     };
 
-    const handleLogout = () => {
-        const userDataString = localStorage.getItem('userData');
-        const userName = userDataString ? JSON.parse(userDataString).name : 'Admin';
-        localStorage.removeItem('userData');
-        localStorage.removeItem('token');
-        toast.success(`Goodbye, ${userName}! You have been logged out successfully.`);
-        router.push('/login');
+    const handleLogout = async () => {
+        try {
+            const userDataString = localStorage.getItem('userData');
+            const userName = userDataString ? JSON.parse(userDataString).name : 'Admin';
+            
+            // Call backend logout endpoint
+            await fetch(`${API_BASE_URL}/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            localStorage.removeItem('userData');
+            localStorage.removeItem('token');
+            toast.success(`Goodbye, ${userName}! You have been logged out successfully.`);
+            router.push('/login');
+        } catch (error) {
+            console.error('Logout error:', error);
+            localStorage.removeItem('userData');
+            localStorage.removeItem('token');
+            router.push('/login');
+        }
     };
 
     const handleFilterChange = (filterType: keyof Filters, value: string) => {
@@ -485,7 +501,7 @@ const CustomHeader = ({
                                         className="flex items-center gap-1.5 text-xs font-bold text-[#2DD4BF] bg-teal-50/5 px-3 py-1.5 rounded-lg border border-teal-500/20 hover:bg-teal-500/10 transition-colors disabled:opacity-50"
                                     >
                                         <FaMagic className="text-[10px]" />
-                                        {isLoadingAi ? 'Analyzing...' : 'AI Recommend'}
+                                        {isLoadingAi ? 'Loading...' : 'AI Suggest'}
                                     </button>
                                     <button
                                         className="text-gray-400 text-sm bg-transparent border-none cursor-pointer hover:text-text-dim p-1"
@@ -547,7 +563,7 @@ const CustomHeader = ({
 
                             <div className="px-4 py-2.5 bg-surface/80 border-t border-border-custom text-center">
                                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                                    {loading ? 'Processing...' : 'Secure Archive Search'}
+                                    {loading ? 'Processing...' : 'End of results'}
                                 </span>
                             </div>
                         </div>

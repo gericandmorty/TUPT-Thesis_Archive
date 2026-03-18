@@ -139,7 +139,7 @@ const ProfilePage = () => {
                                             {user.idNumber}
                                         </span>
                                         <span className="bg-primary/5 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-primary/30 shadow-sm text-primary">
-                                            Institutional Access
+                                            Student Access
                                         </span>
                                     </div>
                                 </div>
@@ -203,7 +203,7 @@ const ProfilePage = () => {
 
                     <div className="mt-8 text-center pb-20">
                         <p className="text-[9px] text-white/20 font-bold uppercase tracking-[0.3em]">
-                            Student Information System • TUPT Archive
+                            Student Information System • TUPT Thesis
                         </p>
                     </div>
                 </div>

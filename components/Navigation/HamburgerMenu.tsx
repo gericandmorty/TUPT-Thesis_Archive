@@ -81,14 +81,28 @@ const HamburgerMenu = ({ isVisible, onClose }: HamburgerMenuProps) => {
     const handleLogout = async () => {
         try {
             const userName = user?.name || 'User';
+
+            // Call backend logout endpoint
+            await fetch(`${API_BASE_URL}/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
             localStorage.removeItem('userData');
+            localStorage.removeItem('token');
             setUser(null);
             onClose();
             toast.success(`Goodbye, ${userName}! You have been logged out successfully.`);
             setTimeout(() => { router.push('/login'); }, 1500);
         } catch (error) {
             console.error('Error during logout:', error);
-            toast.error('There was an error logging out. Please try again.');
+            localStorage.removeItem('userData');
+            localStorage.removeItem('token');
+            setUser(null);
+            onClose();
+            router.push('/login');
         }
     };
 

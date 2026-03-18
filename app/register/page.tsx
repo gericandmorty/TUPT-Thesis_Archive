@@ -4,6 +4,7 @@ import { useState, KeyboardEvent, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import API_BASE_URL from '@/lib/api';
 import CustomHeader from '@/components/Navigation/CustomHeader';
 import LottieLoader from '@/components/UI/LottieLoader';
@@ -28,6 +29,8 @@ const Register: React.FC = () => {
         confirmPassword: '',
         isGraduate: false,
     });
+    const [showPassword, setShowPassword] = useState<boolean>(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     useEffect(() => {
@@ -198,28 +201,46 @@ const Register: React.FC = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className={labelClasses}>Password:</label>
-                                    <input
-                                        type="password"
-                                        className={inputInnerClasses}
-                                        placeholder="••••••••"
-                                        value={formData.password}
-                                        onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange('password', e.target.value)}
-                                        onKeyPress={handleKeyPress}
-                                        suppressHydrationWarning={true}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            className={`${inputInnerClasses} pr-12`}
+                                            placeholder="••••••••"
+                                            value={formData.password}
+                                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange('password', e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                            suppressHydrationWarning={true}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors focus:outline-none"
+                                        >
+                                            {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-1">
                                     <label className={labelClasses}>Repeat Password:</label>
-                                    <input
-                                        type="password"
-                                        className={inputInnerClasses}
-                                        placeholder="••••••••"
-                                        value={formData.confirmPassword}
-                                        onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange('confirmPassword', e.target.value)}
-                                        onKeyPress={handleKeyPress}
-                                        suppressHydrationWarning={true}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            className={`${inputInnerClasses} pr-12`}
+                                            placeholder="••••••••"
+                                            value={formData.confirmPassword}
+                                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange('confirmPassword', e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                            suppressHydrationWarning={true}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors focus:outline-none"
+                                        >
+                                            {showConfirmPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 

@@ -303,8 +303,8 @@ const SearchResultContent = () => {
                                                 <FaRobot className="text-primary text-xl" />
                                             </div>
                                             <div>
-                                                <h3 className="text-lg font-bold text-foreground tracking-tight">Proposed Refinements</h3>
-                                                <p className="text-[11px] text-text-dim font-medium tracking-wide">Optimize your thesis title using institutional AI analysis</p>
+                                                <h3 className="text-lg font-bold text-foreground tracking-tight">Suggested Improvements</h3>
+                                                <p className="text-[11px] text-text-dim font-medium tracking-wide">Get AI suggestions for your thesis title</p>
                                             </div>
                                         </div>
 
@@ -315,7 +315,7 @@ const SearchResultContent = () => {
                                                 className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg transition-all duration-300 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed ${aiRecommendation ? 'bg-primary text-white border-none' : 'bg-primary/5 text-primary border border-primary/30 hover:bg-primary/10 hover:border-primary/50'}`}
                                             >
                                                 <FaMagic className={isLoadingAi ? 'animate-spin' : ''} />
-                                                {isLoadingAi ? 'Analyzing...' : aiRecommendation ? 'View Proposal' : 'AI Refine'}
+                                                {isLoadingAi ? 'Analyzing...' : aiRecommendation ? 'View Suggestion' : 'AI Suggest'}
                                             </button>
                                             
                                             <button
@@ -324,7 +324,7 @@ const SearchResultContent = () => {
                                                 className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg transition-all duration-300 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed ${localComparison ? 'bg-primary text-white border-none' : 'bg-primary/5 text-primary border border-primary/30 hover:bg-primary/20 hover:border-primary/50'}`}
                                             >
                                                 <FaBookOpen className={isLoadingLocal ? 'animate-spin' : ''} />
-                                                {isLoadingLocal ? 'Checking...' : localComparison ? 'View Results' : 'Archive Audit'}
+                                                {isLoadingLocal ? 'Checking...' : localComparison ? 'View Results' : 'Check Similarity'}
                                             </button>
                                         </div>
                                     </div>
@@ -400,7 +400,7 @@ const SearchResultContent = () => {
 
                                             {/* Authors / Investigative Council */}
                                             <div className="mb-14 text-center">
-                                                <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-stone-400 mb-8">Investigative Council</h3>
+                                                <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-stone-400 mb-8">Authors</h3>
                                                 <div className="flex flex-col items-center">
                                                     <p className="text-lg md:text-xl font-bold text-stone-900 leading-tight font-serif italic mb-2">
                                                         {extractAuthors(singleThesis)}
@@ -411,7 +411,7 @@ const SearchResultContent = () => {
 
                                             {/* Abstract Section - DROP CAP & JUSTIFIED */}
                                             <div className="relative">
-                                                <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-stone-400 mb-8">Executive Abstract</h3>
+                                                <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-stone-400 mb-8">Abstract</h3>
                                                 <div className="text-stone-800 leading-[1.8] text-[14px] font-medium text-justify font-serif">
                                                     {singleThesis.abstract ? (
                                                         <p className="first-letter:text-5xl first-letter:font-black first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:leading-[1] first-letter:text-stone-900">
@@ -467,8 +467,8 @@ const SearchResultContent = () => {
                                             <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                                                 <FaFileAlt className="text-primary/50" /> {thesis.id}
                                             </div>
-                                            <button className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/5 border border-primary/30 px-4 py-2 rounded-xl transition-all duration-300 hover:bg-primary/20 hover:border-primary/50 hover:shadow-[0_0_15px_rgba(45,212,191,0.1)] active:scale-95">
-                                                Review Record
+                                            <button className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/5 border border-primary/30 px-4 py-2 rounded-xl transition-all duration-300 hover:bg-primary/20 hover:border-primary/50 hover:shadow-[0_0_15px_rgba(45,212,191,0.15)] active:scale-95">
+                                                View Details
                                             </button>
                                         </div>
                                     </Link>
@@ -509,7 +509,7 @@ const SearchResultContent = () => {
                             </div>
                             <div>
                                 <h3 className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-none mb-2">
-                                    {localComparison ? 'Archive Audit Results' : 'Refinement Proposal'}
+                                    {localComparison ? 'Archive Audit Results' : 'AI Suggestion'}
                                 </h3>
                                 <p className="text-xs text-white/40 font-bold uppercase tracking-[0.2em]">Target: &quot;{query}&quot;</p>
                             </div>
@@ -518,9 +518,9 @@ const SearchResultContent = () => {
                         {localComparison && (
                             <div className="mb-8 bg-white/[0.02] rounded-xl p-6 border border-white/[0.03] animate-fade-in flex-shrink-0">
                                 <div className="flex items-center justify-between mb-3">
-                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Similarity Metrics</span>
+                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Matching Details</span>
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-widest uppercase ${localComparison.similarity > 40 ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`}>
-                                        {localComparison.similarity}% Structural Match
+                                        {localComparison.similarity}% Similarity Score
                                     </span>
                                 </div>
                                 {localComparison.match && (
@@ -564,7 +564,7 @@ const SearchResultContent = () => {
                                 className={`flex items-center gap-3 px-8 py-3.5 rounded-xl text-[10px] font-bold tracking-[0.2em] uppercase transition-all duration-300 shadow-lg active:scale-95 ${savedPromptSuccess ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-primary/5 text-primary border border-primary/30 hover:bg-primary/20 hover:border-primary/50 hover:shadow-[0_0_20px_rgba(45,212,191,0.15)]'}`}
                             >
                                 <FaSave className={savedPromptSuccess ? 'text-green-500 text-lg' : 'text-primary text-lg'} />
-                                {savedPromptSuccess ? 'Protocol Saved' : 'Export Analysis'}
+                                {savedPromptSuccess ? 'Analysis Saved' : 'Download Analysis'}
                             </button>
                         </div>
                     </div>
