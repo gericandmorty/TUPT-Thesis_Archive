@@ -22,7 +22,7 @@ export default function AdminTableSkeleton() {
                 </div>
 
                 {/* Table Skeleton */}
-                <div className="bg-white/5 rounded-[2.5rem] border border-white/10 overflow-hidden">
+                <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
                     <div className="h-16 px-8 flex items-center border-b border-white/10">
                         <Skeleton width="100%" height="20px" borderRadius="0.5rem" className="opacity-20" />
                     </div>

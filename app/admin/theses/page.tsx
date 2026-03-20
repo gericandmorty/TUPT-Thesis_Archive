@@ -269,7 +269,7 @@ export default function AdminThesesPage() {
                     animate="visible"
                     variants={fadeUp}
                     transition={{ ...fadeUpTransition, delay: 0.2 }}
-                    className="bg-card rounded-[2.5rem] shadow-2xl border border-border-custom overflow-hidden mb-12 backdrop-blur-md"
+                    className="bg-card rounded-2xl shadow-2xl border border-border-custom overflow-hidden mb-12 backdrop-blur-md"
                 >
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -351,7 +351,7 @@ export default function AdminThesesPage() {
                         animate="visible"
                         variants={fadeUp}
                         transition={{ ...fadeUpTransition, delay: 0.3 }}
-                        className="flex items-center justify-between bg-white/[0.02] backdrop-blur-md p-6 rounded-[2rem] border border-white/[0.05]"
+                        className="flex items-center justify-between bg-white/[0.02] backdrop-blur-md p-6 rounded-2xl border border-white/[0.05]"
                     >
                         <div className="flex items-center gap-4 text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">
                             <span className="px-4 py-2 bg-white/5 rounded-full border border-white/5 text-white/60">Page {currentPage} of {totalPages}</span>
@@ -390,34 +390,34 @@ export default function AdminThesesPage() {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative bg-[#1A1A2E]/90 backdrop-blur-2xl w-full max-w-2xl rounded-3xl shadow-2xl border border-white/10 overflow-hidden"
+                            className="relative bg-[#1A1A2E]/90 backdrop-blur-2xl w-full max-w-2xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden"
                         >
-                            <div className="p-10 border-b border-white/[0.05] flex items-center justify-between bg-white/[0.02]">
+                            <div className="p-8 border-b border-white/[0.05] flex items-center justify-between bg-white/[0.02]">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white tracking-tight mb-1">{isAddModalOpen ? 'Add Thesis' : 'Edit Thesis'}</h2>
-                                    <p className="text-[10px] text-primary/60 font-medium uppercase tracking-[0.2em]">{isAddModalOpen ? 'Archive a new research paper' : 'Update thesis details'}</p>
+                                    <h2 className="text-xl font-bold text-white tracking-tight mb-0.5">{isAddModalOpen ? 'Add Thesis' : 'Edit Thesis'}</h2>
+                                    <p className="text-[9px] text-primary/60 font-medium uppercase tracking-[0.2em]">{isAddModalOpen ? 'Archive a new research paper' : 'Update thesis details'}</p>
                                 </div>
                                 <button onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white/40 hover:bg-white/10 hover:text-white transition-all border border-white/5"><FaTimes className="text-sm" /></button>
                             </div>
-                            <form onSubmit={isAddModalOpen ? handleCreateThesis : handleUpdateThesis} className="p-10 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                            <form onSubmit={isAddModalOpen ? handleCreateThesis : handleUpdateThesis} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                                 <div className="md:col-span-2">
-                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2.5 ml-1">Thesis Title</label>
-                                    <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-5 py-4 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white placeholder:text-white/20" placeholder="The title of the research paper" />
+                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Thesis Title</label>
+                                    <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white placeholder:text-white/20" placeholder="The title of the research paper" />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2.5 ml-1">Author</label>
-                                    <input type="text" required value={formData.author} onChange={(e) => setFormData({...formData, author: e.target.value})} className="w-full px-5 py-4 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white placeholder:text-white/20" placeholder="Full name" />
+                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Author</label>
+                                    <input type="text" required value={formData.author} onChange={(e) => setFormData({...formData, author: e.target.value})} className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white placeholder:text-white/20" placeholder="Full name" />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2.5 ml-1">Thesis ID</label>
-                                    <input type="text" required value={formData.id} onChange={(e) => setFormData({...formData, id: e.target.value})} className="w-full px-5 py-4 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white placeholder:text-white/20 disabled:opacity-50" placeholder="e.g. TH-2025-001" disabled={isEditModalOpen} />
+                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Thesis ID</label>
+                                    <input type="text" required value={formData.id} onChange={(e) => setFormData({...formData, id: e.target.value})} className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white placeholder:text-white/20 disabled:opacity-50" placeholder="e.g. TH-2025-001" disabled={isEditModalOpen} />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2.5 ml-1">Year / Batch</label>
-                                    <input type="text" required value={formData.year_range} onChange={(e) => setFormData({...formData, year_range: e.target.value})} className="w-full px-5 py-4 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white" />
+                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Year / Batch</label>
+                                    <input type="text" required value={formData.year_range} onChange={(e) => setFormData({...formData, year_range: e.target.value})} className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white" />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2.5 ml-1">Department</label>
+                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Department</label>
                                     <div className="relative">
                                         <input
                                             type="text"
@@ -425,7 +425,7 @@ export default function AdminThesesPage() {
                                             required
                                             value={formData.category}
                                             onChange={(e) => setFormData({...formData, category: e.target.value})}
-                                            className="w-full px-5 py-4 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white placeholder:text-white/20"
+                                            className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white placeholder:text-white/20"
                                             placeholder="Type or select department"
                                         />
                                         <datalist id="category-suggestions">
@@ -436,11 +436,11 @@ export default function AdminThesesPage() {
                                     </div>
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2.5 ml-1">Abstract</label>
-                                    <textarea required value={formData.abstract} onChange={(e) => setFormData({...formData, abstract: e.target.value})} rows={5} className="w-full px-5 py-4 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white placeholder:text-white/20 resize-none leading-relaxed" placeholder="Brief overview of the research..."></textarea>
+                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Abstract</label>
+                                    <textarea required value={formData.abstract} onChange={(e) => setFormData({...formData, abstract: e.target.value})} rows={3} className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white placeholder:text-white/20 resize-none leading-relaxed" placeholder="Brief overview of the research..."></textarea>
                                 </div>
-                                <div className="md:col-span-2 pt-6">
-                                    <button type="submit" disabled={isSubmitting} className="w-full py-5 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg shadow-teal-500/10 disabled:opacity-50 active:scale-[0.98]">
+                                <div className="md:col-span-2 pt-4">
+                                    <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-lg shadow-teal-500/10 disabled:opacity-50 active:scale-[0.98]">
                                         {isSubmitting ? 'Saving...' : (isAddModalOpen ? 'Add Thesis' : 'Save Changes')}
                                     </button>
                                 </div>

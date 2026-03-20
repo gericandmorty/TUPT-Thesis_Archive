@@ -184,7 +184,7 @@ export default function AdminPage() {
                     className="lg:col-span-2 space-y-10"
                 >
                     {/* Growth Chart */}
-                    <div className="bg-card rounded-3xl border border-border-custom shadow-2xl overflow-hidden backdrop-blur-md">
+                    <div className="bg-card rounded-2xl border border-border-custom shadow-2xl overflow-hidden backdrop-blur-md">
                         <div className="p-8 border-b border-white/[0.03] flex items-center justify-between">
                             <h2 className="text-[10px] font-bold text-white/40 tracking-[0.3em] uppercase flex items-center gap-4">
                                 <span className="w-1 h-5 bg-primary rounded-full" />
@@ -249,7 +249,7 @@ export default function AdminPage() {
                     </div>
 
                     {/* Recent Content */}
-                    <div className="bg-card rounded-3xl border border-border-custom shadow-xl overflow-hidden backdrop-blur-md">
+                    <div className="bg-card rounded-2xl border border-border-custom shadow-xl overflow-hidden backdrop-blur-md">
                         <div className="p-8 border-b border-white/[0.03] flex items-center justify-between">
                             <h2 className="text-[10px] font-bold text-white/40 tracking-[0.3em] uppercase flex items-center gap-4">
                                 <span className="w-1 h-5 bg-amber-400/40 rounded-full" />
@@ -309,7 +309,7 @@ export default function AdminPage() {
                         <div className="grid grid-cols-1 gap-6">
                             <button
                                 onClick={() => router.push('/admin/users')}
-                                className="group relative p-8 bg-card rounded-[2.5rem] border border-border-custom hover:border-primary/40 transition-all duration-500 overflow-hidden text-left hover:-translate-y-1 shadow-2xl"
+                                className="group relative p-8 bg-card rounded-2xl border border-border-custom hover:border-primary/40 transition-all duration-500 overflow-hidden text-left hover:-translate-y-1 shadow-2xl"
                             >
                                 <div className="relative z-10">
                                     <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/20 mb-6 group-hover:bg-primary group-hover:text-white transition-all duration-500">
@@ -325,7 +325,7 @@ export default function AdminPage() {
 
                             <button
                                 onClick={() => router.push('/admin/theses')}
-                                className="group relative p-8 bg-card rounded-[2.5rem] border border-border-custom hover:border-blue-500/40 transition-all duration-500 overflow-hidden text-left hover:-translate-y-1 shadow-2xl"
+                                className="group relative p-8 bg-card rounded-2xl border border-border-custom hover:border-blue-500/40 transition-all duration-500 overflow-hidden text-left hover:-translate-y-1 shadow-2xl"
                             >
                                 <div className="relative z-10">
                                     <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 border border-blue-500/20 mb-6 group-hover:bg-blue-500 group-hover:text-white transition-all duration-500">
@@ -341,7 +341,7 @@ export default function AdminPage() {
                         </div>
                     </div>
 
-                    <div className="bg-primary/5 rounded-[2.5rem] border border-primary/10 p-8 relative overflow-hidden group">
+                    <div className="bg-primary/5 rounded-2xl border border-primary/10 p-8 relative overflow-hidden group">
                         <div className="relative z-10">
                             <div className="flex items-center gap-4 mb-4">
                                 <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20">
