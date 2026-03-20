@@ -86,19 +86,21 @@ const HomePage: React.FC = () => {
     const [mounted, setMounted] = useState(false);
     const [user, setUser] = useState<UserData | null>(null);
     const [thesisCount, setThesisCount] = useState<number>(0);
-    const [recentTheses, setRecentTheses] = useState<any[]>([]);
     const [deptCounts, setDeptCounts] = useState<{ category: string, count: number }[]>([]);
 
     // AI History
     const [loadingAi, setLoadingAi] = useState(false);
     const [aiHistory, setAiHistory] = useState<AiHistoryItem[]>([]);
     const [localHistory, setLocalHistory] = useState<LocalHistoryItem[]>([]);
+    const [sessionHistory, setSessionHistory] = useState<any[]>([]);
     const [selectedAiItem, setSelectedAiItem] = useState<{ prompt: string; recommendation: string; similarity?: number; match?: string } | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<{ id: string, type: 'ai' | 'session' } | null>(null);
     const [clearAllModalOpen, setClearAllModalOpen] = useState(false);
+    const [clearAllType, setClearAllType] = useState<'ai' | 'session'>('ai');
     const [loading, setLoading] = useState(true);
     const [historyPage, setHistoryPage] = useState(1);
+    const [showAllCategories, setShowAllCategories] = useState(false);
     const HISTORY_PAGE_SIZE = 5;
 
     useEffect(() => {
@@ -106,9 +108,6 @@ const HomePage: React.FC = () => {
         const startTime = Date.now();
         const userData = localStorage.getItem('userData');
         const token = localStorage.getItem('token');
-        const recent = JSON.parse(localStorage.getItem('recent_theses') || '[]');
-        setRecentTheses(recent);
-
         if (userData && token) {
             setUser(JSON.parse(userData));
 
@@ -135,12 +134,13 @@ const HomePage: React.FC = () => {
             };
             fetchCount();
 
-            const fetchAiHistory = async () => {
+            const fetchHistory = async () => {
                 setLoadingAi(true);
                 try {
-                    const [aiRes, localRes] = await Promise.all([
+                    const [aiRes, localRes, sessionRes] = await Promise.all([
                         fetch(`${API_BASE_URL}/user/ai-history`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                        fetch(`${API_BASE_URL}/user/local-history`, { headers: { 'Authorization': `Bearer ${token}` } })
+                        fetch(`${API_BASE_URL}/user/local-history`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                        fetch(`${API_BASE_URL}/user/session-history`, { headers: { 'Authorization': `Bearer ${token}` } })
                     ]);
 
                     if (aiRes.ok) {
@@ -150,6 +150,10 @@ const HomePage: React.FC = () => {
                     if (localRes.ok) {
                         const localData = await localRes.json();
                         setLocalHistory(localData.data || []);
+                    }
+                    if (sessionRes.ok) {
+                        const sessionData = await sessionRes.json();
+                        setSessionHistory(sessionData.data || []);
                     }
                 } catch (err) {
                     console.error('Error fetching history:', err);
@@ -165,7 +169,7 @@ const HomePage: React.FC = () => {
                     setLoading(false);
                 }
             };
-            fetchAiHistory();
+            fetchHistory();
         } else {
             router.push('/auth/login');
         }
@@ -185,22 +189,33 @@ const HomePage: React.FC = () => {
     };
 
     const clearHistory = () => {
-        localStorage.removeItem('recent_theses');
-        setRecentTheses([]);
+        setClearAllType('session');
+        setClearAllModalOpen(true);
     };
 
     const handleDeleteAiHistory = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        setItemToDelete(id);
+        setItemToDelete({ id, type: 'ai' });
         setDeleteModalOpen(true);
     };
 
-    const confirmDeleteAiHistory = async () => {
+    const handleDeleteSessionHistory = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setItemToDelete({ id, type: 'session' });
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDeleteHistory = async () => {
         if (!itemToDelete) return;
         const token = localStorage.getItem('token');
 
-        const isLocal = localHistory.find(h => h._id === itemToDelete);
-        const endpoint = isLocal ? `/user/local-history/${itemToDelete}` : `/user/ai-history/${itemToDelete}`;
+        let endpoint = "";
+        if (itemToDelete.type === 'ai') {
+            const isLocal = localHistory.find(h => h._id === itemToDelete.id);
+            endpoint = isLocal ? `/user/local-history/${itemToDelete.id}` : `/user/ai-history/${itemToDelete.id}`;
+        } else {
+            endpoint = `/user/session-history/${itemToDelete.id}`;
+        }
 
         try {
             const res = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -208,16 +223,21 @@ const HomePage: React.FC = () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
-                if (isLocal) {
-                    setLocalHistory(prev => prev.filter(item => item._id !== itemToDelete));
+                if (itemToDelete.type === 'ai') {
+                    const isLocal = localHistory.find(h => h._id === itemToDelete.id);
+                    if (isLocal) {
+                        setLocalHistory(prev => prev.filter(item => item._id !== itemToDelete.id));
+                    } else {
+                        setAiHistory(prev => prev.filter(item => item._id !== itemToDelete.id));
+                    }
                 } else {
-                    setAiHistory(prev => prev.filter(item => item._id !== itemToDelete));
+                    setSessionHistory(prev => prev.filter(item => item._id !== itemToDelete.id));
                 }
             } else {
                 alert('Failed to delete history item');
             }
         } catch (err) {
-            console.error('Error deleting AI history:', err);
+            console.error('Error deleting history:', err);
             alert('An error occurred while deleting.');
         } finally {
             setDeleteModalOpen(false);
@@ -225,28 +245,41 @@ const HomePage: React.FC = () => {
         }
     };
 
-    const confirmClearAllAiHistory = async () => {
+    const confirmDeleteAiHistory = async () => {
+        // Shared logic now in confirmDeleteHistory
+        await confirmDeleteHistory();
+    };
+
+    const confirmClearAllHistory = async () => {
         const token = localStorage.getItem('token');
         try {
-            // Sequential deletion for safety
-            const resAi = await fetch(`${API_BASE_URL}/user/ai-history`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            if (clearAllType === 'ai') {
+                const resAi = await fetch(`${API_BASE_URL}/user/ai-history`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-            const resLocal = await fetch(`${API_BASE_URL}/user/local-history`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+                const resLocal = await fetch(`${API_BASE_URL}/user/local-history`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-            if (resAi.ok && resLocal.ok) {
-                setAiHistory([]);
-                setLocalHistory([]);
-            } else if (!resAi.ok || !resLocal.ok) {
-                // If at least one worked, partial success
                 if (resAi.ok) setAiHistory([]);
                 if (resLocal.ok) setLocalHistory([]);
-                alert('Partial history clear. Some records may remain.');
+                
+                if (!resAi.ok || !resLocal.ok) {
+                    alert('Partial history clear. Some records may remain.');
+                }
+            } else {
+                const res = await fetch(`${API_BASE_URL}/user/session-history`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    setSessionHistory([]);
+                } else {
+                    alert('Failed to clear session history');
+                }
             }
         } catch (err) {
             console.error('Error clearing history:', err);
@@ -254,6 +287,10 @@ const HomePage: React.FC = () => {
         } finally {
             setClearAllModalOpen(false);
         }
+    };
+
+    const confirmClearAllAiHistory = async () => {
+        await confirmClearAllHistory();
     };
 
     const handleSavePrompt = () => {
@@ -343,7 +380,7 @@ const HomePage: React.FC = () => {
                                 >
                                     <div>
                                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mb-1">Recently Viewed</p>
-                                        <p className="text-3xl font-bold text-foreground leading-none tracking-tighter">{recentTheses.length}</p>
+                                        <p className="text-3xl font-bold text-foreground leading-none tracking-tighter">{sessionHistory.length}</p>
                                         <p className="text-[10px] text-orange-400/70 font-bold uppercase tracking-[0.1em] mt-3">Recent Activity</p>
                                     </div>
                                     <div className="w-14 h-14 rounded-xl bg-orange-500/5 flex items-center justify-center border border-orange-500/20 group-hover:bg-orange-500/10 transition-colors">
@@ -362,7 +399,7 @@ const HomePage: React.FC = () => {
                                         <div className="flex items-center gap-4">
                                             {(aiHistory.length > 0 || localHistory.length > 0) && (
                                                 <button
-                                                    onClick={() => setClearAllModalOpen(true)}
+                                                    onClick={() => { setClearAllType('ai'); setClearAllModalOpen(true); }}
                                                     className="text-[9px] font-bold uppercase tracking-widest text-primary/60 hover:text-primary transition-colors"
                                                 >
                                                     Clear History
@@ -483,7 +520,7 @@ const HomePage: React.FC = () => {
                                                 <span className="w-0.5 h-4 bg-orange-400/40" />
                                                 Session History
                                             </h2>
-                                            {recentTheses.length > 0 && (
+                                            {sessionHistory.length > 0 && (
                                                 <button
                                                     onClick={clearHistory}
                                                     className="text-[9px] font-bold uppercase tracking-widest text-orange-400/40 hover:text-orange-400 transition-colors"
@@ -494,18 +531,28 @@ const HomePage: React.FC = () => {
                                         </div>
                                         <div className="bg-card rounded-2xl p-7 shadow-xl border border-border-custom relative overflow-hidden flex-grow">
                                             <div className="relative z-10 space-y-5">
-                                                {recentTheses.length > 0 ? (
-                                                    recentTheses.slice(0, 3).map((thesis) => (
+                                                {sessionHistory.length > 0 ? (
+                                                    sessionHistory.slice(0, 5).map((item) => (
                                                         <div
-                                                            key={thesis.id}
-                                                            className="group/item cursor-pointer flex items-start gap-4 transition-all"
-                                                            onClick={() => router.push(`/search_result?id=${thesis.id}`)}
+                                                            key={item._id}
+                                                            className="group/item flex items-center justify-between gap-4 transition-all"
                                                         >
-                                                            <div className="mt-1.5 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-orange-400/20 group-hover/item:bg-orange-400 group-hover/item:scale-125 transition-all" />
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-[8px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-1">{thesis.year || 'Archive'}</p>
-                                                                <h3 className="text-[13px] font-medium leading-relaxed text-foreground/70 group-hover/item:text-foreground transition-colors line-clamp-2">{thesis.title}</h3>
+                                                            <div 
+                                                                className="flex items-start gap-4 cursor-pointer flex-1 min-w-0"
+                                                                onClick={() => router.push(`/search_result?id=${item.thesis?.id || item.thesis}`)}
+                                                            >
+                                                                <div className="mt-1.5 flex-shrink-0 w-1.5 h-1.5 rounded-full bg-orange-400/20 group-hover/item:bg-orange-400 group-hover/item:scale-125 transition-all" />
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-[8px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-1">{item.year || 'Archive'}</p>
+                                                                    <h3 className="text-[13px] font-medium leading-relaxed text-foreground/70 group-hover/item:text-foreground transition-colors line-clamp-1">{item.title}</h3>
+                                                                </div>
                                                             </div>
+                                                            <button 
+                                                                onClick={(e) => handleDeleteSessionHistory(item._id, e)}
+                                                                className="opacity-0 group-hover/item:opacity-100 p-2 text-gray-500 hover:text-red-400 transition-all"
+                                                            >
+                                                                <FaTimes className="text-[10px]" />
+                                                            </button>
                                                         </div>
                                                     ))
                                                 ) : (
@@ -523,19 +570,31 @@ const HomePage: React.FC = () => {
                                             <span className="w-0.5 h-4 bg-primary/40" />
                                             Thesis Categories
                                         </h2>
-                                        <div className="bg-card rounded-2xl border border-border-custom shadow-xl p-4 flex-grow">
-                                            <div className="space-y-1.5">
-                                                {deptCounts.slice(0, 5).map((dept, idx) => (
+                                        <div className="bg-card rounded-2xl border border-border-custom shadow-xl p-4 flex-grow flex flex-col">
+                                            <div className="space-y-1 my-auto">
+                                                {(showAllCategories ? deptCounts : deptCounts.slice(0, 5)).map((dept, idx) => (
                                                     <div
                                                         key={dept.category + idx}
-                                                        className="flex items-center justify-between p-4 rounded-xl hover:bg-white/[0.01] transition-all cursor-pointer group border border-transparent hover:border-white/[0.03]"
+                                                        className="flex items-center justify-between p-3.5 rounded-xl hover:bg-white/[0.02] transition-all cursor-pointer group border border-transparent hover:border-white/[0.03]"
                                                         onClick={() => router.push(`/search_result?category=${encodeURIComponent(dept.category)}`)}
                                                     >
-                                                        <span className="text-[11px] font-medium text-gray-500 group-hover:text-primary transition-colors tracking-wide">{dept.category}</span>
-                                                        <span className="text-[11px] font-bold text-foreground/60 group-hover:text-foreground">{dept.count}</span>
+                                                        <span className="text-[11px] font-medium text-gray-400 group-hover:text-primary transition-colors tracking-wide">{dept.category}</span>
+                                                        <span className="text-[11px] font-bold text-foreground/40 group-hover:text-foreground transition-colors">{dept.count}</span>
                                                     </div>
                                                 ))}
                                             </div>
+                                            {deptCounts.length > 5 && (
+                                                <button 
+                                                    onClick={() => setShowAllCategories(!showAllCategories)}
+                                                    className="mt-4 w-full py-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-primary transition-all flex items-center justify-center gap-2 group"
+                                                >
+                                                    {showAllCategories ? (
+                                                        <>Show Less <FaChevronUp className="group-hover:-translate-y-0.5 transition-transform" /></>
+                                                    ) : (
+                                                        <>Show More Categories ({deptCounts.length - 5} More) <FaChevronDown className="group-hover:translate-y-0.5 transition-transform" /></>
+                                                    )}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

@@ -132,23 +132,24 @@ const SearchResultContent = () => {
         fetchData();
     }, [id, year, query, type, category]);
 
-    // Track recently viewed theses
+    // Track recently viewed theses (Persist to DB)
     useEffect(() => {
         if (singleThesis && singleThesis.id) {
-            const recent = JSON.parse(localStorage.getItem('recent_theses') || '[]');
-            const newItem = {
-                id: singleThesis.id,
-                title: singleThesis.title,
-                year: singleThesis.year_range
-            };
-
-            // Filter out existing and add to front
-            const updated = [
-                newItem,
-                ...recent.filter((item: any) => item.id !== singleThesis.id)
-            ].slice(0, 5);
-
-            localStorage.setItem('recent_theses', JSON.stringify(updated));
+            const token = localStorage.getItem('token');
+            if (token) {
+                fetch(`${API_BASE_URL}/user/session-history`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        id: singleThesis.id,
+                        title: singleThesis.title,
+                        year: singleThesis.year_range
+                    })
+                }).catch(err => console.error('Error saving session history:', err));
+            }
         }
     }, [singleThesis]);
 
