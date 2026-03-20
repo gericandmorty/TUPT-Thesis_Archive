@@ -29,6 +29,10 @@ export default function AdminUsersPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [stats, setStats] = useState({
+        users: 0,
+        graduated: 0
+    });
 
     // Form State
     const [formData, setFormData] = useState({
@@ -36,7 +40,8 @@ export default function AdminUsersPage() {
         idNumber: '',
         birthdate: '',
         password: '',
-        isAdmin: false
+        isAdmin: false,
+        isGraduate: false
     });
 
     const handleIDNumberChange = (value: string) => {
@@ -93,6 +98,21 @@ export default function AdminUsersPage() {
         }
     };
 
+    const fetchStats = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/stats`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const result = await res.json();
+                if (result.success) setStats(result.data);
+            }
+        } catch (err) {
+            console.error('Error fetching stats:', err);
+        }
+    };
+
     useEffect(() => {
         const userDataString = localStorage.getItem('userData');
         const token = localStorage.getItem('token');
@@ -109,6 +129,7 @@ export default function AdminUsersPage() {
         }
 
         fetchUsers(1);
+        fetchStats();
     }, [router]);
 
     useEffect(() => {
@@ -131,8 +152,9 @@ export default function AdminUsersPage() {
             if (res.ok) {
                 toast.success('User created successfully');
                 setIsAddModalOpen(false);
-                setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false });
+                setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false, isGraduate: false });
                 fetchUsers(1);
+                fetchStats();
             } else {
                 const error = await res.json();
                 toast.error(error.message || 'Failed to create user');
@@ -165,6 +187,7 @@ export default function AdminUsersPage() {
                 toast.success('User updated successfully');
                 setIsEditModalOpen(false);
                 fetchUsers(currentPage);
+                fetchStats();
             } else {
                 const error = await res.json();
                 toast.error(error.message || 'Failed to update user');
@@ -183,7 +206,8 @@ export default function AdminUsersPage() {
             idNumber: user.idNumber,
             birthdate: user.birthdate ? user.birthdate.split('T')[0] : '',
             password: '',
-            isAdmin: user.isAdmin
+            isAdmin: user.isAdmin,
+            isGraduate: user.isGraduate
         });
         setIsEditModalOpen(true);
     };
@@ -201,6 +225,7 @@ export default function AdminUsersPage() {
             if (res.ok) {
                 toast.success('User deleted successfully');
                 fetchUsers(currentPage);
+                fetchStats();
             } else {
                 toast.error('Failed to delete user');
             }
@@ -227,6 +252,7 @@ export default function AdminUsersPage() {
             if (res.ok) {
                 toast.success(`Updated ${user.name}'s status`);
                 setUsers(users.map(u => u._id === user._id ? { ...u, isAdmin: !u.isAdmin } : u));
+                fetchStats();
             } else {
                 toast.error('Failed to update user status');
             }
@@ -242,50 +268,97 @@ export default function AdminUsersPage() {
     return (
         <div className="min-h-screen bg-transparent flex flex-col font-sans text-white">
             <main className="flex-1 relative z-10 pt-32 pb-20 px-6 max-w-7xl mx-auto w-full">
-                {/* Header Section */}
-                <motion.div 
+                {/* Hero Title Section */}
+                <motion.div
                     initial="hidden"
                     animate="visible"
                     variants={fadeUp}
                     transition={fadeUpTransition}
-                    className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12"
+                    className="mb-16 border-b border-white/5 pb-12"
                 >
-                    <div className="flex items-center gap-6">
-                        <button
-                            onClick={() => router.push('/admin')}
-                            className="p-4 bg-white/5 backdrop-blur-md rounded-2xl shadow-xl border border-white/10 text-white hover:bg-white/10 transition-all group"
-                        >
-                            <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-                        </button>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
                         <div>
-                            <p className="text-[10px] text-primary font-bold uppercase tracking-[0.35em] mb-4">Admin Panel</p>
-                            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
-                                User <span className="text-primary">Management</span>
+                            <div className="flex items-center gap-3 mb-4">
+                                <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.15em] rounded-full border border-primary/20">User Management</span>
+                                <div className="h-px w-12 bg-white/10" />
+                            </div>
+                            <h1 className="text-5xl md:text-6xl font-black text-white tracking-tight leading-none mb-6">
+                                User <span className="text-primary italic">List</span>
                             </h1>
+                            <p className="text-white/40 text-sm font-medium max-w-xl leading-relaxed">
+                                View and manage all users in the system. You can update researcher credentials, administrative permissions, and graduation status.
+                            </p>
                         </div>
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => router.push('/admin')}
+                                className="flex items-center gap-3 px-6 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl border border-white/10 transition-all font-bold text-xs uppercase tracking-widest group"
+                            >
+                                <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" />
+                                Back to Dashboard
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+                    {[
+                        { label: 'Total Users', value: stats.users, icon: <FaUsers />, color: 'primary', desc: 'Active Database' },
+                        { label: 'Admins', value: users.filter(u => u.isAdmin).length, icon: <FaUserShield />, color: 'blue', desc: 'System Oversight' },
+                        { label: 'Graduated', value: stats.graduated, icon: <FaCheckCircle />, color: 'emerald', desc: 'Alumni Students' }
+                    ].map((s, i) => (
+                        <motion.div
+                            key={i}
+                            initial="hidden"
+                            animate="visible"
+                            variants={fadeUp}
+                            transition={{ ...fadeUpTransition, delay: i * 0.1 }}
+                            className="bg-card/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/[0.05] relative overflow-hidden group hover:border-white/20 transition-all"
+                        >
+                            <div className="relative z-10 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-3">{s.label}</p>
+                                    <h3 className="text-4xl font-black text-white mb-2">{s.value.toLocaleString()}</h3>
+                                    <p className={`text-[9px] font-black uppercase tracking-widest ${s.color === 'blue' ? 'text-blue-400' : s.color === 'emerald' ? 'text-emerald-400' : 'text-primary/70'}`}>{s.desc}</p>
+                                </div>
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl bg-white/5 border border-white/10 text-white/20 group-hover:scale-110 transition-transform`}>
+                                    {s.icon}
+                                </div>
+                            </div>
+                            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/[0.02] rounded-full blur-2xl" />
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* Filters and Actions */}
+                <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={fadeUp}
+                    transition={{ ...fadeUpTransition, delay: 0.3 }}
+                    className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10"
+                >
+                    <div className="relative flex-1 max-w-md">
+                        <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-primary/40 text-xs" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Find researchers by name or ID..."
+                            className="w-full pl-14 pr-8 py-5 bg-card/60 backdrop-blur-xl border border-white/10 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/40 shadow-2xl font-bold text-xs transition-all placeholder:text-white/20 text-white"
+                        />
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-6 w-full md:w-auto">
-                        <div className="relative w-full sm:w-80">
-                            <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40 text-sm" />
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search researchers..."
-                                className="w-full pl-12 pr-6 py-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/40 shadow-xl font-bold text-sm transition-all placeholder:text-white/40 text-white"
-                            />
-                        </div>
-                        <button
-                            onClick={() => {
-                                setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false });
-                                setIsAddModalOpen(true);
-                            }}
-                            className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-primary text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-primary-hover transition-all shadow-xl shadow-teal-900/20 active:scale-95"
-                        >
-                            <FaPlus className="text-sm" /> Add User
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => {
+                            setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false, isGraduate: false });
+                            setIsAddModalOpen(true);
+                        }}
+                        className="flex items-center justify-center gap-4 px-10 py-5 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-primary/90 transition-all shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        <FaPlus className="text-sm" /> Enroll New User
+                    </button>
                 </motion.div>
 
                 <motion.div 
@@ -329,10 +402,17 @@ export default function AdminUsersPage() {
                                             </span>
                                         </td>
                                         <td className="px-8 py-8">
-                                            <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2 w-fit border shadow-sm ${user.isAdmin ? 'bg-primary/5 text-primary border-primary/20' : 'bg-white/5 text-white/40 border-white/5'}`}>
-                                                {user.isAdmin ? <FaUserShield className="text-[10px]" /> : <FaUser className="text-[10px]" />}
-                                                {user.isAdmin ? 'Administrator' : 'Researcher'}
-                                            </span>
+                                            <div className="flex flex-col gap-2">
+                                                <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2 w-fit border shadow-sm ${user.isAdmin ? 'bg-primary/5 text-primary border-primary/20' : 'bg-white/5 text-white/40 border-white/5'}`}>
+                                                    {user.isAdmin ? <FaUserShield className="text-[10px]" /> : <FaUser className="text-[10px]" />}
+                                                    {user.isAdmin ? 'Administrator' : 'Researcher'}
+                                                </span>
+                                                {user.isGraduate && (
+                                                    <span className="px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2 w-fit border shadow-sm bg-emerald-500/5 text-emerald-400 border-emerald-500/20">
+                                                        <FaCheckCircle className="text-[10px]" /> Alumni
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-8 py-8">
                                             <div className="flex flex-col">
@@ -495,6 +575,19 @@ export default function AdminUsersPage() {
                                             <p className="text-[9px] text-primary/40 font-medium uppercase tracking-tight">Grant full moderation access</p>
                                         </div>
                                     </div>
+                                    <div className="flex items-center gap-4 p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
+                                        <input
+                                            type="checkbox"
+                                            id="isGraduate"
+                                            checked={formData.isGraduate}
+                                            onChange={(e) => setFormData({ ...formData, isGraduate: e.target.checked })}
+                                            className="w-5 h-5 text-emerald-500 bg-white/5 border-white/10 rounded focus:ring-emerald-400/40 focus:ring-offset-0 transition-all"
+                                        />
+                                        <div>
+                                            <label htmlFor="isGraduate" className="block text-[11px] font-bold text-emerald-400/80 uppercase tracking-wider mb-0.5">Graduation Status</label>
+                                            <p className="text-[9px] text-emerald-400/40 font-medium uppercase tracking-tight">Mark as alumni/graduated</p>
+                                        </div>
+                                    </div>
                                 </div>
                                 <button
                                     type="submit"
@@ -561,7 +654,7 @@ export default function AdminUsersPage() {
                                             className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white invert-[0.8] brightness-[0.8]"
                                         />
                                     </div>
-                                    <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                                    <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-4">
                                         <div className="flex items-center gap-4">
                                             <input
                                                 type="checkbox"
@@ -573,6 +666,20 @@ export default function AdminUsersPage() {
                                             <div>
                                                 <label htmlFor="isAdminEdit" className="block text-[11px] font-bold text-primary/80 uppercase tracking-wider mb-0.5">Admin Access</label>
                                                 <p className="text-[9px] text-primary/40 font-medium uppercase tracking-tight">Toggle full oversight rights</p>
+                                            </div>
+                                        </div>
+                                        <div className="h-px bg-white/[0.05] w-full" />
+                                        <div className="flex items-center gap-4">
+                                            <input
+                                                type="checkbox"
+                                                id="isGraduateEdit"
+                                                checked={formData.isGraduate}
+                                                onChange={(e) => setFormData({ ...formData, isGraduate: e.target.checked })}
+                                                className="w-5 h-5 text-emerald-500 bg-white/5 border-white/10 rounded focus:ring-emerald-400/40 focus:ring-offset-0 transition-all"
+                                            />
+                                            <div>
+                                                <label htmlFor="isGraduateEdit" className="block text-[11px] font-bold text-emerald-400/80 uppercase tracking-wider mb-0.5">Alumni Status</label>
+                                                <p className="text-[9px] text-emerald-400/40 font-medium uppercase tracking-tight">Mark student as graduated</p>
                                             </div>
                                         </div>
                                     </div>

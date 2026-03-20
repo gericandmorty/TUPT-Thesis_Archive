@@ -8,6 +8,7 @@ import {
     FaHome,
     FaFileAlt,
     FaUser,
+    FaUsers,
     FaEdit,
     FaSignOutAlt,
     FaChevronRight,
@@ -75,14 +76,18 @@ export default function Sidebar() {
         }
     };
 
-    const menuItems: MenuItem[] = [
-        { icon: FaHome, label: 'Home', path: '/home' },
-        ...(user?.isAdmin ? [{ icon: FaUserShield, label: 'Admin Panel', path: '/admin' }] : [
+    const menuItems: MenuItem[] = user?.isAdmin 
+        ? [
+            { icon: FaUserShield, label: 'Admin Dashboard', path: '/admin' },
+            { icon: FaFileAlt, label: 'Thesis Management', path: '/admin/theses' },
+            { icon: FaUsers, label: 'User Management', path: '/admin/users' },
+        ]
+        : [
+            { icon: FaHome, label: 'Home', path: '/home' },
             { icon: FaFileAlt, label: 'Analysis Workspace', path: '/documents', section: 'TOOLS' },
             { icon: FaUpload, label: 'Submit Thesis', path: '/documents/create' },
             { icon: FaFolderOpen, label: 'My Submissions', path: '/documents/submissions' },
-        ]),
-    ];
+        ];
 
     const handleLogout = async () => {
         try {

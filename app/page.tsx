@@ -18,6 +18,7 @@ import {
   FaFileUpload,
 } from 'react-icons/fa';
 import Link from 'next/link';
+import LottieLoader from '@/app/components/UI/LottieLoader';
 
 
 /* ───── Shared animation variants ───── */
@@ -57,6 +58,7 @@ const features = [
     title: 'Get AI-Powered Title Ideas',
     desc: 'Stuck on a thesis topic? Use our AI recommendation engine to generate title ideas, structural suggestions, and research directions — all tailored to your department and interests.',
     icon: FaRobot,
+    lottieType: 'workspace',
     color: '#8B5CF6',       // purple
     bgLight: 'bg-card/40',
     borderLight: 'border-border-custom',
@@ -146,10 +148,22 @@ const LandingPage: React.FC = () => {
                   transition={{ duration: 0.8, ease: smoothEase }}
                 >
                   <span className={`${feat.textColor} font-black uppercase tracking-[0.3em] text-xs`}>Feature {feat.number}</span>
-                  <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-tight text-white uppercase">
+                  <h2 className="text-4xl md:text-7xl font-black tracking-tighter leading-tight text-white uppercase">
                     {feat.title}
                   </h2>
                   <div className="w-16 h-1 rounded-full" style={{ backgroundColor: feat.color }} />
+                  
+                  {/* For Lottie features, move text here */}
+                  {feat.lottieType && (
+                    <div className="space-y-6 pt-6">
+                      <span className={`inline-block ${feat.textColor} font-black uppercase tracking-widest text-[10px] px-3 py-1 rounded-full border ${feat.borderLight}`}>
+                        {feat.badge}
+                      </span>
+                      <p className="text-xl text-foreground/90 leading-relaxed font-medium max-w-xl">
+                        {feat.desc}
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
 
                 {/* CONTENT SIDE */}
@@ -161,21 +175,31 @@ const LandingPage: React.FC = () => {
                   variants={isEven ? fadeRight : fadeLeft}
                   transition={{ duration: 0.8, ease: smoothEase, delay: 0.15 }}
                 >
-                  <div className={`${feat.bgLight} rounded-[2.5rem] p-6 sm:p-10 md:p-14 border ${feat.borderLight} relative overflow-hidden group`}>
-                    <motion.div
-                      className="w-20 h-20 rounded-2xl flex items-center justify-center mb-8 border"
-                      style={{ backgroundColor: `${feat.color}10`, borderColor: `${feat.color}20` }}
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ type: 'spring', stiffness: 300 }}
-                    >
-                      <Icon className="text-3xl" style={{ color: feat.color }} />
-                    </motion.div>
-                    <span className={`inline-block ${feat.textColor} font-black uppercase tracking-widest text-[10px] mb-4 px-3 py-1 rounded-full border ${feat.borderLight}`}>
-                      {feat.badge}
-                    </span>
-                    <p className="text-lg text-foreground leading-relaxed font-medium">
-                      {feat.desc}
-                    </p>
+                  <div className={`relative ${feat.lottieType ? '' : `${feat.bgLight} rounded-[2.5rem] p-6 sm:p-10 md:p-14 border ${feat.borderLight} overflow-hidden group`}`}>
+                    {feat.lottieType ? (
+                      <div className="w-full flex justify-center lg:justify-end">
+                        <div className="w-full max-w-[500px] lg:scale-125">
+                          <LottieLoader type={feat.lottieType as any} />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <motion.div
+                          className="w-20 h-20 rounded-2xl flex items-center justify-center mb-8 border"
+                          style={{ backgroundColor: `${feat.color}10`, borderColor: `${feat.color}20` }}
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          transition={{ type: 'spring', stiffness: 300 }}
+                        >
+                          <Icon className="text-3xl" style={{ color: feat.color }} />
+                        </motion.div>
+                        <span className={`inline-block ${feat.textColor} font-black uppercase tracking-widest text-[10px] mb-4 px-3 py-1 rounded-full border ${feat.borderLight}`}>
+                          {feat.badge}
+                        </span>
+                        <p className="text-lg text-foreground leading-relaxed font-medium">
+                          {feat.desc}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </motion.div>
 
