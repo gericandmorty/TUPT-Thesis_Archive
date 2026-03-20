@@ -264,7 +264,7 @@ export default function AdminThesesPage() {
         setIsEditModalOpen(true);
     };
 
-    if (loading && (!theses || theses.length === 0) && !searchQuery) {
+    if (loading && !searchQuery) {
         return <AdminTableSkeleton />;
     }
 

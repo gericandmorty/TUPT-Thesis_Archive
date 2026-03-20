@@ -261,7 +261,7 @@ export default function AdminUsersPage() {
         }
     };
 
-    if (loading && users.length === 0 && !searchQuery) {
+    if (loading && !searchQuery) {
         return <AdminTableSkeleton />;
     }
 

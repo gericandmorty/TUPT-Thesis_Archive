@@ -85,7 +85,7 @@ export default function AdminPage() {
         fetchDashboardData();
     }, [router]);
 
-    if (loading && !stats) {
+    if (loading) {
         return <AdminDashboardSkeleton />;
     }
 
