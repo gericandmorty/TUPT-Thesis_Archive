@@ -7,8 +7,8 @@ import { FaCalendarAlt, FaFileAlt, FaUserGraduate, FaArrowLeft, FaBookOpen, FaTi
 import Link from 'next/link';
 import LottieLoader from '@/app/components/UI/LottieLoader';
 import AiReportSidebar from '@/app/components/Sidebar-modal/AiReportSidebar';
-import SearchResultSkeleton from '@/app/components/UI/SearchResultSkeleton';
-import ThesisDetailSkeleton from '@/app/components/UI/ThesisDetailSkeleton';
+import SearchResultSkeleton from '@/app/components/UI/skeleton_loaders/users/SearchResultSkeleton';
+import ThesisDetailSkeleton from '@/app/components/UI/skeleton_loaders/users/ThesisDetailSkeleton';
 
 
 interface Thesis {
@@ -61,7 +61,7 @@ const SearchResultContent = () => {
     useEffect(() => {
         const fetchData = async () => {
             const startTime = Date.now();
-            
+
             // Sync UI state immediately with URL to prevent flickering
             if (!id && singleThesis) {
                 setSingleThesis(null);
@@ -121,7 +121,7 @@ const SearchResultContent = () => {
                 const elapsed = Date.now() - startTime;
                 // Only enforce 2s delay if we actually fetched from server
                 const minDelay = didFetch ? 2000 : 0;
-                
+
                 if (elapsed < minDelay) {
                     await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
                 }
