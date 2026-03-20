@@ -134,20 +134,20 @@ export default function AdminPage() {
                 transition={fadeUpTransition}
                 className="mb-12"
             >
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pb-12 border-b border-white/5">
                     <div>
-                        <p className="text-[10px] text-primary font-bold uppercase tracking-[0.35em] mb-4">Admin Dashboard</p>
-                        <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
-                            System <span className="text-primary">Overview</span>
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.15em] rounded-full border border-primary/20">Admin Panel</span>
+                            <div className="h-px w-12 bg-white/10" />
+                        </div>
+                        <h1 className="text-5xl md:text-6xl font-black text-white tracking-tight leading-none mb-6">
+                            System <span className="text-primary italic">Overview</span>
                         </h1>
-                        <p className="text-sm text-white/50 font-medium mt-4 max-w-2xl leading-relaxed">
-                            Welcome, {adminData?.name}. Here is a summary of the system activity and repository health.
+                        <p className="text-white/40 text-sm font-medium max-w-xl leading-relaxed">
+                            Welcome back, {adminData?.name}. Here's the overall system activity, database status, and user growth trends.
                         </p>
                     </div>
-                    <div className="flex items-center gap-3 px-6 py-3 bg-white/5 rounded-2xl border border-white/10 shadow-xl backdrop-blur-md self-start md:self-auto">
-                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_10px_rgba(45,212,191,0.5)]" />
-                        <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">System Online</span>
-                    </div>
+
                 </div>
             </motion.div>
 
@@ -174,9 +174,9 @@ export default function AdminPage() {
                         </div>
                         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border transition-all duration-500 shadow-xl
                             ${stat.color === 'teal' ? 'bg-primary/5 border-primary/20 text-primary group-hover:bg-primary/20' :
-                              stat.color === 'blue' ? 'bg-blue-500/5 border-blue-500/20 text-blue-400 group-hover:bg-blue-500/20' :
-                              stat.color === 'emerald' ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500/20' :
-                              'bg-amber-500/5 border-amber-500/20 text-amber-400 group-hover:bg-amber-500/20'}`}>
+                                stat.color === 'blue' ? 'bg-blue-500/5 border-blue-500/20 text-blue-400 group-hover:bg-blue-500/20' :
+                                    stat.color === 'emerald' ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500/20' :
+                                        'bg-amber-500/5 border-amber-500/20 text-amber-400 group-hover:bg-amber-500/20'}`}>
                             <span className="text-2xl">{stat.icon}</span>
                         </div>
                         <div className={`absolute -right-8 -bottom-8 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-700
@@ -220,16 +220,16 @@ export default function AdminPage() {
                                 <AreaChart data={chartData}>
                                     <defs>
                                         <linearGradient id="colorTheses" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#2DD4BF" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#2DD4BF" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="#2DD4BF" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#2DD4BF" stopOpacity={0} />
                                         </linearGradient>
                                         <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                         </linearGradient>
                                         <linearGradient id="colorGraduated" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
@@ -301,10 +301,10 @@ export default function AdminPage() {
                                     <Cell fill="#10b981" />
                                     <Cell fill="#3b82f6" opacity={0.3} />
                                 </Pie>
-                                <Tooltip 
-                                    contentStyle={{ 
-                                        backgroundColor: '#1E1E2E', 
-                                        borderRadius: '1rem', 
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#1E1E2E',
+                                        borderRadius: '1rem',
                                         border: '1px solid rgba(255,255,255,0.1)',
                                         fontSize: '10px',
                                         fontWeight: 'bold',

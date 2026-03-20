@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaBook, FaPlus, FaSearch, FaArrowLeft, FaEdit, FaTrash, FaCheck, FaTimes, FaChevronLeft, FaChevronRight, FaFileAlt, FaCalendarAlt, FaUserGraduate, FaBuilding } from 'react-icons/fa';
+import { FaBook, FaPlus, FaSearch, FaArrowLeft, FaEdit, FaTrash, FaCheck, FaTimes, FaChevronLeft, FaChevronRight, FaFileAlt, FaCalendarAlt, FaUserGraduate, FaBuilding, FaClock } from 'react-icons/fa';
 import AdminTableSkeleton from '@/app/components/UI/skeleton_loaders/admin/AdminTableSkeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -31,6 +31,13 @@ export default function AdminThesesPage() {
     const [editingThesis, setEditingThesis] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [categories, setCategories] = useState<string[]>([]);
+    const [years, setYears] = useState<string[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [selectedYear, setSelectedYear] = useState('all');
+    const [stats, setStats] = useState({
+        theses: 0,
+        pending: 0
+    });
 
     const [formData, setFormData] = useState({
         id: '',
@@ -45,7 +52,7 @@ export default function AdminThesesPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/theses?page=${page}&limit=10&search=${search}&sort=${sort}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/theses?page=${page}&limit=10&search=${search}&sort=${sort}&category=${selectedCategory}&year=${selectedYear}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -89,6 +96,46 @@ export default function AdminThesesPage() {
             console.error('Error fetching categories:', err);
         }
     };
+    
+    const fetchYears = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/years`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                // Filter out 'unknown' because we handle it separately
+                setYears(data.filter((y: string) => y.toLowerCase() !== 'unknown'));
+            } else {
+                const currentYear = new Date().getFullYear();
+                const yearList = [];
+                for (let y = currentYear; y >= 2010; y--) {
+                    yearList.push(y.toString());
+                }
+                setYears(yearList);
+            }
+        } catch (err) {
+            console.error('Error fetching years:', err);
+        }
+    };
+
+    const fetchStats = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/stats`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const result = await res.json();
+                if (result.success) setStats(result.data);
+            }
+        } catch (err) {
+            console.error('Error fetching stats:', err);
+        }
+    };
 
     useEffect(() => {
         const userDataString = localStorage.getItem('userData');
@@ -107,6 +154,8 @@ export default function AdminThesesPage() {
 
         fetchTheses(1);
         fetchCategories();
+        fetchYears();
+        fetchStats();
     }, []);
 
     useEffect(() => {
@@ -114,7 +163,7 @@ export default function AdminThesesPage() {
             fetchTheses(1, searchQuery, sortBy);
         }, 500);
         return () => clearTimeout(timer);
-    }, [searchQuery, sortBy]);
+    }, [searchQuery, sortBy, selectedCategory, selectedYear]);
 
     const handleCreateThesis = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -137,6 +186,8 @@ export default function AdminThesesPage() {
                 setIsAddModalOpen(false);
                 setFormData({ id: '', title: '', author: '', year_range: new Date().getFullYear().toString(), category: '', abstract: '' });
                 fetchTheses(1);
+                fetchYears();
+                fetchStats();
             } else {
                 toast.error('Failed to archive thesis');
             }
@@ -167,6 +218,7 @@ export default function AdminThesesPage() {
                 toast.success('Thesis updated successfully');
                 setIsEditModalOpen(false);
                 fetchTheses(currentPage);
+                fetchYears();
             } else {
                 toast.error('Failed to update thesis');
             }
@@ -190,6 +242,7 @@ export default function AdminThesesPage() {
             if (res.ok) {
                 toast.success('Thesis deleted');
                 fetchTheses(currentPage);
+                fetchYears();
             } else {
                 toast.error('Failed to delete thesis');
             }
@@ -218,48 +271,122 @@ export default function AdminThesesPage() {
     return (
         <div className="min-h-screen bg-transparent flex flex-col font-sans text-white">
             <main className="flex-1 relative z-10 pt-32 pb-12 px-6 max-w-7xl mx-auto w-full">
-                {/* Header */}
+                {/* Hero Title Section */}
                 <motion.div
                     initial="hidden"
                     animate="visible"
                     variants={fadeUp}
                     transition={fadeUpTransition}
-                    className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12"
+                    className="mb-16 border-b border-white/5 pb-12"
                 >
-                    <div className="flex items-center gap-6">
-                        <button
-                            onClick={() => router.push('/admin')}
-                            className="p-4 bg-white/5 backdrop-blur-md rounded-2xl shadow-xl border border-white/10 text-white hover:bg-white/10 transition-all group"
-                        >
-                            <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-                        </button>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
                         <div>
-                            <p className="text-[10px] text-primary font-bold uppercase tracking-[0.35em] mb-4">Admin Panel</p>
-                            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
-                                Thesis <span className="text-primary">Management</span>
+                            <div className="flex items-center gap-3 mb-4">
+                                <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.15em] rounded-full border border-primary/20">Thesis Management</span>
+                                <div className="h-px w-12 bg-white/10" />
+                            </div>
+                            <h1 className="text-5xl md:text-6xl font-black text-white tracking-tight leading-none mb-6">
+                                Thesis <span className="text-primary italic">List</span>
                             </h1>
+                            <p className="text-white/40 text-sm font-medium max-w-xl leading-relaxed">
+                                View and manage all thesis submissions in the system. You can edit research details, update categories, or archive new papers.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => router.push('/admin')}
+                                className="flex items-center gap-3 px-6 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl border border-white/10 transition-all font-bold text-xs uppercase tracking-widest group"
+                            >
+                                <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" />
+                                Back to Dashboard
+                            </button>
                         </div>
                     </div>
+                </motion.div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-6 w-full md:w-auto">
-                        <div className="relative w-full sm:w-80">
-                            <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40 text-sm" />
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+                    {[
+                        { label: 'Total Theses', value: stats.theses, icon: <FaFileAlt />, color: 'primary', desc: 'All submissions' },
+                        { label: 'Pending', value: stats.pending, icon: <FaClock className="text-amber-400" />, color: 'amber', desc: 'Needs review' },
+                        { label: 'Categories', value: categories.length, icon: <FaBuilding />, color: 'blue', desc: 'Departments' }
+                    ].map((s, i) => (
+                        <motion.div
+                            key={i}
+                            initial="hidden"
+                            animate="visible"
+                            variants={fadeUp}
+                            transition={{ ...fadeUpTransition, delay: i * 0.1 }}
+                            className="bg-card/40 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/[0.05] relative overflow-hidden group hover:border-white/20 transition-all"
+                        >
+                            <div className="relative z-10 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mb-3">{s.label}</p>
+                                    <h3 className="text-4xl font-black text-white mb-2">{s.value.toLocaleString()}</h3>
+                                    <p className={`text-[9px] font-black uppercase tracking-widest ${s.color === 'amber' ? 'text-amber-400' : s.color === 'blue' ? 'text-blue-400' : 'text-primary/70'}`}>{s.desc}</p>
+                                </div>
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl bg-white/5 border border-white/10 text-white/20 group-hover:scale-110 transition-transform`}>
+                                    {s.icon}
+                                </div>
+                            </div>
+                            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/[0.02] rounded-full blur-2xl" />
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* Filters and Actions */}
+                <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={fadeUp}
+                    transition={{ ...fadeUpTransition, delay: 0.3 }}
+                    className="flex flex-wrap items-center gap-6 mb-10"
+                >
+                    <div className="relative flex-1 min-w-[300px]">
+                            <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-primary/40 text-xs" />
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search theses..."
-                                className="w-full pl-12 pr-6 py-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/40 shadow-xl font-bold text-sm transition-all placeholder:text-white/40 text-white"
+                                placeholder="Search by title, author, or ID..."
+                                className="w-full pl-14 pr-8 py-5 bg-card/60 backdrop-blur-xl border border-white/10 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary/40 shadow-2xl font-bold text-xs transition-all placeholder:text-white/20 text-white"
                             />
                         </div>
+
+                        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                        <select
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            className="px-6 py-5 bg-card/60 backdrop-blur-md border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-[10px] font-black uppercase tracking-widest text-white/60 appearance-none cursor-pointer hover:bg-white/10 transition-all min-w-[180px]"
+                        >
+                            <option value="all" className="bg-[#1A1A2E] text-white">All Categories</option>
+                            <option value="Uncategorized" className="bg-[#1A1A2E] text-white">Uncategorized</option>
+                            {categories.map((cat, i) => (
+                                <option key={i} value={cat} className="bg-[#1A1A2E] text-white">{cat}</option>
+                            ))}
+                        </select>
+
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                            className="px-6 py-5 bg-card/60 backdrop-blur-md border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-[10px] font-black uppercase tracking-widest text-white/60 appearance-none cursor-pointer hover:bg-white/10 transition-all min-w-[140px]"
+                        >
+                            <option value="all" className="bg-[#1A1A2E] text-white">All Years</option>
+                            <option value="Unknown" className="bg-[#1A1A2E] text-white">Unknown Year</option>
+                            <option value="Inconsistent" className="bg-[#1A1A2E] text-white">Inconsistent</option>
+                            {years.map((year, i) => (
+                                <option key={i} value={year} className="bg-[#1A1A2E] text-white">{year}</option>
+                            ))}
+                        </select>
+
                         <button
                             onClick={() => {
                                 setFormData({ id: '', title: '', author: '', year_range: new Date().getFullYear().toString(), category: '', abstract: '' });
                                 setIsAddModalOpen(true);
                             }}
-                            className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-primary text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-primary-hover transition-all shadow-xl shadow-teal-900/20 active:scale-95"
+                            className="flex items-center justify-center gap-4 px-10 py-5 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-primary/90 transition-all shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
                         >
-                            <FaPlus className="text-sm" /> Add Thesis
+                            <FaPlus className="text-sm" /> Archive Paper
                         </button>
                     </div>
                 </motion.div>
