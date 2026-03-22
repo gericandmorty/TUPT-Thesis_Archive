@@ -37,7 +37,7 @@ interface SearchResult extends Thesis {
 
 interface Filters {
     year: string;
-    category: string;
+    course: string;
     searchType: string;
 }
 
@@ -74,7 +74,7 @@ const CustomHeader = ({
     const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
     const [filters, setFilters] = useState<Filters>({
         year: 'all',
-        category: 'all',
+        course: 'all',
         searchType: 'all'
     });
     const [showFilters, setShowFilters] = useState(false);
@@ -82,7 +82,7 @@ const CustomHeader = ({
     const resultsRef = useRef<HTMLDivElement>(null);
 
     const [years, setYears] = useState<string[]>(['all']);
-    const [categories, setCategories] = useState<string[]>(['all']);
+    const [courses, setCourses] = useState<string[]>(['all']);
     const [loading, setLoading] = useState(false);
 
     const [isLoadingAi, setIsLoadingAi] = useState(false);
@@ -108,17 +108,17 @@ const CustomHeader = ({
                     console.error(`Failed to fetch years (${yearsRes.status}) from ${yearsUrl}`);
                 }
 
-                // Fetch Categories
-                const catUrl = `${API_BASE_URL}/thesis/categories`;
-                const catRes = await fetch(catUrl, { headers });
-                if (catRes.ok) {
-                    const catData = await catRes.json();
-                    if (Array.isArray(catData)) {
-                        const uniqueCats = Array.from(new Set(['all', ...catData]));
-                        setCategories(uniqueCats);
+                // Fetch Courses
+                const courseUrl = `${API_BASE_URL}/thesis/courses`;
+                const courseRes = await fetch(courseUrl, { headers });
+                if (courseRes.ok) {
+                    const courseData = await courseRes.json();
+                    if (Array.isArray(courseData)) {
+                        const uniqueCourses = Array.from(new Set(['all', ...courseData]));
+                        setCourses(uniqueCourses);
                     }
-                } else if (catRes.status !== 401) {
-                    console.error(`Failed to fetch categories (${catRes.status}) from ${catUrl}`);
+                } else if (courseRes.status !== 401) {
+                    console.error(`Failed to fetch courses (${courseRes.status}) from ${courseUrl}`);
                 }
             } catch (err) {
                 console.error('Error fetching filters:', err);
@@ -135,7 +135,7 @@ const CustomHeader = ({
             const url = new URL(`${API_BASE_URL}/thesis/search`);
             url.searchParams.append('query', query);
             if (filters.year !== 'all') url.searchParams.append('year', filters.year);
-            if (filters.category !== 'all') url.searchParams.append('category', filters.category);
+            if (filters.course !== 'all') url.searchParams.append('course', filters.course);
             if (filters.searchType !== 'all') url.searchParams.append('type', filters.searchType);
 
             const res = await fetch(url.toString(), {
@@ -204,7 +204,7 @@ const CustomHeader = ({
             const params = new URLSearchParams();
             params.append('query', query);
             if (filters.year !== 'all') params.append('year', filters.year);
-            if (filters.category !== 'all') params.append('category', filters.category);
+            if (filters.course !== 'all') params.append('course', filters.course);
             if (filters.searchType !== 'all') params.append('type', filters.searchType);
 
             router.push(`/search_result?${params.toString()}`);
@@ -324,11 +324,11 @@ const CustomHeader = ({
             const params = new URLSearchParams(window.location.search);
             params.set(filterType === 'searchType' ? 'type' : filterType, value);
             router.push(`/search_result?${params.toString()}`);
-        } else if ((filterType === 'year' || filterType === 'category') && value !== 'all') {
-            // Redirect to search_result page if year or category is filtered to a specific value from home
+        } else if ((filterType === 'year' || filterType === 'course') && value !== 'all') {
+            // Redirect to search_result page if year or course is filtered to a specific value from home
             const params = new URLSearchParams();
             if (filterType === 'year') params.append('year', value);
-            if (filterType === 'category') params.append('category', value);
+            if (filterType === 'course') params.append('course', value);
             router.push(`/search_result?${params.toString()}`);
             setShowFilters(false);
             setShowSearchResults(false);
@@ -489,7 +489,7 @@ const CustomHeader = ({
                             <div className="flex flex-col gap-3">
                                 {[
                                     { icon: <FaCalendarAlt className="text-[#2DD4BF]" />, label: 'Year:', value: filters.year, options: years, field: 'year' as keyof Filters, labelFn: (v: string) => v === 'all' ? 'All Years' : v },
-                                    { icon: <FaFolder className="text-[#2DD4BF]" />, label: 'Department:', value: filters.category, options: categories, field: 'category' as keyof Filters, labelFn: (v: string) => v === 'all' ? 'All Departments' : v },
+                                    { icon: <FaFolder className="text-[#2DD4BF]" />, label: 'Course:', value: filters.course, options: courses, field: 'course' as keyof Filters, labelFn: (v: string) => v === 'all' ? 'All Courses' : v },
                                     { icon: <FaFileAlt className="text-[#2DD4BF]" />, label: 'Search in:', value: filters.searchType, options: ['all', 'title', 'abstract'], field: 'searchType' as keyof Filters, labelFn: (v: string) => v === 'all' ? 'All Fields' : v === 'title' ? 'Title Only' : 'Abstract Only' },
                                 ].map(({ icon, label, value, options, field, labelFn }) => (
                                     <div key={field} className="flex items-center gap-2">
