@@ -8,9 +8,10 @@ import loadingFiles from '../../../public/assets/Loading Files.json';
 import aiThinking from '../../../public/assets/Ai Loading Thinking.json';
 import mappingML from '../../../public/assets/Mapping for machine learning.json';
 import workspaceRobot from '../../../public/assets/Man and robot with computers sitting together in workplace.json';
+import warningTekkis from '../../../public/assets/Warning - tekkis.json';
 
 interface LottieLoaderProps {
-    type?: 'general' | 'search' | 'ai' | 'login' | 'workspace';
+    type?: 'general' | 'search' | 'ai' | 'login' | 'workspace' | 'warning';
     isModal?: boolean;
     text?: string;
     subtext?: string;
@@ -28,7 +29,13 @@ const LottieLoader: React.FC<LottieLoaderProps> = ({
     width = 'auto',
     height = 'auto'
 }) => {
-    const animationData = type === 'search' ? loadingFiles : type === 'ai' ? aiThinking : type === 'login' ? mappingML : type === 'workspace' ? workspaceRobot : sandyLoading;
+    const animationData = 
+        type === 'search' ? loadingFiles : 
+        type === 'ai' ? aiThinking : 
+        type === 'login' ? mappingML : 
+        type === 'workspace' ? workspaceRobot : 
+        type === 'warning' ? warningTekkis :
+        sandyLoading;
 
     const content = (
         <div className={`flex flex-col items-center justify-center ${className}`}>
