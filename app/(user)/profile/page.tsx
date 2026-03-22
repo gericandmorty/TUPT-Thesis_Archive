@@ -54,7 +54,7 @@ const ProfilePage = () => {
             const token = localStorage.getItem('token');
 
             if (!rawUserData || !token) {
-                router.push('/auth/login');
+                setLoading(false);
                 return;
             }
 

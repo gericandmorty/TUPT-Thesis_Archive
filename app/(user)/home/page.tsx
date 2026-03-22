@@ -106,7 +106,6 @@ const HomePage: React.FC = () => {
 
     useEffect(() => {
         setMounted(true);
-        const startTime = Date.now();
         const userData = localStorage.getItem('userData');
         const token = localStorage.getItem('token');
         if (userData && token) {
