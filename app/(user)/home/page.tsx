@@ -46,7 +46,7 @@ interface Thesis {
     title: string;
     abstract: string;
     filename: string;
-    category?: string;
+    course?: string;
     year_range?: string;
     author?: string;
 }
@@ -86,7 +86,7 @@ const HomePage: React.FC = () => {
     const [mounted, setMounted] = useState(false);
     const [user, setUser] = useState<UserData | null>(null);
     const [thesisCount, setThesisCount] = useState<number>(0);
-    const [deptCounts, setDeptCounts] = useState<{ category: string, count: number }[]>([]);
+    const [deptCounts, setDeptCounts] = useState<{ course: string, count: number }[]>([]);
 
     // AI History
     const [loadingAi, setLoadingAi] = useState(false);
@@ -575,17 +575,17 @@ const HomePage: React.FC = () => {
                                     <div className="flex flex-col">
                                         <h2 className="text-[10px] font-bold text-white/40 tracking-[0.3em] uppercase flex items-center gap-4 mb-6">
                                             <span className="w-0.5 h-4 bg-primary/40" />
-                                            Thesis Categories
+                                            Thesis Courses
                                         </h2>
                                         <div className="bg-card rounded-2xl border border-border-custom shadow-xl p-4 flex-grow flex flex-col">
                                             <div className="space-y-1 my-auto">
                                                 {(showAllCategories ? deptCounts : deptCounts.slice(0, 5)).map((dept, idx) => (
                                                     <div
-                                                        key={dept.category + idx}
+                                                        key={dept.course + idx}
                                                         className="flex items-center justify-between p-3.5 rounded-xl hover:bg-white/[0.02] transition-all cursor-pointer group border border-transparent hover:border-white/[0.03]"
-                                                        onClick={() => router.push(`/search_result?category=${encodeURIComponent(dept.category)}`)}
+                                                        onClick={() => router.push(`/search_result?course=${encodeURIComponent(dept.course)}`)}
                                                     >
-                                                        <span className="text-[11px] font-medium text-gray-400 group-hover:text-primary transition-colors tracking-wide">{dept.category}</span>
+                                                        <span className="text-[11px] font-medium text-gray-400 group-hover:text-primary transition-colors tracking-wide">{dept.course}</span>
                                                         <span className="text-[11px] font-bold text-foreground/40 group-hover:text-foreground transition-colors">{dept.count}</span>
                                                     </div>
                                                 ))}
@@ -598,7 +598,7 @@ const HomePage: React.FC = () => {
                                                     {showAllCategories ? (
                                                         <>Show Less <FaChevronUp className="group-hover:-translate-y-0.5 transition-transform" /></>
                                                     ) : (
-                                                        <>Show More Categories ({deptCounts.length - 5} More) <FaChevronDown className="group-hover:translate-y-0.5 transition-transform" /></>
+                                                        <>Show More Courses ({deptCounts.length - 5} More) <FaChevronDown className="group-hover:translate-y-0.5 transition-transform" /></>
                                                     )}
                                                 </button>
                                             )}

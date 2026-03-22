@@ -31,9 +31,9 @@ export default function AdminThesesPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingThesis, setEditingThesis] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [categories, setCategories] = useState<string[]>([]);
+    const [courses, setCourses] = useState<string[]>([]);
     const [years, setYears] = useState<string[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [selectedCourse, setSelectedCourse] = useState('all');
     const [selectedYear, setSelectedYear] = useState('all');
     const [selectedStatus, setSelectedStatus] = useState('all');
     const [stats, setStats] = useState({
@@ -46,7 +46,7 @@ export default function AdminThesesPage() {
         title: '',
         author: '',
         year_range: new Date().getFullYear().toString(),
-        category: '',
+        course: '',
         abstract: ''
     });
 
@@ -54,7 +54,7 @@ export default function AdminThesesPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/theses?page=${page}&limit=10&search=${search}&sort=${sort}&category=${selectedCategory}&year=${selectedYear}&status=${selectedStatus}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/theses?page=${page}&limit=10&search=${search}&sort=${sort}&course=${selectedCourse}&year=${selectedYear}&status=${selectedStatus}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -81,10 +81,10 @@ export default function AdminThesesPage() {
         }
     };
 
-    const fetchCategories = async () => {
+    const fetchCourses = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/thesis/categories`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/thesis/courses`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -92,10 +92,10 @@ export default function AdminThesesPage() {
             if (res.ok) {
                 const data = await res.json();
                 // Remove 'all' if it's there
-                setCategories(Array.isArray(data) ? data.filter(c => c !== 'all') : []);
+                setCourses(Array.isArray(data) ? data.filter(c => c !== 'all') : []);
             }
         } catch (err) {
-            console.error('Error fetching categories:', err);
+            console.error('Error fetching courses:', err);
         }
     };
     
@@ -155,7 +155,7 @@ export default function AdminThesesPage() {
         }
 
         fetchTheses(1);
-        fetchCategories();
+        fetchCourses();
         fetchYears();
         fetchStats();
     }, []);
@@ -175,7 +175,7 @@ export default function AdminThesesPage() {
             fetchTheses(1, searchQuery, sortBy);
         }, 500);
         return () => clearTimeout(timer);
-    }, [searchQuery, sortBy, selectedCategory, selectedYear, selectedStatus]);
+    }, [searchQuery, sortBy, selectedCourse, selectedYear, selectedStatus]);
 
     const handleCreateThesis = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -196,7 +196,7 @@ export default function AdminThesesPage() {
             if (res.ok) {
                 toast.success('Thesis archived successfully');
                 setIsAddModalOpen(false);
-                setFormData({ id: '', title: '', author: '', year_range: new Date().getFullYear().toString(), category: '', abstract: '' });
+                setFormData({ id: '', title: '', author: '', year_range: new Date().getFullYear().toString(), course: '', abstract: '' });
                 fetchTheses(1);
                 fetchYears();
                 fetchStats();
@@ -312,7 +312,7 @@ export default function AdminThesesPage() {
             title: thesis.title,
             author: thesis.author,
             year_range: (thesis.year_range || thesis.year || '').toString(),
-            category: thesis.category || thesis.department || '',
+            course: thesis.course || thesis.department || '',
             abstract: thesis.abstract
         });
         setIsEditModalOpen(true);
@@ -344,7 +344,7 @@ export default function AdminThesesPage() {
                                 Thesis <span className="text-primary italic">List</span>
                             </h1>
                             <p className="text-white/40 text-sm font-medium max-w-xl leading-relaxed">
-                                View and manage all thesis submissions in the system. You can edit research details, update categories, or archive new papers.
+                                View and manage all thesis submissions in the system. You can edit research details, update courses, or archive new papers.
                             </p>
                         </div>
                         <div className="flex items-center gap-4">
@@ -364,7 +364,7 @@ export default function AdminThesesPage() {
                     {[
                         { label: 'Total Theses', value: stats.theses, icon: <FaFileAlt />, color: 'primary', desc: 'All submissions' },
                         { label: 'Pending', value: stats.pending, icon: <FaClock className="text-amber-400" />, color: 'amber', desc: 'Needs review' },
-                        { label: 'Categories', value: categories.length, icon: <FaBuilding />, color: 'blue', desc: 'Departments' }
+                        { label: 'Courses', value: courses.length, icon: <FaBuilding />, color: 'blue', desc: 'Departments' }
                     ].map((s, i) => (
                         <motion.div
                             key={i}
@@ -410,13 +410,13 @@ export default function AdminThesesPage() {
 
                         <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
                         <select
-                            value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            value={selectedCourse}
+                            onChange={(e) => setSelectedCourse(e.target.value)}
                             className="px-6 py-5 bg-card/60 backdrop-blur-md border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-[10px] font-black uppercase tracking-widest text-white/60 appearance-none cursor-pointer hover:bg-white/10 transition-all min-w-[180px]"
                         >
-                            <option value="all" className="bg-[#1A1A2E] text-white">All Categories</option>
+                            <option value="all" className="bg-[#1A1A2E] text-white">All Courses</option>
                             <option value="Uncategorized" className="bg-[#1A1A2E] text-white">Uncategorized</option>
-                            {categories.map((cat, i) => (
+                            {courses.map((cat, i) => (
                                 <option key={i} value={cat} className="bg-[#1A1A2E] text-white">{cat}</option>
                             ))}
                         </select>
@@ -446,7 +446,7 @@ export default function AdminThesesPage() {
 
                         <button
                             onClick={() => {
-                                setFormData({ id: '', title: '', author: '', year_range: new Date().getFullYear().toString(), category: '', abstract: '' });
+                                setFormData({ id: '', title: '', author: '', year_range: new Date().getFullYear().toString(), course: '', abstract: '' });
                                 setIsAddModalOpen(true);
                             }}
                             className="flex items-center justify-center gap-4 px-10 py-5 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-primary/90 transition-all shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
@@ -468,7 +468,7 @@ export default function AdminThesesPage() {
                             <thead>
                                 <tr className="bg-white/[0.02]">
                                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 border-b border-white/[0.03]">Thesis Details</th>
-                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 border-b border-white/[0.03]">Department</th>
+                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 border-b border-white/[0.03]">Course</th>
                                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 border-b border-white/[0.03]">Year</th>
                                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 border-b border-white/[0.03] text-right">Actions</th>
                                 </tr>
@@ -513,7 +513,7 @@ export default function AdminThesesPage() {
                                                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
                                                     <FaBuilding className="text-xs" />
                                                  </div>
-                                                 <span className="text-xs font-black text-white uppercase tracking-tight">{thesis.category || thesis.department || 'General'}</span>
+                                                 <span className="text-xs font-black text-white uppercase tracking-tight">{thesis.course || thesis.department || 'General'}</span>
                                             </div>
                                         </td>
                                         <td className="px-8 py-8">
@@ -644,19 +644,19 @@ export default function AdminThesesPage() {
                                     <input type="text" required value={formData.year_range} onChange={(e) => setFormData({...formData, year_range: e.target.value})} className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white" />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Department</label>
+                                    <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Course</label>
                                     <div className="relative">
                                         <input
                                             type="text"
-                                            list="category-suggestions"
+                                            list="course-suggestions"
                                             required
-                                            value={formData.category}
-                                            onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                            value={formData.course}
+                                            onChange={(e) => setFormData({...formData, course: e.target.value})}
                                             className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white placeholder:text-white/20"
-                                            placeholder="Type or select department"
+                                            placeholder="Type or select course"
                                         />
-                                        <datalist id="category-suggestions">
-                                            {categories.map((cat, i) => (
+                                        <datalist id="course-suggestions">
+                                            {courses.map((cat, i) => (
                                                 <option key={i} value={cat} />
                                             ))}
                                         </datalist>

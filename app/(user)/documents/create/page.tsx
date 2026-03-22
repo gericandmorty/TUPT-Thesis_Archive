@@ -8,7 +8,7 @@ import { FaCloudUploadAlt, FaArrowLeft } from 'react-icons/fa';
 import CustomHeader from '@/app/components/Navigation/CustomHeader';
 import Sidebar from '@/app/components/Navigation/Sidebar';
 import Footer from '@/app/components/Navigation/Footer';
-import DepartmentDropdown from '../components/DepartmentDropdown';
+import CourseDropdown from '../components/CourseDropdown';
 
 const DEPARTMENTS = [
     'BENG', 'BET', 'BETEM', 'BETICT', 'BETMC', 'BETMT', 'BETNT',
@@ -26,7 +26,7 @@ const CreateDocumentPage: React.FC = () => {
         abstract: '',
         author: '',
         year_range: '',
-        category: ''
+        course: ''
     });
 
     useEffect(() => {
@@ -131,12 +131,12 @@ const CreateDocumentPage: React.FC = () => {
                                                 </div>
 
                                                 <div>
-                                                    <label className="block text-[10px] font-bold uppercase tracking-[0.3em] text-white/30 mb-4 ml-2">Department</label>
+                                                    <label className="block text-[10px] font-bold uppercase tracking-[0.3em] text-white/30 mb-4 ml-2">Course</label>
                                                     <div className="relative">
-                                                        <DepartmentDropdown
-                                                            value={formData.category}
+                                                        <CourseDropdown
+                                                            value={formData.course}
                                                             options={DEPARTMENTS}
-                                                            onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
+                                                            onChange={(val) => setFormData(prev => ({ ...prev, course: val }))}
                                                         />
                                                     </div>
                                                 </div>

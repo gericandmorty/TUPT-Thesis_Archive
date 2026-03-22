@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaTimes, FaSave } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
-import DepartmentDropdown from './DepartmentDropdown';
+import CourseDropdown from './CourseDropdown';
 
 interface Thesis {
     _id: string;
@@ -11,7 +11,7 @@ interface Thesis {
     abstract: string;
     author: string;
     year_range: string;
-    category: string;
+    course: string;
 }
 
 interface EditThesisModalProps {
@@ -33,7 +33,7 @@ const EditThesisModal: React.FC<EditThesisModalProps> = ({ isOpen, onClose, onSa
         abstract: '',
         author: '',
         year_range: '',
-        category: ''
+        course: ''
     });
     const [isSaving, setIsSaving] = useState(false);
 
@@ -44,7 +44,7 @@ const EditThesisModal: React.FC<EditThesisModalProps> = ({ isOpen, onClose, onSa
                 abstract: thesis.abstract,
                 author: thesis.author,
                 year_range: thesis.year_range,
-                category: thesis.category
+                course: thesis.course
             });
         }
     }, [thesis]);
@@ -126,11 +126,11 @@ const EditThesisModal: React.FC<EditThesisModalProps> = ({ isOpen, onClose, onSa
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-widest text-text-dim mb-2 ml-1">Department</label>
-                                <DepartmentDropdown 
-                                    value={formData.category}
+                                <label className="block text-[10px] font-black uppercase tracking-widest text-text-dim mb-2 ml-1">Course</label>
+                                <CourseDropdown 
+                                    value={formData.course}
                                     options={DEPARTMENTS}
-                                    onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
+                                    onChange={(val) => setFormData(prev => ({ ...prev, course: val }))}
                                 />
                             </div>
 

@@ -7,7 +7,7 @@ interface Thesis {
     title: string;
     author: string;
     year_range?: string;
-    category?: string;
+    course?: string;
     isApproved: boolean;
 }
 
@@ -67,7 +67,7 @@ const MySubmissions: React.FC<MySubmissionsProps> = ({ myTheses, onViewThesis, o
                             <div className="relative z-10 flex-grow">
                                 <div className="flex items-center justify-between mb-8">
                                     <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] bg-primary/10 px-4 py-1.5 rounded-xl border border-primary/20">
-                                        {thesis.category || 'General'}
+                                        {thesis.course || 'General'}
                                     </span>
                                     <div className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-xl border ${thesis.isApproved
                                         ? 'bg-green-500/10 text-green-400 border-green-500/20'

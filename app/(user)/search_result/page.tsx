@@ -33,7 +33,7 @@ interface Thesis {
     title: string;
     abstract: string;
     filename: string;
-    category?: string;
+    course?: string;
     year_range?: string;
     author?: string;
     _id?: string;
@@ -48,7 +48,7 @@ const SearchResultContent = () => {
     const query = searchParams.get('query');
     const year = searchParams.get('year');
     const type = searchParams.get('type');
-    const category = searchParams.get('category');
+    const course = searchParams.get('course');
     const id = searchParams.get('id');
 
     const [results, setResults] = useState<Thesis[]>([]);
@@ -139,11 +139,11 @@ const SearchResultContent = () => {
                     } else if (!existingThesis) {
                         throw new Error('Thesis not found');
                     }
-                } else if (query || year || category) {
+                } else if (query || year || course) {
                     const params = new URLSearchParams();
                     if (query) params.append('query', query);
                     if (year && year !== 'all') params.append('year', year);
-                    if (category && category !== 'all') params.append('category', category);
+                    if (course && course !== 'all') params.append('course', course);
                     if (type && type !== 'all') params.append('type', type);
 
                     const res = await fetch(`${API_BASE_URL}/thesis/search?${params.toString()}`, { headers });
@@ -172,7 +172,7 @@ const SearchResultContent = () => {
             }
         };
         fetchData();
-    }, [id, query, year, category, type]);
+    }, [id, query, year, course, type]);
 
     const handleRecommendByAi = async () => {
         if (!query || query.split(' ').filter(w => w.length > 0).length < 3) {
@@ -419,8 +419,8 @@ const SearchResultContent = () => {
                                                 <span className="font-bold uppercase">{singleThesis.id}</span>
                                             </div>
                                             <div className="flex flex-col items-end gap-1 text-right">
-                                                <span className="font-black text-[#999] uppercase tracking-widest">Classification</span>
-                                                <span className="font-bold uppercase">{singleThesis.category}</span>
+                                                <span className="font-black text-[#999] uppercase tracking-widest">Course</span>
+                                                <span className="font-bold uppercase">{singleThesis.course}</span>
                                             </div>
                                         </div>
 
@@ -477,7 +477,7 @@ const SearchResultContent = () => {
                                         </span>
                                         <div className="flex items-center gap-1">
                                             <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
-                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{thesis.category}</span>
+                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{thesis.course}</span>
                                         </div>
                                     </div>
                                     <h3 className="text-base font-bold text-foreground mb-3 line-clamp-2 group-hover:text-primary transition-colors leading-[1.4] tracking-tight">
