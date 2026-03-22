@@ -166,7 +166,7 @@ export default function AdminCollaborationPage() {
                                         <td className="p-6">
                                             <div className="flex items-center gap-2 text-white/60 hover:text-primary transition-colors cursor-pointer max-w-xs" onClick={() => router.push(`/admin/theses`)}>
                                                 <FaFileAlt className="text-xs flex-shrink-0" />
-                                                <p className="text-[11px] font-bold truncate">{collab.thesis.title}</p>
+                                                <p className="text-[11px] font-bold truncate">{collab.thesis?.title || 'Deleted Thesis'}</p>
                                             </div>
                                         </td>
                                         <td className="p-6">

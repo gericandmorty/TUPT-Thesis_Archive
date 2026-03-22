@@ -115,20 +115,6 @@ export default function AdminUsersPage() {
     };
 
     useEffect(() => {
-        const userDataString = localStorage.getItem('userData');
-        const token = localStorage.getItem('token');
-
-        if (!userDataString || !token) {
-            router.push('/auth/login');
-            return;
-        }
-
-        const userData = JSON.parse(userDataString);
-        if (!userData.isAdmin) {
-            router.push('/home');
-            return;
-        }
-
         fetchUsers(1);
         fetchStats();
     }, [router]);

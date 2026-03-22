@@ -59,7 +59,6 @@ const EditProfilePage = () => {
         const token = localStorage.getItem('token');
 
         if (!userData || !token) {
-            router.push('/auth/login');
             return;
         }
 

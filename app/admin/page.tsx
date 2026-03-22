@@ -46,18 +46,7 @@ export default function AdminPage() {
     useEffect(() => {
         const userDataString = localStorage.getItem('userData');
         const token = localStorage.getItem('token');
-
-        if (!userDataString || !token) {
-            router.push('/auth/login');
-            return;
-        }
-
-        const userData = JSON.parse(userDataString);
-        if (!userData.isAdmin) {
-            router.push('/home');
-            return;
-        }
-
+        const userData = userDataString ? JSON.parse(userDataString) : null;
         setAdminData(userData);
 
         const fetchDashboardData = async () => {
