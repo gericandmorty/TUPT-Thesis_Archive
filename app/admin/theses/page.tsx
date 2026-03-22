@@ -35,6 +35,7 @@ export default function AdminThesesPage() {
     const [years, setYears] = useState<string[]>([]);
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [selectedYear, setSelectedYear] = useState('all');
+    const [selectedStatus, setSelectedStatus] = useState('all');
     const [stats, setStats] = useState({
         theses: 0,
         pending: 0
@@ -53,7 +54,7 @@ export default function AdminThesesPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/theses?page=${page}&limit=10&search=${search}&sort=${sort}&category=${selectedCategory}&year=${selectedYear}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/theses?page=${page}&limit=10&search=${search}&sort=${sort}&category=${selectedCategory}&year=${selectedYear}&status=${selectedStatus}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -174,7 +175,7 @@ export default function AdminThesesPage() {
             fetchTheses(1, searchQuery, sortBy);
         }, 500);
         return () => clearTimeout(timer);
-    }, [searchQuery, sortBy, selectedCategory, selectedYear]);
+    }, [searchQuery, sortBy, selectedCategory, selectedYear, selectedStatus]);
 
     const handleCreateThesis = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -418,6 +419,16 @@ export default function AdminThesesPage() {
                             {categories.map((cat, i) => (
                                 <option key={i} value={cat} className="bg-[#1A1A2E] text-white">{cat}</option>
                             ))}
+                        </select>
+
+                        <select
+                            value={selectedStatus}
+                            onChange={(e) => setSelectedStatus(e.target.value)}
+                            className="px-6 py-5 bg-card/60 backdrop-blur-md border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-[10px] font-black uppercase tracking-widest text-white/60 appearance-none cursor-pointer hover:bg-white/10 transition-all min-w-[140px]"
+                        >
+                            <option value="all" className="bg-[#1A1A2E] text-white">All Status</option>
+                            <option value="approved" className="bg-[#1A1A2E] text-white">Approved Only</option>
+                            <option value="pending" className="bg-[#1A1A2E] text-white">Pending Only</option>
                         </select>
 
                         <select
