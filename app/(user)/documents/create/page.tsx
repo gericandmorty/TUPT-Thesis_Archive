@@ -21,17 +21,35 @@ const CreateDocumentPage: React.FC = () => {
     const [mounted, setMounted] = useState(false);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [professors, setProfessors] = useState<any[]>([]);
     const [formData, setFormData] = useState({
         title: '',
         abstract: '',
         author: '',
         year_range: '',
-        course: ''
+        course: '',
+        professorId: ''
     });
 
     useEffect(() => {
         setMounted(true);
+        fetchProfessors();
     }, []);
+
+    const fetchProfessors = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/professors`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                setProfessors(data.data);
+            }
+        } catch (err) {
+            console.error('Error fetching professors:', err);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -139,6 +157,23 @@ const CreateDocumentPage: React.FC = () => {
                                                             onChange={(val) => setFormData(prev => ({ ...prev, course: val }))}
                                                         />
                                                     </div>
+                                                </div>
+
+                                                <div className="md:col-span-2">
+                                                    <label className="block text-[10px] font-bold uppercase tracking-[0.3em] text-white/30 mb-4 ml-2">Assign Professor for Approval</label>
+                                                    <select
+                                                        required
+                                                        value={formData.professorId}
+                                                        onChange={(e) => setFormData(prev => ({ ...prev, professorId: e.target.value }))}
+                                                        className="w-full px-8 py-5 rounded-2xl bg-white/[0.02] border border-white/10 focus:border-primary/40 focus:bg-white/[0.05] focus:ring-4 focus:ring-primary/10 transition-all text-sm font-medium outline-none shadow-sm text-white appearance-none"
+                                                    >
+                                                        <option value="" className="bg-[#1E293B]">Select a professor</option>
+                                                        {professors.map((prof) => (
+                                                            <option key={prof._id} value={prof._id} className="bg-[#1E293B]">
+                                                                {prof.name} ({prof.idNumber})
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                 </div>
                                             </div>
 

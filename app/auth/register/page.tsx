@@ -16,6 +16,7 @@ interface FormData {
     password: string;
     confirmPassword: string;
     isGraduate: boolean;
+    isProfessor: boolean;
 }
 
 const Register: React.FC = () => {
@@ -28,6 +29,7 @@ const Register: React.FC = () => {
         password: '',
         confirmPassword: '',
         isGraduate: false,
+        isProfessor: false,
     });
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
@@ -94,7 +96,8 @@ const Register: React.FC = () => {
                     idNumber: idNumber,
                     birthdate: birthdate,
                     password: password,
-                    isGraduate: formData.isGraduate
+                    isGraduate: formData.isGraduate,
+                    isProfessor: formData.isProfessor
                 }),
             });
 
@@ -126,7 +129,7 @@ const Register: React.FC = () => {
     };
 
     const handleClear = (): void => {
-        setFormData({ fullName: '', idNumber: '', birthdate: '', password: '', confirmPassword: '', isGraduate: false });
+        setFormData({ fullName: '', idNumber: '', birthdate: '', password: '', confirmPassword: '', isGraduate: false, isProfessor: false });
     };
 
     const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>): void => {
@@ -185,17 +188,42 @@ const Register: React.FC = () => {
                                 />
                             </div>
 
-                            <div className="flex items-center space-x-2 pt-2 pb-2">
-                                <input
-                                    type="checkbox"
-                                    id="isGraduate"
-                                    className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-teal-500"
-                                    checked={formData.isGraduate}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, isGraduate: e.target.checked }))}
-                                />
-                                <label htmlFor="isGraduate" className="text-sm font-bold text-text-dim cursor-pointer">
-                                    I am a Graduate Student
-                                </label>
+                            <div className="space-y-3 pt-2 pb-2">
+                                <label className={labelClasses}>Account Type:</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <label className={`flex items-center space-x-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${!formData.isGraduate && !formData.isProfessor ? 'border-primary bg-primary/5' : 'border-border-custom hover:bg-surface'}`}>
+                                        <input
+                                            type="radio"
+                                            name="userRole"
+                                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-teal-500"
+                                            checked={!formData.isGraduate && !formData.isProfessor}
+                                            onChange={() => setFormData(prev => ({ ...prev, isGraduate: false, isProfessor: false }))}
+                                        />
+                                        <span className="text-sm font-bold text-text-dim">Undergrad Student</span>
+                                    </label>
+
+                                    <label className={`flex items-center space-x-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.isGraduate ? 'border-primary bg-primary/5' : 'border-border-custom hover:bg-surface'}`}>
+                                        <input
+                                            type="radio"
+                                            name="userRole"
+                                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-teal-500"
+                                            checked={formData.isGraduate}
+                                            onChange={() => setFormData(prev => ({ ...prev, isGraduate: true, isProfessor: false }))}
+                                        />
+                                        <span className="text-sm font-bold text-text-dim">Graduate Student</span>
+                                    </label>
+
+                                    <label className={`flex items-center space-x-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.isProfessor ? 'border-primary bg-primary/5' : 'border-border-custom hover:bg-surface'}`}>
+                                        <input
+                                            type="radio"
+                                            name="userRole"
+                                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-teal-500"
+                                            checked={formData.isProfessor}
+                                            onChange={() => setFormData(prev => ({ ...prev, isGraduate: false, isProfessor: true }))}
+                                        />
+                                        <span className="text-sm font-bold text-text-dim">Professor</span>
+                                    </label>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

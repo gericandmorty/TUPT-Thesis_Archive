@@ -26,6 +26,7 @@ interface UserData {
     name?: string;
     idNumber?: string;
     isAdmin?: boolean;
+    isProfessor?: boolean;
     profilePhoto?: string;
 }
 
@@ -89,6 +90,7 @@ export default function Sidebar() {
             { icon: FaFileAlt, label: 'Analysis Workspace', path: '/documents', section: 'TOOLS' },
             { icon: FaUpload, label: 'Submit Thesis', path: '/documents/create' },
             { icon: FaFolderOpen, label: 'My Submissions', path: '/documents/submissions' },
+            ...(user?.isProfessor ? [{ icon: FaUsers, label: 'Pending Approvals', path: '/approvals', section: 'FACULTY' }] : []),
             { icon: FaHandshake, label: 'Collaboration', path: '/collaboration', section: 'SOCIAL' },
         ];
 
