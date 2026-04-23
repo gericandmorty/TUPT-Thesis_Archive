@@ -59,6 +59,8 @@ interface SearchResult extends Thesis {
 interface UserData {
     name?: string;
     idNumber?: string;
+    isAdmin?: boolean;
+    isProfessor?: boolean;
     [key: string]: unknown;
 }
 
@@ -99,6 +101,7 @@ const HomePage: React.FC = () => {
     const [clearAllModalOpen, setClearAllModalOpen] = useState(false);
     const [clearAllType, setClearAllType] = useState<'ai' | 'session'>('ai');
     const [loading, setLoading] = useState(true);
+    const [pendingApprovals, setPendingApprovals] = useState<number>(0);
     const [showSkeleton, setShowSkeleton] = useState(false);
     const [historyPage, setHistoryPage] = useState(1);
     const [showAllCategories, setShowAllCategories] = useState(false);
@@ -127,6 +130,18 @@ const HomePage: React.FC = () => {
                     if (deptRes.ok) {
                         const deptData = await deptRes.json();
                         setDeptCounts(deptData);
+                    }
+
+                    // Fetch pending approvals if professor
+                    const userParsed = JSON.parse(userData);
+                    if (userParsed.isProfessor) {
+                        const approvalRes = await fetch(`${API_BASE_URL}/thesis/assigned/count`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (approvalRes.ok) {
+                            const approvalData = await approvalRes.json();
+                            setPendingApprovals(approvalData.count);
+                        }
                     }
                 } catch (err) {
                     console.error('Error fetching data:', err);
@@ -379,18 +394,25 @@ const HomePage: React.FC = () => {
                                 </motion.div>
 
                                 <motion.div
-                                    className="bg-card rounded-2xl p-7 shadow-lg border border-border-custom flex items-center justify-between group hover:border-orange-400/40 hover:bg-card/60 transition-all duration-300"
+                                    className={`bg-card rounded-2xl p-7 shadow-lg border border-border-custom flex items-center justify-between group transition-all duration-300 ${user?.isProfessor ? 'hover:border-primary/40 hover:bg-card/60 cursor-pointer' : 'opacity-50 grayscale select-none'}`}
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.3 }}
+                                    onClick={() => user?.isProfessor && router.push('/approvals')}
                                 >
                                     <div>
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mb-1">Recently Viewed</p>
-                                        <p className="text-3xl font-bold text-foreground leading-none tracking-tighter">{sessionHistory.length}</p>
-                                        <p className="text-[10px] text-orange-400/70 font-bold uppercase tracking-[0.1em] mt-3">Recent Activity</p>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mb-1">
+                                            {user?.isProfessor ? 'Pending Approvals' : 'Recently Viewed'}
+                                        </p>
+                                        <p className="text-3xl font-bold text-foreground leading-none tracking-tighter">
+                                            {user?.isProfessor ? pendingApprovals : sessionHistory.length}
+                                        </p>
+                                        <p className={`text-[10px] font-bold uppercase tracking-[0.1em] mt-3 ${user?.isProfessor ? 'text-primary/70' : 'text-orange-400/70'}`}>
+                                            {user?.isProfessor ? 'Awaiting Action' : 'Recent Activity'}
+                                        </p>
                                     </div>
-                                    <div className="w-14 h-14 rounded-xl bg-orange-500/5 flex items-center justify-center border border-orange-500/20 group-hover:bg-orange-500/10 transition-colors">
-                                        <FaHistory className="text-xl text-orange-400" />
+                                    <div className={`w-14 h-14 rounded-xl flex items-center justify-center border transition-colors ${user?.isProfessor ? 'bg-primary/5 border-primary/20 group-hover:bg-primary/10' : 'bg-orange-500/5 border-orange-500/20'}`}>
+                                        {user?.isProfessor ? <FaGraduationCap className="text-xl text-primary" /> : <FaHistory className="text-xl text-orange-400" />}
                                     </div>
                                 </motion.div>
                             </div>

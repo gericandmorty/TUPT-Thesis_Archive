@@ -9,6 +9,14 @@ interface Thesis {
     year_range?: string;
     course?: string;
     isApproved: boolean;
+    professorId?: {
+        name: string;
+    };
+    approvedBy?: {
+        name: string;
+        isAdmin?: boolean;
+    };
+    approvedAt?: string;
 }
 
 interface MySubmissionsProps {
@@ -60,69 +68,75 @@ const MySubmissions: React.FC<MySubmissionsProps> = ({ myTheses, onViewThesis, o
                     {myTheses.map((thesis) => (
                         <div
                             key={thesis._id}
-                            className="group relative bg-[#1E293B]/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/5 p-8 shadow-2xl hover:shadow-primary/5 hover:border-primary/20 transition-all duration-700 flex flex-col h-full overflow-hidden"
+                            className="group relative bg-[#F8FAFC] rounded-lg border border-zinc-200 shadow-lg p-8 flex flex-col h-[520px] transition-all duration-300 hover:shadow-xl"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
-                            
                             <div className="relative z-10 flex-grow">
-                                <div className="flex items-center justify-between mb-8">
-                                    <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] bg-primary/10 px-4 py-1.5 rounded-xl border border-primary/20">
+                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-200/60">
+                                    <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
                                         {thesis.course || 'General'}
                                     </span>
-                                    <div className={`flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-xl border ${thesis.isApproved
-                                        ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                    <div className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${thesis.isApproved
+                                        ? 'bg-green-50 text-green-700 border-green-200'
+                                        : 'bg-zinc-100 text-zinc-500 border-zinc-200'
                                         }`}>
-                                        <div className={`w-1.5 h-1.5 rounded-full ${thesis.isApproved ? 'bg-green-400 animate-pulse' : 'bg-amber-400 opacity-50'}`} />
-                                        {thesis.isApproved ? 'Verified' : 'Reviewing'}
+                                        {thesis.isApproved ? 'Approved' : 'Pending'}
                                     </div>
                                 </div>
-                                <h4 className="text-[17px] font-bold text-white leading-relaxed uppercase tracking-tight mb-6 group-hover:text-primary transition-colors line-clamp-2">
-                                    {thesis.title}
-                                </h4>
-                                <div className="space-y-2 mb-8">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-4 h-px bg-white/10" />
-                                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.2em]">
-                                            {thesis.author}
-                                        </p>
+
+                                <div className="space-y-6">
+                                    <h4 className="text-xl font-bold text-zinc-900 leading-snug">
+                                        {thesis.title}
+                                    </h4>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Author</span>
+                                            <p className="text-[11px] text-zinc-700 font-medium">
+                                                {thesis.author}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Year</span>
+                                            <p className="text-[11px] text-zinc-700 font-medium">
+                                                {thesis.year_range || 'N/A'}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="text-[10px] text-primary/40 font-black uppercase tracking-[0.3em] ml-7 italic">
-                                        FY {thesis.year_range || 'PENDING'}
-                                    </p>
+
+                                    <div className="space-y-4 pt-6 border-t border-zinc-100">
+                                        <div className="space-y-1">
+                                            <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Professor</span>
+                                            <p className="text-[11px] text-zinc-700 font-medium">
+                                                {thesis.professorId?.name || 'Unassigned'}
+                                            </p>
+                                        </div>
+                                        
+                                        {thesis.isApproved && thesis.approvedBy && (
+                                            <div className="space-y-3 pt-2 bg-zinc-50 p-3 rounded-lg border border-zinc-100">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="space-y-1">
+                                                        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Approved By</span>
+                                                        <p className="text-[11px] text-zinc-800 font-semibold">{thesis.approvedBy.name}</p>
+                                                    </div>
+                                                    <span className="text-[9px] text-zinc-400 font-medium italic">
+                                                        {thesis.approvedAt ? new Date(thesis.approvedAt).toLocaleDateString() : ''}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="relative z-10 pt-8 border-t border-white/5 flex items-center justify-between mt-auto">
-                                <div className="flex items-center gap-4">
-                                    <button
-                                        onClick={() => onEditThesis(thesis)}
-                                        className="w-10 h-10 rounded-xl bg-white/[0.03] flex items-center justify-center text-white/20 hover:bg-amber-500/20 hover:text-amber-400 hover:border-amber-500/20 transition-all duration-500 border border-white/5 active:scale-90"
-                                        title="Edit Submission"
-                                    >
-                                        <FaEdit className="text-[13px]" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteClick(thesis)}
-                                        className="w-10 h-10 rounded-xl bg-white/[0.03] flex items-center justify-center text-white/20 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/20 transition-all duration-500 border border-white/5 active:scale-90"
-                                        title="Delete Submission"
-                                    >
-                                        <FaTrash className="text-[12px]" />
-                                    </button>
-                                </div>
+                            <div className="relative z-10 pt-6 mt-auto">
                                 <button
-                                    className={`relative px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-[0.3em] transition-all flex items-center gap-3 group/btn overflow-hidden ${thesis.isApproved ? 'bg-white/[0.05] text-white hover:bg-primary/20 hover:text-primary' : 'bg-white/[0.02] text-white/20 cursor-not-allowed'}`}
+                                    className={`w-full py-3 rounded-md text-[11px] font-bold uppercase tracking-widest transition-all ${thesis.isApproved 
+                                        ? 'bg-zinc-900 text-white hover:bg-zinc-800' 
+                                        : 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'}`}
                                     onClick={() => onViewThesis(thesis._id)}
                                     disabled={!thesis.isApproved}
                                 >
-                                    {thesis.isApproved ? (
-                                        <>
-                                            Explore
-                                            <FaArrowRight className="text-[7px] transform transition-transform group-hover/btn:translate-x-1" />
-                                        </>
-                                    ) : (
-                                        'Awaiting'
-                                    )}
+                                    {thesis.isApproved ? 'View Research' : 'Under Review'}
                                 </button>
                             </div>
                         </div>
