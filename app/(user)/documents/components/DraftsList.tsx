@@ -1,5 +1,6 @@
 import React from 'react';
-import { FaFileAlt, FaHistory, FaArrowRight, FaClock } from 'react-icons/fa';
+import { FaFileAlt, FaHistory, FaArrowRight, FaClock, FaCheckCircle } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 
 interface Draft {
     _id: string;
@@ -20,45 +21,62 @@ const DraftsList: React.FC<DraftsListProps> = ({ drafts, onResume }) => {
 
     return (
         <section className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
+            <div className="flex items-center gap-4 mb-8">
+                <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-500 border border-amber-500/20">
                     <FaHistory className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Recent Analysis Drafts</h3>
+                <div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-[0.3em]">Saved <span className="text-amber-500">Drafts</span></h3>
+                    <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest mt-1">Continue where you left off</p>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
-                {drafts.map((draft) => (
-                    <div 
-                        key={draft._id}
-                        onClick={() => onResume(draft)}
-                        className="group bg-card/5 backdrop-blur-md border border-white/10 p-5 rounded-3xl hover:bg-card/10 hover:border-white/20 transition-all cursor-pointer relative overflow-hidden flex items-center gap-5"
-                    >
-                        <div className="w-12 h-12 bg-card/5 rounded-2xl flex items-center justify-center text-white/40 group-hover:text-amber-400 group-hover:bg-amber-400/10 transition-all">
-                            <FaFileAlt className="w-5 h-5" />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                            <h4 className="text-white font-black text-[11px] uppercase tracking-wider truncate mb-1">
-                                {draft.fileName}
-                            </h4>
-                            <div className="flex items-center gap-3 text-[9px] font-bold text-white/40 uppercase tracking-widest">
-                                <span className="flex items-center gap-1">
-                                    <FaClock className="w-2 h-2" />
-                                    {new Date(draft.lastSaved).toLocaleDateString()}
-                                </span>
-                                <span className="w-1 h-1 rounded-full bg-card/10" />
-                                <span className="text-amber-400/80">
-                                    {Math.round((draft.appliedIssueIds.length / (draft.originalResults.totalIssues || 1)) * 100)}% Complete
-                                </span>
+            <div className="grid grid-cols-1 gap-4 max-h-[700px] overflow-y-auto pr-4 custom-scrollbar">
+                {drafts.map((draft, idx) => {
+                    const completion = Math.round((draft.appliedIssueIds.length / (draft.originalResults?.totalIssues || 1)) * 100);
+                    
+                    return (
+                        <motion.div 
+                            key={draft._id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            onClick={() => onResume(draft)}
+                            className="group relative bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-6 rounded-[2rem] hover:bg-white/[0.08] hover:border-primary/30 transition-all cursor-pointer overflow-hidden flex items-center gap-6"
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-primary/10 transition-colors" />
+                            
+                            <div className="relative w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-white/20 group-hover:text-primary group-hover:bg-primary/10 transition-all border border-white/5 group-hover:border-primary/20 shadow-xl">
+                                <FaFileAlt className="w-6 h-6" />
                             </div>
-                        </div>
 
-                        <div className="p-3 bg-card/5 rounded-xl text-white/20 group-hover:text-white group-hover:bg-[#2DD4BF] transition-all">
-                            <FaArrowRight className="w-3 h-3" />
-                        </div>
-                    </div>
-                ))}
+                            <div className="flex-1 min-w-0 relative">
+                                <h4 className="text-white font-black text-[13px] uppercase tracking-tight truncate mb-2 group-hover:text-primary transition-colors">
+                                    {draft.fileName}
+                                </h4>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-2 text-[9px] font-bold text-white/30 uppercase tracking-widest">
+                                        <FaClock className="w-2.5 h-2.5 text-white/20" />
+                                        {new Date(draft.lastSaved).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </div>
+                                    <div className="h-3 w-[1px] bg-white/10" />
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden">
+                                            <div className="h-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" style={{ width: `${completion}%` }} />
+                                        </div>
+                                        <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">
+                                            {completion}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="relative p-3 rounded-xl bg-white/5 text-white/20 group-hover:text-white group-hover:bg-primary group-hover:shadow-[0_0_15px_rgba(45,212,191,0.4)] transition-all">
+                                <FaArrowRight className="w-3.5 h-3.5" />
+                            </div>
+                        </motion.div>
+                    );
+                })}
             </div>
         </section>
     );

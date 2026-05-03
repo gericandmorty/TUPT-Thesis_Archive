@@ -22,11 +22,21 @@ const DocumentsPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [showSkeleton, setShowSkeleton] = useState(false);
     const [drafts, setDrafts] = useState<any[]>([]);
+    const [myTheses, setMyTheses] = useState<any[]>([]);
 
     useEffect(() => {
         setMounted(true);
+        const userData = localStorage.getItem('userData');
+        if (userData) {
+            const user = JSON.parse(userData);
+            if (user.isProfessor) {
+                router.push('/approvals');
+                return;
+            }
+        }
         fetchDrafts();
-    }, []);
+        fetchMySubmissions();
+    }, [router]);
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
@@ -53,6 +63,21 @@ const DocumentsPage: React.FC = () => {
             console.error('Fetch drafts error:', err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchMySubmissions = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/theses`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                setMyTheses(data.data || []);
+            }
+        } catch (err) {
+            console.error('Fetch submissions error:', err);
         }
     };
 
@@ -199,7 +224,7 @@ const DocumentsPage: React.FC = () => {
                     </div>
                 )}
 
-                <div className="relative z-10 flex-1 pt-32 pb-16">
+                <div className="relative z-10 flex-1 pt-8 pb-16">
                     {!analysisResult ? (
                         <>
                             <DocumentsHero />
@@ -217,7 +242,14 @@ const DocumentsPage: React.FC = () => {
                                         onFileSelect={handleFileSelect}
                                         onClearFile={() => setSelectedFile(null)}
                                         onUpload={handleUpload}
-                                        onOpenSubmitModal={() => router.push('/documents/create')}
+                                        onOpenSubmitModal={() => {
+                                            if (myTheses.length > 0) {
+                                                toast.info('Only one submission is allowed. Check your submissions page.');
+                                                router.push('/documents/submissions');
+                                            } else {
+                                                router.push('/documents/create');
+                                            }
+                                        }}
                                     />
                                     <HowItWorks />
                                 </div>

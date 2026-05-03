@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FaFileAlt, FaArrowRight, FaLightbulb, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaFileAlt, FaArrowRight, FaLightbulb, FaEdit, FaTrash, FaFileImage, FaTimes } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 import DeleteThesisModal from './DeleteThesisModal';
 
 interface Thesis {
@@ -9,6 +10,7 @@ interface Thesis {
     year_range?: string;
     course?: string;
     isApproved: boolean;
+    isProfApproved: boolean;
     professorId?: {
         name: string;
     };
@@ -17,6 +19,7 @@ interface Thesis {
         isAdmin?: boolean;
     };
     approvedAt?: string;
+    attachments?: string[];
 }
 
 interface MySubmissionsProps {
@@ -30,6 +33,7 @@ interface MySubmissionsProps {
 const MySubmissions: React.FC<MySubmissionsProps> = ({ myTheses, onViewThesis, onEditThesis, onDeleteThesis, hasAnalysisOrFile }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [thesisToDelete, setThesisToDelete] = useState<Thesis | null>(null);
+    const [selectedAttachments, setSelectedAttachments] = useState<string[] | null>(null);
 
     const handleDeleteClick = (thesis: Thesis) => {
         setThesisToDelete(thesis);
@@ -79,7 +83,7 @@ const MySubmissions: React.FC<MySubmissionsProps> = ({ myTheses, onViewThesis, o
                                         ? 'bg-green-50 text-green-700 border-green-200'
                                         : 'bg-zinc-100 text-zinc-500 border-zinc-200'
                                         }`}>
-                                        {thesis.isApproved ? 'Approved' : 'Pending'}
+                                        {thesis.isApproved ? 'Approved' : thesis.isProfApproved ? 'Pending Admin' : 'Awaiting Prof'}
                                     </div>
                                 </div>
 
@@ -128,9 +132,18 @@ const MySubmissions: React.FC<MySubmissionsProps> = ({ myTheses, onViewThesis, o
                                 </div>
                             </div>
 
-                            <div className="relative z-10 pt-6 mt-auto">
+                            <div className="relative z-10 pt-6 mt-auto flex items-center gap-3">
+                                {thesis.attachments && thesis.attachments.length > 0 && (
+                                    <button
+                                        onClick={() => setSelectedAttachments(thesis.attachments!)}
+                                        className="w-12 h-12 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-400 hover:text-primary hover:bg-primary/5 border border-zinc-200 transition-all group/attach"
+                                        title="View Supporting Documents"
+                                    >
+                                        <FaFileImage className="group-hover/attach:scale-110 transition-transform" />
+                                    </button>
+                                )}
                                 <button
-                                    className={`w-full py-3 rounded-md text-[11px] font-bold uppercase tracking-widest transition-all ${thesis.isApproved 
+                                    className={`flex-1 py-3 rounded-md text-[11px] font-bold uppercase tracking-widest transition-all ${thesis.isApproved 
                                         ? 'bg-zinc-900 text-white hover:bg-zinc-800' 
                                         : 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'}`}
                                     onClick={() => onViewThesis(thesis._id)}
@@ -163,6 +176,64 @@ const MySubmissions: React.FC<MySubmissionsProps> = ({ myTheses, onViewThesis, o
                 onConfirm={handleConfirmDelete}
                 thesisTitle={thesisToDelete?.title || ''}
             />
+
+            {/* Attachment Viewer Modal */}
+            <AnimatePresence>
+                {selectedAttachments && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/90 backdrop-blur-xl"
+                            onClick={() => setSelectedAttachments(null)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative bg-white w-full max-w-4xl max-h-[85vh] rounded-[2rem] border border-zinc-200 overflow-hidden flex flex-col shadow-2xl"
+                        >
+                            <div className="p-8 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+                                <div>
+                                    <h2 className="text-xl font-black text-zinc-900 uppercase tracking-tight">Supporting <span className="text-primary italic">Documents</span></h2>
+                                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.3em] mt-1">Uploaded Certificates & Sheets</p>
+                                </div>
+                                <button 
+                                    onClick={() => setSelectedAttachments(null)}
+                                    className="w-12 h-12 rounded-xl bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-500 transition-all border border-zinc-200"
+                                >
+                                    <FaTimes />
+                                </button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    {selectedAttachments.map((url, i) => (
+                                        <div key={i} className="group relative rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200 aspect-square">
+                                            <img 
+                                                src={url} 
+                                                alt={`Attachment ${i + 1}`} 
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+                                                <a 
+                                                    href={url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl text-[10px] font-black uppercase tracking-widest text-white border border-white/20 transition-all"
+                                                >
+                                                    Full Resolution
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </section>
     );
 };
