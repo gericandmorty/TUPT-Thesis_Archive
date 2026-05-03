@@ -354,7 +354,7 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                         <FaMagic className="text-primary text-xs" />
                     </div>
                     <div>
-                        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight uppercase leading-none">Thesis <span className="text-primary">Analysis</span></h2>
+                        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight uppercase leading-none">Research <span className="text-primary">Analysis</span></h2>
                         <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/40 mt-1">{file.name}</p>
                     </div>
                 </div>

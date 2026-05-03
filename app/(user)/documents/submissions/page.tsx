@@ -23,8 +23,16 @@ const SubmissionsPage: React.FC = () => {
 
     useEffect(() => {
         setMounted(true);
+        const userData = localStorage.getItem('userData');
+        if (userData) {
+            const user = JSON.parse(userData);
+            if (user.isProfessor) {
+                router.push('/approvals');
+                return;
+            }
+        }
         fetchUserTheses();
-    }, []);
+    }, [router]);
 
     const fetchUserTheses = async () => {
         try {
@@ -58,10 +66,10 @@ const SubmissionsPage: React.FC = () => {
             });
 
             if (res.ok) {
-                toast.success('Submission deleted successfully');
+                toast.success('Research Article deleted successfully');
                 fetchUserTheses(); // Refresh list
             } else {
-                toast.error('Failed to delete submission');
+                toast.error('Failed to delete Research Article');
             }
         } catch (err) {
             toast.error('Error connecting to server');

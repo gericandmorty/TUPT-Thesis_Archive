@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { FaCloudUploadAlt, FaArrowLeft } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaArrowLeft, FaFileImage, FaTrash, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 
 import CustomHeader from '@/app/components/Navigation/CustomHeader';
 import Sidebar from '@/app/components/Navigation/Sidebar';
@@ -30,11 +30,37 @@ const CreateDocumentPage: React.FC = () => {
         course: '',
         professorId: ''
     });
+    const [attachments, setAttachments] = useState<File[]>([]);
 
     useEffect(() => {
         setMounted(true);
+        const userData = localStorage.getItem('userData');
+        if (userData) {
+            const user = JSON.parse(userData);
+            if (user.isProfessor) {
+                router.push('/approvals');
+                return;
+            }
+        }
+        checkExistingSubmissions();
         fetchProfessors();
-    }, []);
+    }, [router]);
+
+    const checkExistingSubmissions = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/theses`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success && data.data.length > 0) {
+                toast.info('You have already submitted a Research Article. Only one submission is allowed per level.');
+                router.push('/documents/submissions');
+            }
+        } catch (err) {
+            console.error('Error checking submissions:', err);
+        }
+    };
 
     const fetchProfessors = async () => {
         try {
@@ -51,25 +77,59 @@ const CreateDocumentPage: React.FC = () => {
         }
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const newFiles = Array.from(e.target.files);
+            if (attachments.length + newFiles.length > 5) {
+                toast.error('Maximum 5 supporting documents allowed');
+                return;
+            }
+            setAttachments(prev => [...prev, ...newFiles]);
+        }
+    };
+
+    const removeAttachment = (index: number) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (attachments.length === 0) {
+            toast.error('Please upload at least one supporting document (Similarity, Proofreading, or Approval Sheet)');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const token = localStorage.getItem('token');
+            const data = new FormData();
+            
+            // Append text fields
+            Object.entries(formData).forEach(([key, value]) => {
+                data.append(key, value);
+            });
+            
+            // Append attachments
+            attachments.forEach(file => {
+                data.append('attachments', file);
+            });
+
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/theses`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${token}`
+                    // Do NOT set Content-Type, browser will set it with boundary
                 },
-                body: JSON.stringify(formData)
+                body: data
             });
 
             if (res.ok) {
-                toast.success('Thesis submitted for approval!');
+                toast.success('Research Article and documents submitted for approval!');
                 router.push('/documents');
             } else {
-                toast.error('Failed to submit thesis');
+                const errorData = await res.json();
+                toast.error(errorData.message || 'Failed to submit Research Article');
             }
         } catch (err) {
             toast.error('Error connecting to server');
@@ -120,7 +180,7 @@ const CreateDocumentPage: React.FC = () => {
                                                         value={formData.title}
                                                         onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                                                         className="w-full px-8 py-5 rounded-2xl bg-white/[0.02] border border-white/10 focus:border-primary/40 focus:bg-white/[0.05] focus:ring-4 focus:ring-primary/10 transition-all text-[15px] font-medium outline-none shadow-sm text-white placeholder:text-white/10"
-                                                        placeholder="Enter full formal thesis title"
+                                                        placeholder="Enter full formal research title"
                                                     />
                                                 </div>
 
@@ -186,6 +246,54 @@ const CreateDocumentPage: React.FC = () => {
                                                     className="w-full px-8 py-6 rounded-2xl bg-white/[0.02] border border-white/10 focus:border-primary/40 focus:bg-white/[0.05] focus:ring-4 focus:ring-primary/10 transition-all text-[14px] leading-relaxed font-medium outline-none min-h-[250px] shadow-sm resize-y text-white placeholder:text-white/10"
                                                     placeholder="Provide a comprehensive summary of the research..."
                                                 />
+                                            </div>
+
+                                            {/* Supporting Documents Upload */}
+                                            <div className="space-y-6 pt-6 border-t border-white/5">
+                                                <div>
+                                                    <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-primary mb-2">Supporting Documents</h4>
+                                                    <p className="text-[11px] text-white/30 font-medium mb-6">Upload required certificates (Similarity, Proofreading, Approval Sheet). 1-5 images or PDFs required.</p>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <label className="flex flex-col items-center justify-center gap-4 p-8 rounded-3xl bg-white/[0.02] border-2 border-dashed border-white/10 hover:border-primary/40 hover:bg-white/[0.04] transition-all cursor-pointer group">
+                                                        <FaCloudUploadAlt className="text-3xl text-white/20 group-hover:text-primary transition-colors" />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white">Select Files</span>
+                                                        <input 
+                                                            type="file" 
+                                                            multiple 
+                                                            accept="image/*,application/pdf"
+                                                            onChange={handleFileChange}
+                                                            className="hidden" 
+                                                        />
+                                                    </label>
+
+                                                    <div className="space-y-3">
+                                                        {attachments.length === 0 ? (
+                                                            <div className="h-full flex items-center justify-center rounded-3xl bg-white/[0.01] border border-white/5 p-8">
+                                                                <p className="text-[10px] font-bold text-white/10 uppercase tracking-widest">No files selected</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-2">
+                                                                {attachments.map((file, index) => (
+                                                                    <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/5 group">
+                                                                        <div className="flex items-center gap-3 overflow-hidden">
+                                                                            <FaFileImage className="text-primary flex-shrink-0" />
+                                                                            <span className="text-[11px] font-medium text-white/60 truncate uppercase tracking-tighter">{file.name}</span>
+                                                                        </div>
+                                                                        <button 
+                                                                            type="button"
+                                                                            onClick={() => removeAttachment(index)}
+                                                                            className="p-2 text-white/20 hover:text-red-400 transition-colors"
+                                                                        >
+                                                                            <FaTrash size={12} />
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -255,7 +363,7 @@ const CreateDocumentPage: React.FC = () => {
                                         <span className="text-xs font-black uppercase tracking-widest">Digital Archive</span>
                                     </div>
                                     <p className="text-[11px] text-white/60 leading-relaxed font-medium">
-                                        Submitted research will undergo institutional verification before being cataloged in the TUPT Digital Archive.
+                                        Submitted research will undergo institutional verification before being cataloged in the TUPT Digital Repository.
                                     </p>
                                 </div>
                             </div>

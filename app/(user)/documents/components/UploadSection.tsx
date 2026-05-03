@@ -125,7 +125,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({
                                         >
                                             <FaTimes />
                                         </button>
-                                        {isUploading && <LottieLoader isModal type="search" text="Checking your thesis..." />}
+                                        {isUploading && <LottieLoader isModal type="search" text="Checking your document..." />}
 
                                         <button
                                             className={`flex-1 py-5 rounded-2xl bg-primary text-white font-black text-[10px] uppercase tracking-[0.3em] shadow-[0_15px_30px_-10px_rgba(45,212,191,0.4)] hover:shadow-primary/40 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 flex items-center justify-center gap-3 ${isUploading ? 'opacity-90 cursor-wait' : ''}`}

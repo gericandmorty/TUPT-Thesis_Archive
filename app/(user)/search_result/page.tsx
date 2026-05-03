@@ -20,7 +20,9 @@ import {
     FaChevronRight,
     FaHandshake,
     FaThLarge,
-    FaList
+    FaList,
+    FaPaperclip,
+    FaExternalLinkAlt
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import LottieLoader from '@/app/components/UI/LottieLoader';
@@ -42,6 +44,7 @@ interface Thesis {
     isUploadedByUndergrad?: boolean;
     createdBy?: string;
     hasRequestedCollaboration?: boolean;
+    attachments?: string[];
 }
 
 const SearchResultContent = () => {
@@ -481,6 +484,40 @@ const SearchResultContent = () => {
                                                 </p>
                                             </div>
                                         </div>
+
+                                        {/* Attachments Section (Visible to Admins/Professors or Creator) */}
+                                        {singleThesis.attachments && singleThesis.attachments.length > 0 && (
+                                            <div className="space-y-8 mt-12 pt-12 border-t border-[#1A1A1A]/10">
+                                                <h4 className="text-[13px] font-black text-[#1A1A1A] uppercase tracking-[0.2em] flex items-center gap-4">
+                                                    <span className="w-10 h-[2px] bg-[#1A1A1A]" />
+                                                    Supporting Documents
+                                                    <span className="flex-1 h-[1px] bg-[#1A1A1A]/10" />
+                                                </h4>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                                    {singleThesis.attachments.map((url, i) => (
+                                                        <motion.div 
+                                                            key={i}
+                                                            whileHover={{ y: -5 }}
+                                                            className="group/attach relative aspect-[3/4] bg-white border border-stone-200 rounded-sm shadow-md overflow-hidden cursor-pointer"
+                                                            onClick={() => window.open(url, '_blank')}
+                                                        >
+                                                            {url.toLowerCase().endsWith('.pdf') ? (
+                                                                <div className="w-full h-full flex flex-col items-center justify-center bg-stone-50 gap-3">
+                                                                    <FaFileAlt className="text-4xl text-red-800/40" />
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-[#999]">PDF Document</span>
+                                                                </div>
+                                                            ) : (
+                                                                <img src={url} alt={`Attachment ${i + 1}`} className="w-full h-full object-cover grayscale group-hover/attach:grayscale-0 transition-all duration-500" />
+                                                            )}
+                                                            <div className="absolute inset-0 bg-black/0 group-hover/attach:bg-black/5 transition-colors" />
+                                                            <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center opacity-0 group-hover/attach:opacity-100 transition-opacity translate-y-2 group-hover/attach:translate-y-0 duration-300">
+                                                                <FaExternalLinkAlt className="text-[10px] text-primary" />
+                                                            </div>
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="mt-16 pt-8 border-t border-[#1A1A1A]/10 text-center">

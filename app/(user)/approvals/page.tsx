@@ -10,7 +10,8 @@ import {
     FaGraduationCap, 
     FaCalendarAlt, 
     FaFolderOpen,
-    FaArrowLeft 
+    FaArrowLeft,
+    FaFileImage
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import API_BASE_URL from '@/app/lib/api';
@@ -20,6 +21,7 @@ const ApprovalsPage = () => {
     const [mounted, setMounted] = useState(false);
     const [assignedTheses, setAssignedTheses] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedAttachments, setSelectedAttachments] = useState<string[] | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -85,6 +87,14 @@ const ApprovalsPage = () => {
         }
     };
 
+    const openAttachments = (attachments: string[]) => {
+        setSelectedAttachments(attachments);
+    };
+
+    const closeAttachments = () => {
+        setSelectedAttachments(null);
+    };
+
     if (!mounted) return null;
 
     return (
@@ -109,23 +119,29 @@ const ApprovalsPage = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col md:flex-row md:items-end justify-between gap-6"
+                        className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-white/10 pb-12"
                     >
                         <div>
-                            <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-2">
-                                Pending <span className="text-primary italic">Approvals</span>
+                            <div className="flex items-center gap-3 mb-4">
+                                <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.2em] rounded-sm border border-primary/20">Faculty Review Panel</span>
+                                <div className="h-px w-12 bg-white/10" />
+                            </div>
+                            <h1 className="text-4xl md:text-5xl font-light text-white tracking-tight mb-4">
+                                Research <span className="font-serif italic text-primary/80">Validation</span>
                             </h1>
-                            <p className="text-white/40 text-sm font-medium tracking-wide max-w-xl">
-                                FACULTY REVIEW PANEL • MANAGE STUDENT RESEARCH SUBMISSIONS
+                            <p className="text-white/40 text-[13px] font-medium tracking-wide max-w-xl leading-relaxed uppercase">
+                                Academic Oversight • Review and verify student research submissions for institutional standards.
                             </p>
                         </div>
-                        <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl backdrop-blur-md">
-                            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                                <FaFolderOpen className="text-primary" />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Total Pending</p>
-                                <p className="text-xl font-black text-white leading-none">{assignedTheses.length}</p>
+                        <div className="flex items-center gap-6">
+                            <div className="flex flex-col items-end">
+                                <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] mb-1">Queue Status</p>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-3xl font-light text-white">{assignedTheses.length}</span>
+                                    <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center bg-white/5">
+                                        <FaFolderOpen className="text-primary/60 text-xs" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </motion.div>
@@ -146,78 +162,83 @@ const ApprovalsPage = () => {
                                     layout
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    exit={{ opacity: 0, scale: 0.98 }}
                                     transition={{ delay: index * 0.1 }}
-                                    className="group relative bg-[#1E293B]/40 hover:bg-[#1E293B]/60 border border-white/5 hover:border-white/20 rounded-[2rem] p-8 transition-all duration-500 overflow-hidden"
+                                    className="group relative bg-[#0F172A]/40 hover:bg-[#0F172A]/60 border border-white/[0.03] hover:border-white/10 rounded-xl p-10 transition-all duration-500"
                                 >
-                                    {/* Status Badge */}
-                                    <div className={`absolute top-0 right-0 px-6 py-2 rounded-bl-2xl text-[9px] font-black uppercase tracking-widest ${thesis.isApproved ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                                        {thesis.isApproved ? 'Approved' : 'Awaiting Review'}
-                                    </div>
-
-                                    <div className="flex flex-col lg:flex-row lg:items-center gap-8">
+                                    <div className="flex flex-col lg:flex-row gap-12">
                                         {/* Info Block */}
-                                        <div className="flex-1 space-y-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full">
-                                                    <span className="text-[9px] font-black text-primary uppercase tracking-wider">{thesis.course}</span>
+                                        <div className="flex-1 space-y-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="px-3 py-1 bg-white/[0.03] border border-white/10 rounded-sm">
+                                                    <span className="text-[9px] font-bold text-primary/70 uppercase tracking-[0.2em]">{thesis.course}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-white/30">
+                                                <div className="flex items-center gap-2 text-white/20">
                                                     <FaCalendarAlt className="text-[10px]" />
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest">{thesis.year_range}</span>
+                                                    <span className="text-[10px] font-bold tracking-[0.2em]">{thesis.year_range}</span>
+                                                </div>
+                                                <div className="h-px flex-1 bg-white/5" />
+                                                <div className={`px-3 py-1 rounded-sm text-[8px] font-black uppercase tracking-widest ${thesis.isApproved ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                                                    {thesis.isApproved ? 'Validated' : 'Pending Review'}
                                                 </div>
                                             </div>
 
-                                            <h3 className="text-2xl font-black tracking-tight group-hover:text-primary transition-colors cursor-pointer"
-                                                onClick={() => router.push(`/search_result?id=${thesis._id}`)}
-                                            >
-                                                {thesis.title}
-                                            </h3>
-
-                                            <div className="flex items-center gap-4 text-white/50">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center">
-                                                        <FaGraduationCap className="text-xs" />
-                                                    </div>
-                                                    <span className="text-xs font-bold">{thesis.author}</span>
+                                            <div className="space-y-3">
+                                                <h3 className="text-2xl font-light text-white tracking-tight hover:text-primary transition-colors cursor-pointer leading-snug"
+                                                    onClick={() => router.push(`/search_result?id=${thesis._id}`)}
+                                                >
+                                                    {thesis.title}
+                                                </h3>
+                                                <div className="flex items-center gap-3 text-white/40">
+                                                    <FaGraduationCap className="text-xs text-primary/40" />
+                                                    <span className="text-xs font-medium uppercase tracking-widest">{thesis.author}</span>
                                                 </div>
                                             </div>
 
-                                            <p className="text-white/40 text-xs leading-relaxed line-clamp-2 max-w-3xl">
-                                                {thesis.abstract}
+                                            <p className="text-white/30 text-sm leading-relaxed line-clamp-3 font-light italic">
+                                                "{thesis.abstract}"
                                             </p>
                                         </div>
 
                                         {/* Action Block */}
-                                        <div className="flex items-center gap-3 shrink-0">
-                                            <button
-                                                onClick={() => router.push(`/search_result?id=${thesis._id}`)}
-                                                className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-all group/btn"
-                                                title="View Details"
-                                            >
-                                                <FaEye className="text-white/50 group-hover/btn:text-white transition-colors" />
-                                            </button>
-                                            
-                                            <div className="h-10 w-px bg-white/5 mx-2" />
+                                        <div className="flex flex-row lg:flex-col items-center justify-center gap-4 shrink-0 border-l border-white/5 pl-0 lg:pl-12">
+                                            <div className="flex gap-3 mb-0 lg:mb-4">
+                                                <button
+                                                    onClick={() => router.push(`/search_result?id=${thesis._id}`)}
+                                                    className="w-11 h-11 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-primary/40 transition-all group/btn"
+                                                    title="Detailed View"
+                                                >
+                                                    <FaEye className="text-white/30 group-hover/btn:text-white transition-colors text-sm" />
+                                                </button>
 
+                                                {thesis.attachments && thesis.attachments.length > 0 && (
+                                                    <button
+                                                        onClick={() => openAttachments(thesis.attachments)}
+                                                        className="w-11 h-11 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center hover:bg-primary/20 hover:border-primary/40 transition-all group/btn"
+                                                        title="Supporting Documents"
+                                                    >
+                                                        <FaFileImage className="text-primary/60 group-hover/btn:text-primary transition-colors text-sm" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            
                                             <button
                                                 onClick={() => handleDisapprove(thesis._id, thesis.title)}
-                                                disabled={!thesis.isApproved && false /* Allow disapproving even if already pending to refresh state */}
-                                                className="px-6 py-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 transition-all flex items-center gap-3 font-black text-[10px] uppercase tracking-widest active:scale-95 disabled:opacity-30"
+                                                className="w-full lg:w-32 py-3 rounded-sm bg-transparent border border-red-500/20 text-red-500/60 hover:bg-red-500/10 hover:text-red-500 transition-all font-bold text-[9px] uppercase tracking-[0.2em]"
                                             >
-                                                <FaTimes /> Reject
+                                                Reject
                                             </button>
 
                                             <button
                                                 onClick={() => handleApprove(thesis._id, thesis.title)}
                                                 disabled={thesis.isApproved}
-                                                className={`px-8 py-4 rounded-2xl flex items-center gap-3 font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-lg ${
+                                                className={`w-full lg:w-32 py-3 rounded-sm transition-all font-bold text-[9px] uppercase tracking-[0.2em] shadow-xl ${
                                                     thesis.isApproved 
-                                                    ? 'bg-green-500/20 border border-green-500/20 text-green-500 cursor-default'
-                                                    : 'bg-primary text-[#0F172A] hover:shadow-primary/20 hover:scale-105'
+                                                    ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 cursor-default'
+                                                    : 'bg-primary text-[#0F172A] hover:bg-primary/90 hover:shadow-primary/20'
                                                 }`}
                                             >
-                                                <FaCheck /> {thesis.isApproved ? 'Approved' : 'Approve Research'}
+                                                {thesis.isApproved ? 'Approved' : 'Approve'}
                                             </button>
                                         </div>
                                     </div>
@@ -241,6 +262,64 @@ const ApprovalsPage = () => {
                     )}
                 </div>
             </main>
+
+            {/* Attachment Viewer Modal */}
+            <AnimatePresence>
+                {selectedAttachments && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/90 backdrop-blur-xl"
+                            onClick={closeAttachments}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                            className="relative bg-[#0F172A] w-full max-w-5xl max-h-[85vh] rounded-xl border border-white/10 overflow-hidden flex flex-col shadow-2xl"
+                        >
+                            <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+                                <div>
+                                    <h2 className="text-xl font-light text-white tracking-tight uppercase">Supporting <span className="font-serif italic text-primary/80">Documentation</span></h2>
+                                    <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.3em] mt-2">Verification Certificates • Academic Validation</p>
+                                </div>
+                                <button 
+                                    onClick={closeAttachments}
+                                    className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all"
+                                >
+                                    <FaTimes className="text-xs" />
+                                </button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-[#0F172A]/50">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    {selectedAttachments.map((url, i) => (
+                                        <div key={i} className="group relative rounded-lg overflow-hidden bg-white/[0.02] border border-white/5 aspect-[4/3] shadow-inner">
+                                            <img 
+                                                src={url} 
+                                                alt={`Attachment ${i + 1}`} 
+                                                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700 opacity-80 group-hover:opacity-100"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-6">
+                                                <a 
+                                                    href={url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="px-6 py-3 bg-white text-[#0F172A] rounded-sm text-[9px] font-black uppercase tracking-[0.2em] transition-all hover:scale-105"
+                                                >
+                                                    View Full Document
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

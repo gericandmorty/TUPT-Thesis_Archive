@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaBook, FaPlus, FaSearch, FaArrowLeft, FaEdit, FaTrash, FaCheck, FaTimes, FaChevronLeft, FaChevronRight, FaFileAlt, FaCalendarAlt, FaUserGraduate, FaBuilding, FaClock } from 'react-icons/fa';
+import { FaBook, FaPlus, FaSearch, FaArrowLeft, FaEdit, FaTrash, FaCheck, FaTimes, FaChevronLeft, FaChevronRight, FaFileAlt, FaCalendarAlt, FaUserGraduate, FaBuilding, FaClock, FaFileImage, FaEye } from 'react-icons/fa';
 import AdminTableSkeleton from '@/app/components/UI/skeleton_loaders/admin/AdminTableSkeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -41,6 +41,7 @@ export default function AdminThesesPage() {
         pending: 0
     });
     const [isCourseDropdownOpen, setIsCourseDropdownOpen] = useState(false);
+    const [selectedAttachments, setSelectedAttachments] = useState<string[] | null>(null);
 
     const [formData, setFormData] = useState({
         id: '',
@@ -491,15 +492,27 @@ export default function AdminThesesPage() {
                                                 <div className="flex-1 min-w-0 max-w-xl">
                                                     <div className="flex items-start justify-between gap-4 mb-2">
                                                         <p className="font-black text-white text-sm group-hover:text-primary transition-all line-clamp-2 leading-relaxed">{thesis.title}</p>
-                                                        {thesis.isApproved ? (
-                                                            <span className="flex-shrink-0 px-2 py-1 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-lg border border-green-500/20 flex items-center gap-1.5 shadow-sm">
-                                                                <FaCheck className="text-[7px]" /> Approved
-                                                            </span>
-                                                        ) : (
-                                                            <span className="flex-shrink-0 px-2 py-1 bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-widest rounded-lg border border-amber-500/20 flex items-center gap-1.5 shadow-sm">
-                                                                <FaClock className="text-[7px]" /> Pending
-                                                            </span>
-                                                        )}
+                                                        <div className="flex flex-col items-end gap-2">
+                                                            {thesis.isApproved ? (
+                                                                <span className="flex-shrink-0 px-2 py-1 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-lg border border-green-500/20 flex items-center gap-1.5 shadow-sm">
+                                                                    <FaCheck className="text-[7px]" /> Approved
+                                                                </span>
+                                                            ) : (
+                                                                <span className="flex-shrink-0 px-2 py-1 bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-widest rounded-lg border border-amber-500/20 flex items-center gap-1.5 shadow-sm">
+                                                                    <FaClock className="text-[7px]" /> Pending Admin
+                                                                </span>
+                                                            )}
+                                                            
+                                                            {thesis.isProfApproved ? (
+                                                                <span className="flex-shrink-0 px-2 py-1 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-lg border border-blue-500/20 flex items-center gap-1.5 shadow-sm">
+                                                                    <FaCheck className="text-[7px]" /> Prof Approved
+                                                                </span>
+                                                            ) : (
+                                                                <span className="flex-shrink-0 px-2 py-1 bg-white/5 text-white/20 text-[8px] font-black uppercase tracking-widest rounded-lg border border-white/10 flex items-center gap-1.5 shadow-sm">
+                                                                    <FaClock className="text-[7px]" /> Awaiting Prof
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest flex items-center gap-2 group-hover:text-white/60 transition-colors">
                                                         <FaUserGraduate className="text-primary/60" />
@@ -524,11 +537,35 @@ export default function AdminThesesPage() {
                                         </td>
                                         <td className="px-8 py-8 text-right">
                                             <div className="flex items-center justify-end gap-3 lg:opacity-0 lg:group-hover:opacity-100 transition-all">
+                                                <button
+                                                    onClick={() => router.push(`/search_result?id=${thesis._id}`)}
+                                                    title="View Details"
+                                                    className="p-3 bg-white/5 text-white/40 hover:text-white hover:bg-white/10 rounded-xl border border-white/10 transition-all hover:-translate-y-1"
+                                                >
+                                                    <FaEye className="text-sm" />
+                                                </button>
+                                                {thesis.attachments && thesis.attachments.length > 0 && (
+                                                    <button
+                                                        onClick={() => setSelectedAttachments(thesis.attachments)}
+                                                        title="View Supporting Documents"
+                                                        className="p-3 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl border border-primary/20 transition-all hover:-translate-y-1"
+                                                    >
+                                                        <FaFileImage className="text-sm" />
+                                                    </button>
+                                                ) }
                                                 {!thesis.isApproved ? (
                                                     <button
-                                                        onClick={() => handleApproveThesis(thesis._id)}
-                                                        title="Approve Thesis"
-                                                        className="p-3 bg-green-500/10 text-green-500 hover:bg-green-500/20 rounded-xl border border-green-500/20 transition-all hover:-translate-y-1"
+                                                        onClick={() => {
+                                                            if (!thesis.isProfApproved) {
+                                                                toast.info('Professor approval is required before Admin approval.');
+                                                                return;
+                                                            }
+                                                            handleApproveThesis(thesis._id);
+                                                        }}
+                                                        title={thesis.isProfApproved ? "Approve Thesis" : "Requires Professor Approval"}
+                                                        className={`p-3 rounded-xl border transition-all ${thesis.isProfApproved 
+                                                            ? 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20 hover:-translate-y-1' 
+                                                            : 'bg-white/5 text-white/10 border-white/5 cursor-not-allowed'}`}
                                                     >
                                                         <FaCheck className="text-sm" />
                                                     </button>
@@ -735,6 +772,62 @@ export default function AdminThesesPage() {
                                     </button>
                                 </div>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {selectedAttachments && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/90 backdrop-blur-xl"
+                            onClick={() => setSelectedAttachments(null)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative bg-[#1A1A2E] w-full max-w-4xl max-h-[85vh] rounded-3xl border border-white/10 overflow-hidden flex flex-col shadow-2xl"
+                        >
+                            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                <div>
+                                    <h2 className="text-lg font-bold text-white uppercase tracking-tight">Supporting <span className="text-primary italic">Documents</span></h2>
+                                    <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mt-0.5">Verification & Approval Sheet</p>
+                                </div>
+                                <button 
+                                    onClick={() => setSelectedAttachments(null)}
+                                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all"
+                                >
+                                    <FaTimes />
+                                </button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {selectedAttachments.map((url, i) => (
+                                        <div key={i} className="group relative rounded-2xl overflow-hidden bg-white/5 border border-white/10 aspect-video sm:aspect-square">
+                                            <img 
+                                                src={url} 
+                                                alt={`Attachment ${i + 1}`} 
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                                                <a 
+                                                    href={url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest text-white border border-white/10 transition-all"
+                                                >
+                                                    Full Resolution
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </motion.div>
                     </div>
                 )}
