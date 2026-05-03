@@ -18,7 +18,9 @@ import {
     FaChevronDown,
     FaChevronUp,
     FaChevronRight,
-    FaHandshake
+    FaHandshake,
+    FaThLarge,
+    FaList
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import LottieLoader from '@/app/components/UI/LottieLoader';
@@ -71,6 +73,7 @@ const SearchResultContent = () => {
     const [collaborationThesis, setCollaborationThesis] = useState<Thesis | null>(null);
     const [collaborationMessage, setCollaborationMessage] = useState('');
     const [isSubmittingCollaboration, setIsSubmittingCollaboration] = useState(false);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     useEffect(() => {
         const userData = localStorage.getItem('userData');
@@ -336,11 +339,28 @@ const SearchResultContent = () => {
                     </AnimatePresence>
 
                     {(!singleThesis && (results.length > 0 || query)) && (
-                        <div className="flex items-center gap-4 animate-fade-in">
+                        <div className="flex items-center gap-4 animate-fade-in flex-wrap">
                             {results.length > 0 && (
-                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-card px-4 py-2 rounded-xl border border-border-custom whitespace-nowrap">
-                                    {results.length} Documents Found
-                                </span>
+                                <div className="flex items-center gap-2 bg-card p-1 rounded-xl border border-border-custom shadow-sm">
+                                    <button
+                                        onClick={() => setViewMode('grid')}
+                                        className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'text-gray-500 hover:text-gray-300'}`}
+                                        title="Grid View"
+                                    >
+                                        <FaThLarge className="text-sm" />
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('list')}
+                                        className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-gray-500 hover:text-gray-300'}`}
+                                        title="List View"
+                                    >
+                                        <FaList className="text-sm" />
+                                    </button>
+                                    <div className="w-[1px] h-4 bg-border-custom mx-1" />
+                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 whitespace-nowrap">
+                                        {results.length} Documents
+                                    </span>
+                                </div>
                             )}
                             <div className="flex gap-3">
                                 <button
@@ -471,62 +491,109 @@ const SearchResultContent = () => {
                         </motion.div>
                     ) : results.length > 0 ? (
                         <motion.div
-                            key="results-grid"
+                            key={viewMode === 'grid' ? "results-grid" : "results-list"}
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10"
+                            className={viewMode === 'grid' 
+                                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10"
+                                : "flex flex-col gap-6 relative z-10"
+                            }
                         >
                             {results.map((thesis) => (
                                 <div
                                     key={thesis.id}
                                     onClick={() => router.push(`/search_result?id=${thesis.id}`)}
-                                    className="group bg-card p-6 rounded-2xl shadow-xl border border-border-custom hover:border-primary/30 hover:shadow-2xl active:scale-[0.98] transition-all duration-300 flex flex-col h-full cursor-pointer"
+                                    className={`group bg-card rounded-2xl shadow-xl border border-border-custom hover:border-primary/30 hover:shadow-2xl active:scale-[0.99] transition-all duration-300 flex cursor-pointer overflow-hidden ${
+                                        viewMode === 'grid' ? 'flex-col p-6 h-full' : 'flex-col md:flex-row p-6 items-start gap-6'
+                                    }`}
                                 >
-                                    <div className="flex items-center justify-between mb-4">
-                                        <span className="text-[10px] font-bold text-primary bg-primary/5 px-3 py-1 rounded-lg uppercase tracking-wider shadow-sm border border-primary/20">
-                                            {thesis.year_range}
-                                        </span>
-                                        <div className="flex items-center gap-1">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
-                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{thesis.course}</span>
-                                        </div>
-                                    </div>
-                                    <h3 className="text-base font-bold text-foreground mb-3 line-clamp-2 group-hover:text-primary transition-colors leading-[1.4] tracking-tight">
-                                        {thesis.title}
-                                    </h3>
-                                    <p className="text-sm text-text-dim line-clamp-3 mb-6 leading-relaxed font-medium">
-                                        {thesis.abstract?.substring(0, 150)}...
-                                    </p>
-                                    <div className="mt-auto pt-6 border-t border-white/[0.03] flex items-center justify-between gap-4">
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest min-w-0">
-                                            <FaFileAlt className="text-primary/50 flex-shrink-0" />
-                                            <span className="truncate">{thesis.id}</span>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            {currentUser?.isGraduate && String(thesis?.createdBy) !== String(currentUser?._id) && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        if (thesis.hasRequestedCollaboration) return;
-                                                        setCollaborationThesis(thesis);
-                                                        setIsCollaborationModalOpen(true);
-                                                    }}
-                                                    disabled={thesis.hasRequestedCollaboration}
-                                                    className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all active:scale-95 group z-20 ${thesis.hasRequestedCollaboration
-                                                            ? 'bg-gray-500/10 border border-gray-500/20 text-gray-500 cursor-not-allowed'
-                                                            : 'bg-primary/5 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'
-                                                        }`}
-                                                >
-                                                    <FaHandshake className={thesis.hasRequestedCollaboration ? "" : "group-hover:rotate-12 transition-transform"} />
-                                                    <span>{thesis.hasRequestedCollaboration ? 'Request Sent' : 'Request Collaboration'}</span>
-                                                </button>
+                                    {/* Content Area */}
+                                    <div className="flex-grow flex flex-col min-w-0">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] font-bold text-primary bg-primary/5 px-3 py-1 rounded-lg uppercase tracking-wider shadow-sm border border-primary/20">
+                                                    {thesis.year_range}
+                                                </span>
+                                                <div className="flex items-center gap-1">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{thesis.course}</span>
+                                                </div>
+                                            </div>
+                                            {viewMode === 'list' && (
+                                                <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                                    <FaFileAlt className="text-primary/50" />
+                                                    <span>{thesis.id}</span>
+                                                </div>
                                             )}
-                                            <button className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/5 border border-primary/30 px-4 py-2 rounded-xl transition-all duration-300 hover:bg-primary/20 hover:border-primary/50 z-20">
-                                                View Details
-                                            </button>
+                                        </div>
+
+                                        <h3 className={`font-bold text-foreground mb-3 group-hover:text-primary transition-colors leading-[1.4] tracking-tight ${
+                                            viewMode === 'grid' ? 'text-base line-clamp-2' : 'text-xl md:text-2xl'
+                                        }`}>
+                                            {thesis.title}
+                                        </h3>
+
+                                        {viewMode === 'list' && (
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <span className="text-[11px] font-black text-primary/70 uppercase tracking-[0.1em]">Principal Author:</span>
+                                                <span className="text-[11px] font-bold text-gray-400 italic uppercase tracking-wider">
+                                                    {thesis.author || 'Institutional Member'}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <p className={`text-text-dim leading-relaxed font-medium ${
+                                            viewMode === 'grid' ? 'text-sm line-clamp-3 mb-6' : 'text-sm md:text-base mb-6 max-w-4xl'
+                                        }`}>
+                                            {viewMode === 'grid' 
+                                                ? `${thesis.abstract?.substring(0, 150)}...`
+                                                : thesis.abstract
+                                            }
+                                        </p>
+
+                                        <div className={`mt-auto pt-6 border-t border-white/[0.03] flex flex-wrap items-center justify-between gap-4 w-full`}>
+                                            {viewMode === 'grid' && (
+                                                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest min-w-0">
+                                                    <FaFileAlt className="text-primary/50 flex-shrink-0" />
+                                                    <span className="truncate">{thesis.id}</span>
+                                                </div>
+                                            )}
+                                            
+                                            {viewMode === 'list' && (
+                                                <div className="flex items-center gap-4">
+                                                    <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest">
+                                                        <FaBookOpen className="text-xs" />
+                                                        <span>Full Abstract Available</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="flex gap-2 ml-auto">
+                                                {currentUser?.isGraduate && String(thesis?.createdBy) !== String(currentUser?._id) && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            if (thesis.hasRequestedCollaboration) return;
+                                                            setCollaborationThesis(thesis);
+                                                            setIsCollaborationModalOpen(true);
+                                                        }}
+                                                        disabled={thesis.hasRequestedCollaboration}
+                                                        className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all active:scale-95 group z-20 ${thesis.hasRequestedCollaboration
+                                                                ? 'bg-gray-500/10 border border-gray-500/20 text-gray-500 cursor-not-allowed'
+                                                                : 'bg-primary/5 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'
+                                                            }`}
+                                                    >
+                                                        <FaHandshake className={thesis.hasRequestedCollaboration ? "" : "group-hover:rotate-12 transition-transform"} />
+                                                        <span>{thesis.hasRequestedCollaboration ? 'Request Sent' : 'Request Collaboration'}</span>
+                                                    </button>
+                                                )}
+                                                <button className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/5 border border-primary/30 px-4 py-2 rounded-xl transition-all duration-300 hover:bg-primary/20 hover:border-primary/50 z-20 whitespace-nowrap">
+                                                    View Details
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
