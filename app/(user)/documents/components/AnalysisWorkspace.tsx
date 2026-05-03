@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { FaChevronDown, FaChevronUp, FaDownload, FaRedo, FaTimes, FaFileAlt, FaSearch, FaLightbulb, FaInfoCircle, FaCheckCircle } from 'react-icons/fa';
+import React, { useState, useEffect, useRef } from 'react';
+import { FaChevronDown, FaChevronUp, FaDownload, FaRedo, FaTimes, FaFileAlt, FaSearch, FaLightbulb, FaInfoCircle, FaCheckCircle, FaExclamationTriangle, FaMagic } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export interface AnalysisIssue {
     title: string;
@@ -345,35 +346,42 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
     if (!result || !file) return null;
 
     return (
-        <section className="max-w-[1700px] mx-auto px-6 py-6 relative z-10 animate-fade-in">
-            <div className="flex items-center justify-between mb-4">
-                <div>
-                    <h2 className="text-3xl font-black text-white tracking-tighter uppercase mb-1">Analysis Workspace</h2>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#2DD4BF]">Analysis View</p>
-                </div>
+        <section className="max-w-[1700px] mx-auto px-6 pt-2 pb-6 relative z-10 animate-fade-in font-sans selection:bg-primary/30 h-full flex flex-col">
+            {/* Header Area - More Compact */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
                 <div className="flex items-center gap-4">
-                    {isSaving && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-card/5 rounded-full border border-white/5 backdrop-blur-sm animate-fade-in">
-                            <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
-                            <span className="text-[9px] font-black uppercase tracking-widest text-amber-400/80">Saving progress...</span>
-                        </div>
-                    )}
-                    {saveError && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-teal-500/10 rounded-full border border-teal-500/20 backdrop-blur-sm animate-fade-in">
-                            <div className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
-                            <span className="text-[9px] font-black uppercase tracking-widest text-secondary">{saveError}</span>
-                        </div>
-                    )}
+                    <div className="p-1.5 bg-primary/10 rounded-lg border border-primary/20">
+                        <FaMagic className="text-primary text-xs" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight uppercase leading-none">Thesis <span className="text-primary">Analysis</span></h2>
+                        <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/40 mt-1">{file.name}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <AnimatePresence>
+                        {isSaving && (
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 rounded-full border border-amber-500/20 backdrop-blur-md"
+                            >
+                                <div className="w-1 h-1 bg-amber-500 rounded-full animate-pulse" />
+                                <span className="text-[8px] font-black uppercase tracking-widest text-amber-500">Auto-Saving</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                     <button
                         onClick={onClose}
-                        className="px-6 py-3 rounded-full bg-card/10 text-white font-black text-[10px] uppercase tracking-widest shadow-sm hover:bg-card/20 border border-white/10 flex items-center gap-2 transition-all backdrop-blur-md"
+                        className="group px-4 py-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-white hover:text-red-400 font-black text-[9px] uppercase tracking-widest border border-white/10 hover:border-red-500/20 flex items-center gap-2 transition-all backdrop-blur-md"
                     >
-                        <FaTimes /> Close Workspace
+                        <FaTimes className="group-hover:rotate-90 transition-transform" /> Exit
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_450px] gap-8 lg:h-[85vh] lg:min-h-[850px]">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 flex-grow h-[calc(100vh-140px)] overflow-hidden">
                 {/* Left Panel - Native Text Editor View */}
                 <div className="bg-card/5 backdrop-blur-md rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl shadow-black/20 flex flex-col relative h-[600px] lg:h-auto">
                     <div className="bg-card/5 px-6 md:px-8 py-5 border-b border-white/10 flex items-center justify-between z-10">
@@ -531,140 +539,118 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                 </div>
 
                 {/* Right Panel - Analysis Findings */}
-                <div className="bg-card/5 backdrop-blur-md rounded-[2.5rem] border border-white/10 shadow-2xl shadow-black/20 flex flex-col overflow-hidden h-[600px] lg:h-auto">
-                    {/* Header Score */}
-                    <div className="px-6 md:px-10 py-6 md:py-8 border-b border-white/10 bg-card/5 flex flex-col gap-4">
-                        <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 rounded-2xl bg-card/10 flex items-center justify-center shadow-lg border border-white/20 shrink-0">
-                                <span className="text-2xl font-black text-[#2DD4BF]">{result.overallScore}</span>
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-black text-white tracking-tight uppercase">Overall Assessment</h3>
-                                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">
-                                    Status: <span className="text-[#2DD4BF]">{getScoreLabel(result.overallScore || 0)}</span>
-                                </p>
-                            </div>
-                        </div>
-
-                        {allIssues.length > 0 && (
-                            <div className="bg-[#2DD4BF]/20 border border-[#2DD4BF]/40 rounded-xl px-4 py-3 flex items-center gap-3 animate-pulse">
-                                <FaLightbulb className="text-amber-400 animate-bounce" />
-                                <span className="text-[9px] font-black text-white uppercase tracking-widest leading-none">
-                                    {allIssues.length} Recommendations Found – See Below
-                                </span>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-transparent custom-scrollbar">
-                        {/* Highlights Grid */}
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            {[
-                                { label: 'Active Issues', value: allIssues.length, color: 'text-[#2DD4BF]' },
-                                { label: 'Fixes Applied', value: totalFixesApplied, color: 'text-white' },
-                            ].map((stat, i) => (
-                                <div key={i} className="bg-card/5 rounded-2xl p-5 border border-white/10">
-                                    <p className="text-[9px] text-white/40 font-black uppercase tracking-widest mb-1">{stat.label}</p>
-                                    <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="mb-10 bg-card/5 rounded-2xl p-5 border border-white/10">
-                            <div className="flex justify-between items-center mb-3">
-                                <p className="text-[9px] text-white/40 font-black uppercase tracking-widest">Resolution Progress</p>
-                                <p className="text-[10px] text-white font-black">{progressPercentage}%</p>
-                            </div>
-                            <div className="w-full h-2 bg-card/5 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-gradient-to-r from-[#2DD4BF] to-[#af1a1a] transition-all duration-1000 ease-out"
-                                    style={{ width: `${progressPercentage}%` }}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Similarity Analysis */}
-                        <div className="mb-10 bg-card/5 rounded-[1.5rem] p-6 border border-white/10 relative overflow-hidden group">
-                            <div className={`absolute inset-0 opacity-5 pointer-events-none transition-opacity group-hover:opacity-10 ${
-                                (result.similarity?.percentage || 0) > 40 ? 'bg-red-500' : 'bg-[#2DD4BF]'
-                            }`} />
-                            <div className="relative z-10">
-                                <div className="flex items-center justify-between mb-4">
-                                    <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">Similarity Check</p>
-                                    <div className={`px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-tighter ${
-                                        (result.similarity?.percentage || 0) > 40 
-                                        ? 'bg-red-500/10 text-red-400 border-red-500/20' 
-                                        : 'bg-[#2DD4BF]/10 text-[#2DD4BF] border-[#2DD4BF]/20'
-                                    }`}>
-                                        {(result.similarity?.percentage || 0) > 40 ? 'High Similarity' : 'Original Content'}
+                <div className="bg-white/[0.03] backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-2xl shadow-black/40 flex flex-col overflow-hidden h-full">
+                    {/* Header Score & Meta - More Compact */}
+                    <div className="relative p-6 border-b border-white/10 overflow-hidden shrink-0">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] -mr-16 -mt-16 pointer-events-none" />
+                        
+                        <div className="relative z-10 flex flex-col gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-primary/20 blur-lg group-hover:bg-primary/40 transition-all rounded-full" />
+                                    <div className="relative w-14 h-14 rounded-xl bg-black/40 backdrop-blur-md flex flex-col items-center justify-center border border-white/20">
+                                        <span className="text-xl font-black text-primary leading-none">{result.overallScore}</span>
+                                        <span className="text-[7px] font-black text-white/40 uppercase mt-0.5">Score</span>
                                     </div>
                                 </div>
-                                <div className="flex items-end gap-3 mb-4">
-                                    <h4 className={`text-4xl font-black tracking-tighter ${
-                                        (result.similarity?.percentage || 0) > 40 ? 'text-red-400' : 'text-white'
-                                    }`}>
-                                        {result.similarity?.percentage || 0}%
-                                    </h4>
-                                    <p className="text-[10px] text-white/40 font-bold mb-1.5 uppercase tracking-widest">matched in archive</p>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
+                                        <h3 className="text-sm font-black text-white tracking-tight uppercase">Overall Score</h3>
+                                    </div>
+                                    <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">
+                                        Rating: <span className="text-primary">{getScoreLabel(result.overallScore || 0)}</span>
+                                    </p>
                                 </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                    <p className="text-[7px] text-white/40 font-black uppercase tracking-widest mb-0.5">Issues</p>
+                                    <span className="text-lg font-black text-white">{allIssues.length}</span>
+                                </div>
+                                <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                                    <p className="text-[7px] text-white/40 font-black uppercase tracking-widest mb-0.5">Resolved</p>
+                                    <span className="text-lg font-black text-white">{progressPercentage}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Scrollable Findings Area */}
+                    <div className="flex-1 overflow-y-auto p-4 md:p-5 custom-scrollbar">
+                        {/* Similarity Analysis - Compact */}
+                        <div className="mb-6 bg-gradient-to-br from-white/[0.05] to-transparent rounded-[1.5rem] p-4 border border-white/10 relative overflow-hidden group hover:border-primary/30 transition-all">
+                            <div className="relative z-10">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                        <FaSearch className="text-primary text-[10px]" />
+                                        <p className="text-[8px] text-white/60 font-black uppercase tracking-widest">Similarity Check</p>
+                                    </div>
+                                    <div className={`px-2 py-0.5 rounded-full border text-[7px] font-black uppercase tracking-widest ${
+                                        (result.similarity?.percentage || 0) > 40 
+                                        ? 'bg-red-500/10 text-red-400 border-red-500/20' 
+                                        : 'bg-primary/10 text-primary border-primary/20'
+                                    }`}>
+                                        {(result.similarity?.percentage || 0) > 40 ? 'Review' : 'Safe'}
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-baseline gap-1.5 mb-3">
+                                    <h4 className={`text-3xl font-black tracking-tighter ${(result.similarity?.percentage || 0) > 40 ? 'text-red-400' : 'text-white'}`}>
+                                        {result.similarity?.percentage || 0}<span className="text-xs opacity-40">%</span>
+                                    </h4>
+                                    <p className="text-[7px] text-white/40 font-bold uppercase tracking-widest">Copied Content</p>
+                                </div>
+
                                 {result.similarity?.matches && (
-                                    <div className="bg-white/5 rounded-xl p-4 border border-white/5 hover:border-white/10 transition-all">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <FaSearch className="text-[#2DD4BF] text-[10px]" />
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-[#2DD4BF]">Potential Match Found</p>
-                                        </div>
-                                        <p className="text-[11px] text-white/80 font-medium leading-relaxed italic line-clamp-2">
+                                    <div className="bg-black/40 rounded-xl p-3 border border-white/5 group-hover:border-primary/20 transition-all">
+                                        <p className="text-[10px] text-white/80 font-medium leading-relaxed italic line-clamp-2">
                                             "{result.similarity.matches.title}"
-                                        </p>
-                                        <p className="text-[9px] text-white/40 font-black uppercase tracking-widest mt-3 flex items-center gap-2">
-                                            <FaInfoCircle className="text-[10px]" /> REF: {result.similarity.matches.id}
                                         </p>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* Detailed Findings */}
+                        {/* Continuous Findings List */}
                         <div className="space-y-6">
-                            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-4 flex items-center gap-4">
-                                <span className="h-px flex-1 bg-card/10" />
-                                Feedback
-                                <span className="h-px flex-1 bg-card/10" />
+                            <h4 className="text-[8px] font-black text-white/40 uppercase tracking-[0.4em] text-center mb-4 flex items-center gap-4">
+                                <span className="h-px flex-1 bg-white/5" />
+                                Recommendations
+                                <span className="h-px flex-1 bg-white/5" />
                             </h4>
 
-                            {activeCategories.map((category: any, idx: number) => (
-                                <div key={idx} className="border border-white/10 rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                                    <button
-                                        className="w-full px-8 py-5 flex items-center justify-between bg-card/5 hover:bg-card/10 transition-colors border-b border-white/5"
-                                        onClick={() => toggleCategory(idx)}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div
-                                                className="w-2.5 h-2.5 rounded-full"
-                                                style={{ backgroundColor: category.color }}
-                                            />
-                                            <h4 className="font-black text-xs text-white uppercase tracking-widest">{category.name}</h4>
-                                            <span className="text-[9px] font-black uppercase tracking-widest bg-card/10 text-white/60 px-3 py-1 rounded-full border border-white/10">
-                                                {category.issues.length} {category.issues.length === 1 ? 'Issue' : 'Issues'}
+                            {activeCategories.length > 0 ? (
+                                activeCategories.map((category: any, idx: number) => (
+                                    <div key={idx} className="relative">
+                                        {/* Sticky Category Header - More Compact */}
+                                        <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-card/80 backdrop-blur-xl border-y border-white/5 mb-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: category.color }} />
+                                                <h4 className="font-black text-[9px] text-white uppercase tracking-widest">{category.name}</h4>
+                                            </div>
+                                            <span className="text-[7px] font-bold text-white/40 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded-full">
+                                                {category.issues.length}
                                             </span>
                                         </div>
-                                        <div className="text-white/40 text-xs">
-                                            {expandedCategories[idx] ? <FaChevronUp /> : <FaChevronDown />}
-                                        </div>
-                                    </button>
 
-                                    {expandedCategories[idx] && (
-                                        <div className="bg-black/20 p-6 space-y-6">
+                                        <div className="space-y-4 mb-8">
                                             {category.issues.map((issue: AnalysisIssue, i: number) => {
                                                 const issueId = getIssueId(issue);
                                                 const isSelected = selectedIssueContext === issue.context || hoveredIssueId === issueId;
 
                                                 return (
-                                                    <div
+                                                    <motion.div
                                                         key={i}
                                                         id={`issue-card-${issueId}`}
-                                                        className={`bg-card rounded-[1.5rem] p-6 border-2 transition-all duration-500 relative overflow-hidden cursor-pointer group ${isSelected ? 'border-[#2DD4BF] shadow-xl shadow-black/10 scale-[1.02] z-10' : 'border-transparent shadow-sm hover:shadow-md'}`}
+                                                        layout
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        whileInView={{ opacity: 1, y: 0 }}
+                                                        viewport={{ once: true }}
+                                                        className={`bg-white/[0.03] rounded-xl p-4 border transition-all duration-300 cursor-pointer relative overflow-hidden group ${
+                                                            isSelected ? 'border-primary bg-primary/5 shadow-lg' : 'border-white/5 hover:bg-white/[0.05]'
+                                                        }`}
                                                         onClick={() => {
                                                             if (issue.pages && issue.pages.length > 0) {
                                                                 jumpToPage(issue.pages[0], issue.context, issueId);
@@ -673,113 +659,90 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                                                         onMouseEnter={() => setHoveredIssueId(issueId)}
                                                         onMouseLeave={() => setHoveredIssueId(null)}
                                                     >
-                                                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-all ${issue.severity === 'high' ? 'bg-[#2DD4BF]'
-                                                            : issue.severity === 'medium' ? 'bg-amber-500'
-                                                                : 'bg-card/400'
-                                                            }`} />
-                                                        <div className="flex items-start justify-between mb-4">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className={`p-2 rounded-xl scale-75 ${getIssueCardIconBg(category.name)}`}>
-                                                                    {getCategoryIcon(category.name)}
-                                                                </div>
-                                                                <h4 className="text-foreground font-black text-xs uppercase tracking-tight">{issue.title}</h4>
+                                                        <div className="flex items-center gap-3 mb-3">
+                                                            <div className={`p-1.5 rounded-lg bg-white/5 group-hover:bg-primary/20 transition-colors`}>
+                                                                {getCategoryIcon(category.name)}
                                                             </div>
-                                                            <div className="flex items-center gap-2">
+                                                            <h4 className="text-white font-black text-[10px] uppercase tracking-tight leading-tight flex-1">{issue.title}</h4>
+                                                            <div className={`w-1.5 h-1.5 rounded-full ${
+                                                                issue.severity === 'high' ? 'bg-primary'
+                                                                : issue.severity === 'medium' ? 'bg-amber-500'
+                                                                : 'bg-blue-400'
+                                                            }`} />
+                                                        </div>
+
+                                                        <p className="text-[10px] text-white/50 font-medium leading-relaxed mb-4 group-hover:text-white/70 transition-colors">
+                                                            {issue.description}
+                                                        </p>
+
+                                                        {/* Suggestion Box - More Compact */}
+                                                        <div className={`bg-black/40 rounded-xl p-3 border border-white/5 transition-all group-hover:border-primary/20`}>
+                                                            <p className="text-[10px] text-white/90 leading-relaxed font-semibold mb-3 italic">
+                                                                "{issue.suggestion}"
+                                                            </p>
+                                                            
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {issue.suggestionType === 'replacement' ? (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            applySuggestion(issue);
+                                                                        }}
+                                                                        className="flex items-center gap-2 bg-primary text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg hover:scale-105 active:scale-95 transition-all"
+                                                                    >
+                                                                        <FaCheckCircle /> Apply
+                                                                    </button>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            dismissIssue(issueId);
+                                                                        }}
+                                                                        className="flex items-center gap-2 bg-white/10 text-white text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg hover:bg-white/20 active:scale-95 transition-all"
+                                                                    >
+                                                                        <FaCheckCircle className="text-primary" /> Resolve
+                                                                    </button>
+                                                                )}
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         dismissIssue(issueId);
                                                                     }}
-                                                                    className="p-1.5 text-gray-400 hover:text-[#2DD4BF] hover:bg-teal-50 rounded-lg transition-all"
-                                                                    title="Dismiss Suggestion"
+                                                                    className="p-1.5 text-white/20 hover:text-red-400 rounded-lg transition-all"
+                                                                    title="Dismiss"
                                                                 >
                                                                     <FaTimes className="w-2.5 h-2.5" />
                                                                 </button>
-                                                                <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full border shrink-0 ${issue.severity === 'high'
-                                                                    ? 'bg-teal-50 text-primary border-teal-100'
-                                                                    : issue.severity === 'medium'
-                                                                        ? 'bg-amber-50 text-amber-600 border-amber-100'
-                                                                        : 'bg-card/40 text-blue-600 border-border-custom'
-                                                                    }`}>
-                                                                    {issue.severity}
-                                                                </span>
                                                             </div>
                                                         </div>
-
-                                                        <div className="space-y-4">
-                                                            <p className="text-xs text-text-dim font-medium leading-relaxed">{issue.description}</p>
-
-                                                            <div className={`bg-surface rounded-2xl p-5 border border-border-custom transition-colors ${isSelected ? 'bg-amber-50/50 border-amber-100' : ''}`}>
-                                                                <div className="flex items-center gap-2 mb-3">
-                                                                    <div className="p-1 px-2 rounded-md bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5">
-                                                                        <FaLightbulb className="w-2.5 h-2.5" />
-                                                                        Grammarly Recommendation
-                                                                    </div>
-                                                                </div>
-                                                                <p className="text-xs text-foreground leading-relaxed font-semibold mb-4 italic">
-                                                                    "{issue.suggestion}"
-                                                                </p>
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    {issue.suggestionType === 'replacement' ? (
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                applySuggestion(issue);
-                                                                            }}
-                                                                            className="flex items-center gap-2 bg-[#2DD4BF] text-white text-[9px] font-black uppercase tracking-widest px-6 py-3 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-[#2DD4BF]/20"
-                                                                        >
-                                                                            <FaCheckCircle className="w-3 h-3" />
-                                                                            Apply Academic Fix
-                                                                        </button>
-                                                                    ) : (
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                dismissIssue(issueId);
-                                                                            }}
-                                                                            className="flex items-center gap-2 bg-primary text-white text-[9px] font-black uppercase tracking-widest px-6 py-3 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-black/20"
-                                                                        >
-                                                                            <FaCheckCircle className="w-3 h-3 text-green-400" />
-                                                                            Mark as Resolved
-                                                                        </button>
-                                                                    )}
-                                                                    {issue.pages?.map(page => (
-                                                                        <button
-                                                                            key={page}
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                jumpToPage(page, issue.context, issueId);
-                                                                            }}
-                                                                            className={`group flex items-center gap-2 text-[8px] font-black uppercase tracking-widest transition-all px-4 py-2 rounded-xl border active:scale-95 ${activePage === page && selectedIssueContext === issue.context ? 'bg-primary text-white border-primary' : 'bg-card hover:bg-surface text-gray-400 hover:text-foreground border-border-custom'}`}
-                                                                        >
-                                                                            Go to p{page}
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                    </motion.div>
                                                 );
                                             })}
-
-                                            {category.issues.length === 0 && (
-                                                <p className="text-center text-xs font-bold uppercase tracking-widest text-gray-400 py-4">No issues found in this category</p>
-                                            )}
                                         </div>
-                                    )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="py-12 text-center flex flex-col items-center">
+                                    <FaCheckCircle className="text-primary text-xl mb-3" />
+                                    <h4 className="text-white font-black text-[10px] uppercase tracking-widest mb-1">Clear</h4>
+                                    <p className="text-[8px] text-white/40 uppercase tracking-widest">No issues detected.</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
 
-                    {/* Download Action Footer */}
-                    <div className="px-6 md:px-10 py-6 border-t border-white/10 bg-card/5 backdrop-blur-md">
+                    {/* Download Footer - More Compact */}
+                    <div className="p-5 border-t border-white/10 bg-black/40 backdrop-blur-3xl shrink-0">
                         <button
                             onClick={handleDownloadRefined}
                             disabled={appliedIssueIds.length === 0}
-                            className={`w-full flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl active:scale-[0.98] ${appliedIssueIds.length > 0 ? 'bg-[#2DD4BF] text-white hover:bg-primary shadow-[#2DD4BF]/20' : 'bg-card/5 text-white/20 border border-white/5 cursor-not-allowed'}`}
+                            className={`w-full group flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-[0.98] ${
+                                appliedIssueIds.length > 0 
+                                ? 'bg-primary text-white shadow-lg' 
+                                : 'bg-white/5 text-white/10 border border-white/5 cursor-not-allowed'
+                            }`}
                         >
-                            <FaDownload className={appliedIssueIds.length > 0 ? 'animate-bounce' : ''} />
+                            <FaDownload className="text-[10px]" />
                             Download Refined Manuscript
                         </button>
                     </div>

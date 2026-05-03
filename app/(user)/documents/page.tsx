@@ -199,7 +199,7 @@ const DocumentsPage: React.FC = () => {
                     </div>
                 )}
 
-                <div className="relative z-10 flex-1 pt-32 pb-16">
+                <div className="relative z-10 flex-1 pt-8 pb-16">
                     {!analysisResult ? (
                         <>
                             <DocumentsHero />
