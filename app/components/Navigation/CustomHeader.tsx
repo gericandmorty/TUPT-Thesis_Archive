@@ -125,7 +125,7 @@ const CustomHeader = ({
             }
         };
         fetchFilters();
-    }, []);
+    }, [isLoggedIn]);
 
     const performSearch = async () => {
         const query = localSearchQuery.trim();
@@ -261,7 +261,7 @@ const CustomHeader = ({
             window.removeEventListener('scroll', handleScroll);
             if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
         };
-    }, []);
+    }, [pathname]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -351,7 +351,7 @@ const CustomHeader = ({
     return (
         <header className={`${isTransparentPage && !scrolled ? 'fixed' : 'sticky'} top-0 left-0 right-0 z-50 transition-all duration-500 flex items-center justify-between px-8 ${headerBgClass} ${!isTransparentPage ? 'border-b border-white/5' : ''}`}>
             {/* Left Section: Branding - Only show on landing, login, and register where there is no sidebar */}
-            <div className={`flex items-center gap-3 md:gap-4 z-10 ${!(isLanding || pathname === '/auth/login' || pathname === '/auth/register') ? 'hidden' : ''}`}>
+            <div className={`flex items-center gap-3 md:gap-4 z-10 ${!(isLanding || pathname.startsWith('/auth/')) ? 'hidden' : ''}`}>
                 <div
                     className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity active:scale-95 transform duration-200"
                     onClick={() => {

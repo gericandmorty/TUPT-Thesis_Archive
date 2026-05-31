@@ -34,8 +34,8 @@ function AppContent({ children }: { children: ReactNode }) {
 
   const noLayoutRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password'];
   const isLanding = pathname === '/';
-  const hasSidebar = !noLayoutRoutes.includes(pathname) && !isLanding;
   const isAuthPage = noLayoutRoutes.includes(pathname);
+  const hasSidebar = !isAuthPage && !isLanding;
 
   // Padding should only apply if sidebar is present
   const paddingClass = hasSidebar
@@ -61,9 +61,9 @@ function AppContent({ children }: { children: ReactNode }) {
       {hasSidebar && <Sidebar />}
 
       <div className={`flex-1 flex flex-col ${transitionClass} ${paddingClass}`}>
-        {!isAuthPage && <CustomHeader isLanding={isLanding} />}
+        <CustomHeader isLanding={isLanding} />
 
-        <main className="flex-grow">
+        <main className={`flex-grow ${isAuthPage ? 'flex flex-col items-center justify-center px-6 py-12 md:py-16' : ''}`}>
           {children}
         </main>
 
