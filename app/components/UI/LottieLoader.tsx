@@ -74,13 +74,14 @@ const LottieLoader: React.FC<LottieLoaderProps> = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none backdrop-blur-md bg-black/10"
+                className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-auto backdrop-blur-xl bg-black/75"
             >
                 <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
+                    initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="pointer-events-auto flex flex-col items-center justify-center max-w-[90vw] mb-20"
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 250 }}
+                    className="bg-zinc-950/80 border border-white/10 backdrop-blur-2xl rounded-[2.5rem] p-10 shadow-2xl flex flex-col items-center justify-center max-w-[90vw] w-[400px] border-t-white/20"
                 >
                     {content}
                 </motion.div>
