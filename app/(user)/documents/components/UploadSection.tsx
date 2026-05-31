@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaCloudUploadAlt, FaFileAlt, FaTimes, FaSearch, FaUpload } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import LottieLoader from '@/app/components/UI/LottieLoader';
+import TechnicalLoaderModal from './TechnicalLoaderModal';
 
 interface UploadSectionProps {
     isDragging: boolean;
@@ -30,6 +31,27 @@ const UploadSection: React.FC<UploadSectionProps> = ({
     onUpload,
     onOpenSubmitModal
 }) => {
+    const [uploadStep, setUploadStep] = useState(0);
+    const uploadSteps = [
+        "Extracting document text segments...",
+        "Generating document structural metadata...",
+        "Computing word count & readability index...",
+        "Analyzing grammar style & styling issues...",
+        "Running local vector similarity check...",
+        "Finalizing comprehensive findings..."
+    ];
+
+    useEffect(() => {
+        let interval: any;
+        if (isUploading) {
+            setUploadStep(0);
+            interval = setInterval(() => {
+                setUploadStep(prev => (prev < uploadSteps.length - 1 ? prev + 1 : prev));
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [isUploading]);
+
     return (
         <section className="max-w-4xl mx-auto px-6 mb-16 relative z-10">
             <motion.div 
@@ -125,9 +147,6 @@ const UploadSection: React.FC<UploadSectionProps> = ({
                                         >
                                             <FaTimes />
                                         </button>
-                                        <AnimatePresence>
-                                            {isUploading && <LottieLoader isModal type="search" text="Checking your document..." />}
-                                        </AnimatePresence>
 
                                         <button
                                             className={`flex-1 py-5 rounded-2xl bg-primary text-white font-black text-[10px] uppercase tracking-[0.3em] shadow-[0_15px_30px_-10px_rgba(45,212,191,0.4)] hover:shadow-primary/40 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 flex items-center justify-center gap-3 ${isUploading ? 'opacity-90 cursor-wait' : ''}`}
@@ -159,6 +178,15 @@ const UploadSection: React.FC<UploadSectionProps> = ({
                     </div>
                 </div>
             </motion.div>
+
+            <AnimatePresence>
+                {isUploading && (
+                    <TechnicalLoaderModal 
+                        isUploading={isUploading}
+                        uploadStep={uploadStep}
+                    />
+                )}
+            </AnimatePresence>
         </section>
     );
 };

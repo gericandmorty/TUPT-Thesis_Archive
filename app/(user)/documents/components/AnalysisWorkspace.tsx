@@ -63,6 +63,68 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
 
+    const [plagiarismReport, setPlagiarismReport] = useState<any>(null);
+    const [isPlagiarismLoading, setIsPlagiarismLoading] = useState(false);
+    const [plagiarismError, setPlagiarismError] = useState<string | null>(null);
+    const [plagiarismStep, setPlagiarismStep] = useState(0);
+    const [showPlagiarismDetails, setShowPlagiarismDetails] = useState(false);
+
+    const steps = [
+        "Extracting document text segments...",
+        "Fitting TF-IDF vocabulary across local corpus...",
+        "Computing Cosine Similarity vectors...",
+        "Generating semantic embeddings using all-MiniLM-L6...",
+        "Querying public web databases via DuckDuckGo...",
+        "Aggregating similarity index..."
+    ];
+
+    useEffect(() => {
+        let interval: any;
+        if (isPlagiarismLoading) {
+            setPlagiarismStep(0);
+            interval = setInterval(() => {
+                setPlagiarismStep(prev => (prev < steps.length - 1 ? prev + 1 : prev));
+            }, 1800);
+        }
+        return () => clearInterval(interval);
+    }, [isPlagiarismLoading]);
+
+    const runPlagiarismScan = async () => {
+        if (!file) return;
+        setIsPlagiarismLoading(true);
+        setPlagiarismError(null);
+        try {
+            const formData = new FormData();
+            formData.append('thesis', file);
+
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/plagiarism-check`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to scan plagiarism");
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                setPlagiarismReport(data);
+                setShowPlagiarismDetails(true);
+            } else {
+                throw new Error(data.message || "Scan failed");
+            }
+        } catch (err: any) {
+            console.error(err);
+            setPlagiarismError(err.message || "Server error running plagiarism scan");
+        } finally {
+            setIsPlagiarismLoading(false);
+        }
+    };
+
     // Sync local state with result prop
     useEffect(() => {
         if (result?.pagesText) {
@@ -578,8 +640,7 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                     </div>
 
                     {/* Scrollable Findings Area */}
-                    <div className="flex-1 overflow-y-auto p-4 md:p-5 custom-scrollbar">
-                        {/* Similarity Analysis - Compact */}
+                    <div className="flex-1 overflow-y-auto p-4 md:p-5 custom-scrollbar">                        {/* Similarity Analysis - Compact */}
                         <div className="mb-6 bg-gradient-to-br from-white/[0.05] to-transparent rounded-[1.5rem] p-4 border border-white/10 relative overflow-hidden group hover:border-primary/30 transition-all">
                             <div className="relative z-10">
                                 <div className="flex items-center justify-between mb-3">
@@ -588,31 +649,73 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                                         <p className="text-[8px] text-white/60 font-black uppercase tracking-widest">Similarity Check</p>
                                     </div>
                                     <div className={`px-2 py-0.5 rounded-full border text-[7px] font-black uppercase tracking-widest ${
-                                        (result.similarity?.percentage || 0) > 40 
+                                        (plagiarismReport?.overallScore || result.similarity?.percentage || 0) > 40 
                                         ? 'bg-red-500/10 text-red-400 border-red-500/20' 
                                         : 'bg-primary/10 text-primary border-primary/20'
                                     }`}>
-                                        {(result.similarity?.percentage || 0) > 40 ? 'Review' : 'Safe'}
+                                        {(plagiarismReport?.overallScore || result.similarity?.percentage || 0) > 40 ? 'Review' : 'Safe'}
                                     </div>
                                 </div>
                                 
-                                <div className="flex items-baseline gap-1.5 mb-3">
-                                    <h4 className={`text-3xl font-black tracking-tighter ${(result.similarity?.percentage || 0) > 40 ? 'text-red-400' : 'text-white'}`}>
-                                        {result.similarity?.percentage || 0}<span className="text-xs opacity-40">%</span>
-                                    </h4>
-                                    <p className="text-[7px] text-white/40 font-bold uppercase tracking-widest">Copied Content</p>
-                                </div>
+                                {isPlagiarismLoading ? (
+                                    <div className="py-2 space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-primary animate-ping" />
+                                            <span className="text-[9px] font-black uppercase tracking-wider text-white">Running Hybrid Plagiarism Scan</span>
+                                        </div>
+                                        <p className="text-[10px] text-white/50 animate-pulse font-medium">{steps[plagiarismStep]}</p>
+                                        <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                                            <div className="bg-primary h-full rounded-full transition-all duration-1000" style={{ width: `${((plagiarismStep + 1) / steps.length) * 100}%` }} />
+                                        </div>
+                                    </div>
+                                ) : plagiarismReport ? (
+                                    <div className="space-y-3">
+                                        <div className="flex items-baseline gap-1.5">
+                                            <h4 className="text-3xl font-black tracking-tighter text-white">
+                                                {plagiarismReport.overallScore}<span className="text-xs opacity-40">%</span>
+                                            </h4>
+                                            <p className="text-[7px] text-white/40 font-bold uppercase tracking-widest">Overall Similarity</p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-[9px] font-black uppercase tracking-wider text-white/60">
+                                            <div className="bg-black/20 p-2 rounded-lg border border-white/5">
+                                                <p className="text-[7px] text-white/40 mb-0.5">Local Match</p>
+                                                <span className="text-white">{plagiarismReport.localSimilarity?.percentage || 0}%</span>
+                                            </div>
+                                            <div className="bg-black/20 p-2 rounded-lg border border-white/5">
+                                                <p className="text-[7px] text-white/40 mb-0.5">Web Match</p>
+                                                <span className="text-white">{plagiarismReport.webSimilarity?.percentage || 0}%</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowPlagiarismDetails(true)}
+                                            className="w-full py-2 bg-primary hover:bg-primary/95 text-white font-black text-[9px] uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5"
+                                        >
+                                            <FaInfoCircle /> View Calculation Details
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <div className="flex items-baseline gap-1.5 mb-3">
+                                            <h4 className="text-3xl font-black tracking-tighter text-white">
+                                                {result.similarity?.percentage || 0}<span className="text-xs opacity-40">%</span>
+                                            </h4>
+                                            <p className="text-[7px] text-white/40 font-bold uppercase tracking-widest">Initial Local Scan</p>
+                                        </div>
 
-                                {result.similarity?.matches && (
-                                    <div className="bg-black/40 rounded-xl p-3 border border-white/5 group-hover:border-primary/20 transition-all">
-                                        <p className="text-[10px] text-white/80 font-medium leading-relaxed italic line-clamp-2">
-                                            "{result.similarity.matches.title}"
-                                        </p>
+                                        <button
+                                            onClick={runPlagiarismScan}
+                                            className="w-full py-2.5 bg-white/5 hover:bg-primary/20 text-white hover:text-primary font-black text-[9px] uppercase tracking-widest rounded-xl border border-white/10 hover:border-primary/20 transition-all flex items-center justify-center gap-1.5"
+                                        >
+                                            <FaSearch /> Run Deep Plagiarism Scan
+                                        </button>
+                                        
+                                        {plagiarismError && (
+                                            <p className="text-[8px] text-red-400 font-bold uppercase tracking-wider mt-2">{plagiarismError}</p>
+                                        )}
                                     </div>
                                 )}
                             </div>
                         </div>
-
                         {/* Continuous Findings List */}
                         <div className="space-y-6">
                             <h4 className="text-[8px] font-black text-white/40 uppercase tracking-[0.4em] text-center mb-4 flex items-center gap-4">
@@ -765,6 +868,158 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                     background-color: #94a3b8;
                 }
             `}</style>
+
+            {/* Detailed Plagiarism Calculation Overlay */}
+            <AnimatePresence>
+                {showPlagiarismDetails && plagiarismReport && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-2xl flex items-center justify-center p-4 md:p-10 font-sans"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.95, y: 20 }}
+                            className="bg-zinc-950 border border-white/10 rounded-[2rem] w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden shadow-2xl relative"
+                        >
+                            {/* Modal Header */}
+                            <div className="px-8 py-6 border-b border-white/10 flex items-center justify-between bg-black/40">
+                                <div>
+                                    <h3 className="text-lg md:text-xl font-black text-white tracking-tight uppercase">Plagiarism & Similarity Audit</h3>
+                                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-white/40 mt-1">Mathematical Breakdown & Source Overlaps</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowPlagiarismDetails(false)}
+                                    className="p-2 rounded-xl bg-white/5 hover:bg-red-500/10 text-white/60 hover:text-red-400 border border-white/10 hover:border-red-500/20 transition-all"
+                                >
+                                    <FaTimes className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            {/* Modal Scrollable Body */}
+                            <div className="flex-grow overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                                {/* Top stats card */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="bg-gradient-to-br from-white/[0.03] to-transparent border border-white/5 rounded-2xl p-6 flex flex-col justify-between">
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mb-1">Audit Score</p>
+                                            <span className="text-5xl font-black text-white tracking-tighter">{plagiarismReport.overallScore}%</span>
+                                        </div>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-primary mt-4">{plagiarismReport.verdict}</p>
+                                    </div>
+                                    <div className="bg-gradient-to-br from-white/[0.03] to-transparent border border-white/5 rounded-2xl p-6">
+                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mb-2">Algorithm Blending Formula</p>
+                                        <div className="space-y-3 font-mono text-[10px] text-white/60">
+                                            <p>Score = (Local × 40%) + (Web × 60%)</p>
+                                            <div className="border-t border-white/5 pt-2 space-y-1">
+                                                <p>• Local check: {plagiarismReport.localSimilarity?.percentage || 0}%</p>
+                                                <p>• Web check: {plagiarismReport.webSimilarity?.percentage || 0}%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gradient-to-br from-white/[0.03] to-transparent border border-white/5 rounded-2xl p-6 flex flex-col justify-between">
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mb-1">Processing Time</p>
+                                            <span className="text-3xl font-black text-white tracking-tighter">{(plagiarismReport.processingTimeMs / 1000).toFixed(2)}s</span>
+                                        </div>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mt-4">Calculated on CPU via ONNX</p>
+                                    </div>
+                                </div>
+
+                                {/* Local Database Matches */}
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-white border-l-2 border-primary pl-3">Institutional Repository Matches (Local DB)</h4>
+                                    
+                                    {plagiarismReport.localSimilarity?.topMatches?.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {plagiarismReport.localSimilarity.topMatches.map((match: any, index: number) => (
+                                                <div key={index} className="bg-black/35 border border-white/5 rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                    <div className="space-y-1 flex-1">
+                                                        <span className="text-[8px] font-black text-primary uppercase tracking-widest">Candidate #{index + 1}</span>
+                                                        <h5 className="text-xs font-black text-white leading-relaxed">{match.title}</h5>
+                                                        <p className="text-[9px] font-medium text-white/40">Thesis ID: {match.thesisId}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="text-right">
+                                                            <span className="text-xl font-black text-white">{match.score}%</span>
+                                                            <p className="text-[7px] text-white/40 font-black uppercase tracking-widest">Hybrid Match</p>
+                                                        </div>
+                                                        <div className="bg-white/5 px-3 py-2 rounded-lg text-[8px] font-mono text-white/60 text-center border border-white/5">
+                                                            <p className="text-[7px] text-white/40 font-black uppercase tracking-widest mb-1">Method</p>
+                                                            <span>50% TF-IDF + 50% MiniLM</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="bg-black/25 border border-white/5 rounded-xl p-6 text-center text-white/40">
+                                            <p className="text-[10px] font-black uppercase tracking-widest">No matching institutional documents found</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Web Plagiarism Matches */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-white border-l-2 border-primary pl-3">Public Web Overlaps (DuckDuckGo Lite)</h4>
+                                        <span className="text-[8px] font-black uppercase tracking-widest bg-white/5 px-2.5 py-1 rounded-full text-white/60">
+                                            Sources Found: {plagiarismReport.webSimilarity?.sourcesFound || 0}
+                                        </span>
+                                    </div>
+
+                                    {plagiarismReport.webSimilarity?.matches?.length > 0 ? (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="border-b border-white/10 text-[8px] font-black uppercase tracking-widest text-white/40">
+                                                        <th className="pb-3 pr-4">Your Sentence</th>
+                                                        <th className="pb-3 px-4">Matched Public Web Source</th>
+                                                        <th className="pb-3 pl-4 text-right">Overlap</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-white/5 text-[10px] font-medium text-white/70">
+                                                    {plagiarismReport.webSimilarity.matches.map((match: any, index: number) => (
+                                                        <tr key={index} className="hover:bg-white/[0.02] transition-colors">
+                                                            <td className="py-4 pr-4 align-top max-w-xs font-serif leading-relaxed italic text-white/80">
+                                                                "{match.sentence}"
+                                                            </td>
+                                                            <td className="py-4 px-4 align-top max-w-sm space-y-1.5">
+                                                                <a
+                                                                    href={match.matchedUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-primary hover:underline font-black text-[10px] line-clamp-1 flex items-center gap-1.5"
+                                                                >
+                                                                    {match.matchedTitle || "Web Source Link"}
+                                                                </a>
+                                                                <p className="text-[9px] text-white/40 leading-relaxed font-sans line-clamp-2">
+                                                                    Snippet: "{match.snippet}"
+                                                                </p>
+                                                            </td>
+                                                            <td className="py-4 pl-4 align-top text-right font-black text-xs text-white">
+                                                                <span className={match.similarity > 70 ? "text-red-400" : "text-white"}>
+                                                                    {match.similarity}%
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-black/25 border border-white/5 rounded-xl p-6 text-center text-white/40">
+                                            <p className="text-[10px] font-black uppercase tracking-widest">No public web matches found</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </section>
     );
 };
