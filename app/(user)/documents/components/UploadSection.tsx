@@ -35,7 +35,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden group bg-white/[0.02] backdrop-blur-3xl rounded-[3rem] border border-white/10 shadow-2xl shadow-black/40"
+                className="relative overflow-hidden group bg-white/[0.02] backdrop-blur-3xl rounded-2xl border border-white/10 shadow-2xl shadow-black/40"
             >
                 {/* Decorative Elements */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -mr-32 -mt-32 pointer-events-none group-hover:bg-primary/10 transition-colors" />
@@ -43,7 +43,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({
 
                 <div className="p-4">
                     <div
-                        className={`relative border-2 border-dashed rounded-[2.5rem] p-12 transition-all duration-700 flex flex-col items-center justify-center text-center overflow-hidden
+                        className={`relative border-2 border-dashed rounded-xl p-12 transition-all duration-700 flex flex-col items-center justify-center text-center overflow-hidden
                             ${isDragging
                                 ? 'border-primary/50 bg-primary/5 scale-[0.99]'
                                 : 'border-white/5 hover:border-white/10'
@@ -125,7 +125,9 @@ const UploadSection: React.FC<UploadSectionProps> = ({
                                         >
                                             <FaTimes />
                                         </button>
-                                        {isUploading && <LottieLoader isModal type="search" text="Checking your document..." />}
+                                        <AnimatePresence>
+                                            {isUploading && <LottieLoader isModal type="search" text="Checking your document..." />}
+                                        </AnimatePresence>
 
                                         <button
                                             className={`flex-1 py-5 rounded-2xl bg-primary text-white font-black text-[10px] uppercase tracking-[0.3em] shadow-[0_15px_30px_-10px_rgba(45,212,191,0.4)] hover:shadow-primary/40 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 flex items-center justify-center gap-3 ${isUploading ? 'opacity-90 cursor-wait' : ''}`}

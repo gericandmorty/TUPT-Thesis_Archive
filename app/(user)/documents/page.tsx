@@ -226,39 +226,38 @@ const DocumentsPage: React.FC = () => {
 
                 <div className="relative z-10 flex-1 pt-8 pb-16">
                     {!analysisResult ? (
-                        <>
+                        <div className="max-w-5xl mx-auto px-6 space-y-16">
                             <DocumentsHero />
 
-                            <div className="max-w-[1700px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_450px] gap-10 px-6">
-                                <div className="space-y-12">
-                                    <UploadSection
-                                        isDragging={isDragging}
-                                        selectedFile={selectedFile}
-                                        isUploading={isUploading}
-                                        fileInputRef={fileInputRef}
-                                        onDragOver={handleDragOver}
-                                        onDragLeave={handleDragLeave}
-                                        onDrop={handleDrop}
-                                        onFileSelect={handleFileSelect}
-                                        onClearFile={() => setSelectedFile(null)}
-                                        onUpload={handleUpload}
-                                        onOpenSubmitModal={() => {
-                                            if (myTheses.length > 0) {
-                                                toast.info('Only one submission is allowed. Check your submissions page.');
-                                                router.push('/documents/submissions');
-                                            } else {
-                                                router.push('/documents/create');
-                                            }
-                                        }}
-                                    />
-                                    <HowItWorks />
-                                </div>
+                            <UploadSection
+                                isDragging={isDragging}
+                                selectedFile={selectedFile}
+                                isUploading={isUploading}
+                                fileInputRef={fileInputRef}
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                onFileSelect={handleFileSelect}
+                                onClearFile={() => setSelectedFile(null)}
+                                onUpload={handleUpload}
+                                onOpenSubmitModal={() => {
+                                    if (myTheses.length > 0) {
+                                        toast.info('Only one submission is allowed. Check your submissions page.');
+                                        router.push('/documents/submissions');
+                                    } else {
+                                        router.push('/documents/create');
+                                    }
+                                }}
+                            />
 
-                                <div className="lg:border-l lg:border-white/10 lg:pl-10">
+                            <HowItWorks />
+
+                            {drafts.length > 0 && (
+                                <div className="border-t border-white/10 pt-12">
                                     <DraftsList drafts={drafts} onResume={handleResumeDraft} />
                                 </div>
-                            </div>
-                        </>
+                            )}
+                        </div>
                     ) : (
                         <div className="pt-8 px-4 md:px-8">
                             <AnalysisWorkspace
