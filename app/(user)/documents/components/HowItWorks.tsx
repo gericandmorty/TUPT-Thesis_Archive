@@ -26,8 +26,8 @@ const HowItWorks: React.FC = () => {
                     {
                         icon: <FaGlobe className="text-2xl text-[#2DD4BF]" />,
                         title: "Similarity Scan",
-                        desc: "We cross-reference your document in real-time against the local institutional database and public web sources.",
-                        tech: "Powered by MongoDB & DuckDuckGo (Shingling)"
+                        desc: "We scan your document against local archives and the public web using TF-IDF, shingles, and SentenceTransformers.",
+                        tech: "TF-IDF, MiniLM-L6 & DuckDuckGo"
                     },
                     {
                         icon: <FaSearch className="text-2xl text-[#2DD4BF]" />,

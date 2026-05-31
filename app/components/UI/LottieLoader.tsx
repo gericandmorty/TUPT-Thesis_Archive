@@ -18,6 +18,7 @@ interface LottieLoaderProps {
     className?: string;
     width?: number | string;
     height?: number | string;
+    showCard?: boolean;
 }
 
 const LottieLoader: React.FC<LottieLoaderProps> = ({
@@ -27,7 +28,8 @@ const LottieLoader: React.FC<LottieLoaderProps> = ({
     subtext,
     className = '',
     width = 'auto',
-    height = 'auto'
+    height = 'auto',
+    showCard = false
 }) => {
     const animationData = 
         type === 'search' ? loadingFiles : 
@@ -56,32 +58,74 @@ const LottieLoader: React.FC<LottieLoaderProps> = ({
                 </motion.p>
             )}
             {subtext && (
-                <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className={`${isModal ? 'text-white/60' : 'text-gray-500'} text-[10px] uppercase tracking-widest text-center px-6 mt-2`}
-                >
-                    {subtext}
-                </motion.p>
+                <div className="flex flex-col items-center w-full mt-3">
+                    <AnimatePresence mode="wait">
+                        <motion.p
+                            key={subtext}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.3 }}
+                            className={`${isModal ? 'text-primary' : 'text-primary'} font-black text-[9px] uppercase tracking-[0.2em] text-center px-6`}
+                        >
+                            {subtext}
+                        </motion.p>
+                    </AnimatePresence>
+                    
+                    <div className="w-48 bg-white/5 h-1 rounded-full overflow-hidden mt-3.5 border border-white/5">
+                        <div 
+                            className="bg-primary h-full rounded-full transition-all duration-750 ease-out" 
+                            style={{ 
+                                width: subtext.includes("segment") || subtext.includes("Extracting") ? "15%" :
+                                       subtext.includes("structural") || subtext.includes("metadata") ? "35%" :
+                                       subtext.includes("readability") || subtext.includes("word") ? "55%" :
+                                       subtext.includes("grammar") || subtext.includes("style") ? "75%" :
+                                       subtext.includes("similarity") || subtext.includes("vector") ? "92%" : "99%"
+                            }} 
+                        />
+                    </div>
+                </div>
             )}
         </div>
     );
 
     if (isModal) {
+        const useCardStyle = showCard || type === 'search';
+
+        if (useCardStyle) {
+            return (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-auto backdrop-blur-xl bg-black/75"
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 250 }}
+                        className="bg-zinc-950/80 border border-white/10 backdrop-blur-2xl rounded-2xl p-10 shadow-2xl flex flex-col items-center justify-center max-w-[90vw] w-[400px] border-t-white/20"
+                    >
+                        {content}
+                    </motion.div>
+                </motion.div>
+            );
+        }
+
+        // Default transparent/cardless modal style for general loading states (login, register, workspace, warning)
         return (
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-auto backdrop-blur-xl bg-black/75"
+                className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none backdrop-blur-md bg-black/10"
             >
                 <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
+                    initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
-                    transition={{ type: "spring", damping: 25, stiffness: 250 }}
-                    className="bg-zinc-950/80 border border-white/10 backdrop-blur-2xl rounded-[2.5rem] p-10 shadow-2xl flex flex-col items-center justify-center max-w-[90vw] w-[400px] border-t-white/20"
+                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                    className="pointer-events-auto flex flex-col items-center justify-center max-w-[90vw] mb-20"
                 >
                     {content}
                 </motion.div>
