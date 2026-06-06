@@ -65,7 +65,7 @@ const AiReportSidebar: React.FC<AiReportSidebarProps> = ({
                 {/* Content Scroll Area */}
                 <div className="flex-grow overflow-y-auto custom-scrollbar p-8 md:p-12 relative z-10 bg-[#0F172A]/30">
                     {/* The "Paper" Document */}
-                    <div className="mx-auto max-w-[850px] bg-[#FCFCFA] text-[#1A1A1A] p-12 md:p-20 shadow-[0_20px_50px_rgba(0,0,0,0.3)] min-h-screen relative overflow-hidden flex flex-col gap-12 border border-white/10 rounded-sm">
+                    <div className="mx-auto max-w-[850px] bg-[#FCFCFA] text-[#1A1A1A] p-6 sm:p-12 md:p-20 shadow-[0_20px_50px_rgba(0,0,0,0.3)] min-h-screen relative overflow-hidden flex flex-col gap-12 border border-white/10 rounded-sm">
                         {/* Watermark */}
                         <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
                             <img src="/assets/tup-logo.png" alt="" className="w-[500px] grayscale" />

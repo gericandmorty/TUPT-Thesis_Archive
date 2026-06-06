@@ -443,9 +443,9 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 flex-grow h-[calc(100vh-140px)] overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 flex-grow lg:h-[calc(100vh-140px)] lg:overflow-hidden">
                 {/* Left Panel - Native Text Editor View */}
-                <div className="bg-card/5 backdrop-blur-md rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl shadow-black/20 flex flex-col relative h-[600px] lg:h-auto">
+                <div className="bg-card/5 backdrop-blur-md rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl shadow-black/20 flex flex-col relative h-[500px] lg:h-auto">
                     <div className="bg-card/5 px-6 md:px-8 py-5 border-b border-white/10 flex items-center justify-between z-10">
                         <div className="flex items-center gap-3">
                             <FaFileAlt className="text-white/60" />
@@ -601,7 +601,7 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                 </div>
 
                 {/* Right Panel - Analysis Findings */}
-                <div className="bg-white/[0.03] backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-2xl shadow-black/40 flex flex-col overflow-hidden h-full">
+                <div className="bg-white/[0.03] backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-2xl shadow-black/40 flex flex-col overflow-hidden h-[600px] lg:h-full">
                     {/* Header Score & Meta - More Compact */}
                     <div className="relative p-6 border-b border-white/10 overflow-hidden shrink-0">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] -mr-16 -mt-16 pointer-events-none" />
