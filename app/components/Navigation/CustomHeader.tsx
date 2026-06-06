@@ -11,7 +11,8 @@ import {
     FaFileAlt,
     FaSignOutAlt,
     FaRobot,
-    FaMagic
+    FaMagic,
+    FaBars
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
@@ -341,6 +342,9 @@ const CustomHeader = ({
     const isTransparentPage = isLandingPage || isLanding;
     const isRedHeader = !isTransparentPage || scrolled;
 
+    const isAuthPage = ['/auth/login', '/auth/register', '/auth/forgot-password'].includes(pathname);
+    const hasSidebar = !isLandingPage && !isAuthPage && isLoggedIn;
+
     const headerBgClass = !isTransparentPage
         ? 'bg-black/10 backdrop-blur-xl border-b border-white/5 h-[88px]'
         : (scrolled ? 'bg-black/20 backdrop-blur-xl shadow-2xl py-3 h-[88px]' : 'bg-transparent py-6');
@@ -349,11 +353,21 @@ const CustomHeader = ({
     const iconClass = 'text-white drop-shadow-sm';
 
     return (
-        <header className={`${isTransparentPage && !scrolled ? 'fixed' : 'sticky'} top-0 left-0 right-0 z-50 transition-all duration-500 flex items-center justify-between px-8 ${headerBgClass} ${!isTransparentPage ? 'border-b border-white/5' : ''}`}>
-            {/* Left Section: Branding - Only show on landing, login, and register where there is no sidebar */}
-            <div className={`flex items-center gap-3 md:gap-4 z-10 ${!(isLanding || pathname.startsWith('/auth/')) ? 'hidden' : ''}`}>
+        <header className={`${isTransparentPage && !scrolled ? 'fixed' : 'sticky'} top-0 left-0 right-0 z-50 transition-all duration-500 flex items-center justify-between px-4 md:px-8 ${headerBgClass} ${!isTransparentPage ? 'border-b border-white/5' : ''}`}>
+            {/* Left Section: Branding & Hamburger Toggle */}
+            <div className="flex items-center gap-3 z-10">
+                {hasSidebar && (
+                    <button
+                        onClick={onMenuPress}
+                        className="md:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 flex items-center justify-center border border-white/5 active:scale-95 transition-all cursor-pointer"
+                        aria-label="Toggle Menu"
+                    >
+                        <FaBars className="text-base" />
+                    </button>
+                )}
+
                 <div
-                    className="flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity active:scale-95 transform duration-200"
+                    className={`flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-80 transition-opacity active:scale-95 transform duration-200 ${hasSidebar ? 'hidden' : 'flex'}`}
                     onClick={() => {
                         if (isLoggedIn) {
                             router.push(isAdmin ? '/admin' : '/home');
@@ -364,7 +378,7 @@ const CustomHeader = ({
                     role="button"
                     aria-label="Go to Dashboard"
                 >
-                    <div className="w-12 h-12 flex items-center justify-center transition-transform duration-300">
+                    <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center transition-transform duration-300">
                         <img
                             src="/assets/tup-logo.png"
                             alt="TUP Logo"

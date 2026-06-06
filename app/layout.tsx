@@ -39,7 +39,7 @@ function AppContent({ children }: { children: ReactNode }) {
 
   // Padding should only apply if sidebar is present
   const paddingClass = hasSidebar
-    ? (isExpanded ? 'pl-[280px]' : 'pl-[80px]')
+    ? (isExpanded ? 'md:pl-[280px] pl-0' : 'md:pl-[80px] pl-0')
     : 'pl-0';
 
   const transitionClass = canAnimate ? 'transition-[padding] duration-[400ms] ease-[cubic-bezier(0.23,1,0.32,1)]' : '';

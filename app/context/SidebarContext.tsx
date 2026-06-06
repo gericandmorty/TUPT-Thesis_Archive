@@ -16,9 +16,14 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        const saved = localStorage.getItem('sidebarExpanded');
-        if (saved !== null) {
-            setIsExpanded(saved === 'true');
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+            setIsExpanded(false);
+        } else {
+            const saved = localStorage.getItem('sidebarExpanded');
+            if (saved !== null) {
+                setIsExpanded(saved === 'true');
+            }
         }
         setMounted(true);
     }, []);

@@ -38,8 +38,10 @@ interface MenuItem {
 }
 
 const sidebarVariants: Variants = {
-    expanded: { width: 280 },
-    collapsed: { width: 80 },
+    expanded: { width: 280, x: 0 },
+    collapsed: { width: 80, x: 0 },
+    mobileOpen: { width: 280, x: 0 },
+    mobileClosed: { width: 280, x: -280 },
 };
 
 const labelVariants: Variants = {
@@ -58,6 +60,22 @@ export default function Sidebar() {
     const pathname = usePathname();
     const [user, setUser] = useState<UserData | null>(null);
     const [mounted, setMounted] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        if (isMobile && isExpanded) {
+            onToggle();
+        }
+    }, [isMobile]);
 
     useEffect(() => {
         setMounted(true);
@@ -118,14 +136,28 @@ export default function Sidebar() {
     if (!mounted || !isReady) return null;
 
     return (
-        <motion.div
-            initial={isExpanded ? 'expanded' : 'collapsed'}
-            variants={sidebarVariants}
-            animate={isExpanded ? 'expanded' : 'collapsed'}
-            transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-            style={{ width: isExpanded ? 280 : 80 }}
-            className="fixed left-0 top-0 bottom-0 z-[60] bg-black/20 backdrop-blur-xl border-r border-white/5 shadow-2xl flex flex-col overflow-hidden"
-        >
+        <>
+            <AnimatePresence>
+                {isMobile && isExpanded && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        onClick={onToggle}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[50]"
+                    />
+                )}
+            </AnimatePresence>
+
+            <motion.div
+                initial={isMobile ? 'mobileClosed' : (isExpanded ? 'expanded' : 'collapsed')}
+                variants={sidebarVariants}
+                animate={isMobile ? (isExpanded ? 'mobileOpen' : 'mobileClosed') : (isExpanded ? 'expanded' : 'collapsed')}
+                transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                style={{ width: isMobile ? 280 : (isExpanded ? 280 : 80) }}
+                className={`fixed left-0 top-0 bottom-0 z-[60] bg-[#1E1E2E]/95 md:bg-black/20 backdrop-blur-xl border-r border-white/5 shadow-2xl flex flex-col overflow-hidden ${isMobile && !isExpanded ? 'pointer-events-none' : 'pointer-events-auto'}`}
+            >
             {/* Header / Brand / Toggle */}
             <motion.div 
                 className={`flex items-center transition-all duration-300 min-h-[88px] ${isExpanded ? 'p-5 justify-between' : 'p-2 justify-center'}`}
@@ -183,7 +215,10 @@ export default function Sidebar() {
                 className={`mb-8 flex flex-col transition-all duration-300 ${isExpanded ? 'px-4 items-start' : 'px-0 items-center'}`}
             >
                 <motion.div
-                onClick={() => router.push('/profile')}
+                    onClick={() => {
+                        router.push('/profile');
+                        if (isMobile) onToggle();
+                    }}
                     className={`relative cursor-pointer group flex items-center gap-4 p-2 rounded-xl transition-all duration-300 ${isExpanded ? 'w-full hover:bg-white/5' : ''}`}
                 >
                     <div className="relative flex-shrink-0">
@@ -276,7 +311,10 @@ export default function Sidebar() {
                                 className="relative"
                             >
                                  <button
-                                    onClick={() => router.push(item.path)}
+                                    onClick={() => {
+                                        router.push(item.path);
+                                        if (isMobile) onToggle();
+                                    }}
                                     className={`w-full group relative flex items-center transition-all duration-300 rounded-lg ${isExpanded ? 'p-3 justify-start gap-4' : 'p-0 justify-center h-12'} ${isActive ? 'text-white' : 'text-white/50 hover:bg-white/5 hover:text-white'}`}
                                 >
                                     {/* Active indicator */}
@@ -364,6 +402,7 @@ export default function Sidebar() {
                 .custom-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </motion.div>
+        </>
     );
 };
 
