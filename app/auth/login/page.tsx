@@ -13,7 +13,7 @@ const Login: React.FC = () => {
     const [idNumber, setIdNumber] = useState<string>('');
     const [password, setPassword] = useState<string>('');
     const [showPassword, setShowPassword] = useState<boolean>(false);
-    const [birthdate, setBirthdate] = useState<string>('');
+
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [mounted, setMounted] = useState(false);
     const [isStudent, setIsStudent] = useState<boolean>(false);
@@ -110,7 +110,6 @@ const Login: React.FC = () => {
     const handleClear = (): void => {
         setIdNumber('');
         setPassword('');
-        setBirthdate('');
     };
 
     const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>): void => {
@@ -174,18 +173,7 @@ const Login: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className="text-[13px] font-bold text-text-dim">Birthdate:</label>
-                        <input
-                            type="date"
-                            className="w-full h-12 bg-surface border border-border-custom px-4 rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:bg-card transition-all font-bold"
-                            value={birthdate}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => setBirthdate(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            max={mounted ? new Date().toISOString().split('T')[0] : undefined}
-                            suppressHydrationWarning={true}
-                        />
-                    </div>
+
 
                     <div className="flex items-center justify-between pt-4 pb-4">
                         <button
