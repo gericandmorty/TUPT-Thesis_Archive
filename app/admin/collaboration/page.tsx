@@ -97,7 +97,7 @@ export default function AdminCollaborationPage() {
                         Collaboration <span className="text-primary italic">Requests</span>
                     </h1>
                     <p className="text-white/40 text-sm max-w-2xl leading-relaxed">
-                        Manage and approve research collaboration requests between graduates and students.
+                        Manage and approve research collaboration requests between alumni and students.
                     </p>
                 </div>
             </motion.div>
@@ -115,7 +115,7 @@ export default function AdminCollaborationPage() {
                         <thead>
                             <tr className="border-b border-white/[0.03]">
                                 <th className="p-6 text-[10px] font-bold text-white/40 uppercase tracking-widest">Requester (Alumni)</th>
-                                <th className="p-6 text-[10px] font-bold text-white/40 uppercase tracking-widest">Receiver (Undergrad)</th>
+                                <th className="p-6 text-[10px] font-bold text-white/40 uppercase tracking-widest">Receiver (Student)</th>
                                 <th className="p-6 text-[10px] font-bold text-white/40 uppercase tracking-widest">Thesis</th>
                                 <th className="p-6 text-[10px] font-bold text-white/40 uppercase tracking-widest">Admin Status</th>
                                 <th className="p-6 text-[10px] font-bold text-white/40 uppercase tracking-widest text-right">Actions</th>
@@ -128,7 +128,7 @@ export default function AdminCollaborationPage() {
                                         <td className="p-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/20 border border-white/5 overflow-hidden">
-                                                    {collab.alumni.profilePhoto ? (
+                                                    {collab.alumni?.profilePhoto ? (
                                                         <img 
                                                             src={collab.alumni.profilePhoto.startsWith('http') ? collab.alumni.profilePhoto : `${API_BASE_URL}${collab.alumni.profilePhoto}`} 
                                                             alt="" 
@@ -139,15 +139,15 @@ export default function AdminCollaborationPage() {
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-bold text-white">{collab.alumni.name}</p>
-                                                    <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">{collab.alumni.idNumber}</p>
+                                                    <p className="text-sm font-bold text-white">{collab.alumni?.name ?? <span className="text-red-400/70 italic">Deleted User</span>}</p>
+                                                    <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">{collab.alumni?.idNumber ?? '—'}</p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="p-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/20 border border-white/5 overflow-hidden">
-                                                    {collab.undergrad.profilePhoto ? (
+                                                    {collab.undergrad?.profilePhoto ? (
                                                         <img 
                                                             src={collab.undergrad.profilePhoto.startsWith('http') ? collab.undergrad.profilePhoto : `${API_BASE_URL}${collab.undergrad.profilePhoto}`} 
                                                             alt="" 
@@ -158,8 +158,8 @@ export default function AdminCollaborationPage() {
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-bold text-white">{collab.undergrad.name}</p>
-                                                    <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">{collab.undergrad.idNumber}</p>
+                                                    <p className="text-sm font-bold text-white">{collab.undergrad?.name ?? <span className="text-red-400/70 italic">Deleted User</span>}</p>
+                                                    <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">{collab.undergrad?.idNumber ?? '—'}</p>
                                                 </div>
                                             </div>
                                         </td>

@@ -27,6 +27,7 @@ interface UserData {
     idNumber?: string;
     isAdmin?: boolean;
     isProfessor?: boolean;
+    isGraduate?: boolean;
     profilePhoto?: string;
 }
 
@@ -105,7 +106,7 @@ export default function Sidebar() {
         ]
         : [
             { icon: FaHome, label: 'Home', path: '/home' },
-            ...(!user?.isProfessor ? [
+            ...(!user?.isProfessor && !user?.isGraduate ? [
                 { icon: FaFileAlt, label: 'Analysis Workspace', path: '/documents', section: 'TOOLS' },
                 { icon: FaUpload, label: 'Submit Thesis', path: '/documents/create' },
                 { icon: FaFolderOpen, label: 'My Submissions', path: '/documents/submissions' },

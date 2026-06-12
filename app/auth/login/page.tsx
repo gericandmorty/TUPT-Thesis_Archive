@@ -16,38 +16,46 @@ const Login: React.FC = () => {
     const [birthdate, setBirthdate] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [mounted, setMounted] = useState(false);
+    const [isStudent, setIsStudent] = useState<boolean>(false);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
     const handleInputChange = (value: string): void => {
-        const val = value.toUpperCase();
-        if (val.length < idNumber.length) {
-            setIdNumber(val);
-            return;
-        }
-
-        let clean = val.replace(/[^A-Z0-9]/g, '');
-        if (clean.length > 0 && !clean.startsWith('TUPT')) {
-            if (!'TUPT'.startsWith(clean)) {
-                clean = 'TUPT' + clean;
+        if (isStudent) {
+            const val = value.toUpperCase();
+            if (val.length < idNumber.length) {
+                setIdNumber(val);
+                return;
             }
-        }
 
-        let result = clean;
-        if (clean.length > 4) {
-            result = clean.slice(0, 4) + '-' + clean.slice(4);
+            let clean = val.replace(/[^A-Z0-9]/g, '');
+            if (clean.length > 0 && !clean.startsWith('TUPT')) {
+                if (!'TUPT'.startsWith(clean)) {
+                    clean = 'TUPT' + clean;
+                }
+            }
+
+            let result = clean;
+            if (clean.length > 4) {
+                result = clean.slice(0, 4) + '-' + clean.slice(4);
+            }
+            if (result.length > 7) {
+                result = result.slice(0, 7) + '-' + result.slice(7, 11);
+            }
+            setIdNumber(result.slice(0, 12));
+        } else {
+            setIdNumber(value);
         }
-        if (result.length > 7) {
-            result = result.slice(0, 7) + '-' + result.slice(7, 11);
-        }
-        setIdNumber(result.slice(0, 12));
     };
 
     const validateIDNumber = (id: string): boolean => {
-        const idRegex = /^TUPT-\d{2}-\d{4}$/;
-        return idRegex.test(id);
+        if (isStudent) {
+            const idRegex = /^TUPT-\d{2}-\d{4}$/;
+            return idRegex.test(id);
+        }
+        return id.trim().length > 0;
     };
 
     const handleLogin = async (): Promise<void> => {
@@ -57,11 +65,10 @@ const Login: React.FC = () => {
         }
 
         if (!validateIDNumber(idNumber)) {
-            toast.error('Please enter a valid ID number in format: TUPT-XX-XXXX');
+            toast.error(isStudent ? 'Please enter a valid ID number in format: TUPT-XX-XXXX' : 'Please enter a valid ID number');
             return;
         }
 
-        const startTime = Date.now();
         setIsLoading(true);
 
         try {
@@ -77,11 +84,6 @@ const Login: React.FC = () => {
             });
 
             const data = await response.json();
-
-            const elapsed = Date.now() - startTime;
-            if (elapsed < 3000) {
-                await new Promise(resolve => setTimeout(resolve, 3000 - elapsed));
-            }
 
             if (response.ok) {
                 const userData = data.user;
@@ -99,10 +101,6 @@ const Login: React.FC = () => {
             }
         } catch (error) {
             console.error('Login error:', error);
-            const elapsed = Date.now() - startTime;
-            if (elapsed < 3000) {
-                await new Promise(resolve => setTimeout(resolve, 3000 - elapsed));
-            }
             toast.error('Cannot connect to server. Please try again.');
         } finally {
             setIsLoading(false);
@@ -129,15 +127,27 @@ const Login: React.FC = () => {
 
                 <div className="space-y-5">
                     <div className="space-y-1">
-                        <label className="text-[13px] font-bold text-text-dim">ID Number:</label>
+                        <div className="flex justify-between items-center">
+                            <label className="text-[13px] font-bold text-text-dim">ID Number:</label>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsStudent(!isStudent);
+                                    setIdNumber('');
+                                }}
+                                className="text-[11px] font-semibold text-primary/70 hover:text-primary transition-colors cursor-pointer"
+                            >
+                                {isStudent ? "Not a Student? Free-text ID" : "Are you a student? Format ID"}
+                            </button>
+                        </div>
                         <input
                             type="text"
                             className="w-full h-12 bg-surface border border-border-custom px-4 rounded-xl text-sm text-foreground placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:bg-card transition-all font-bold"
-                            placeholder="TUPT-XX-XXXX"
+                            placeholder={isStudent ? "TUPT-XX-XXXX" : "Enter your ID number"}
                             value={idNumber}
                             onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            maxLength={12}
+                            maxLength={isStudent ? 12 : 50}
                             suppressHydrationWarning={true}
                         />
                     </div>

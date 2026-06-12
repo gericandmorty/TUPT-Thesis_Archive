@@ -37,7 +37,7 @@ export default function CollaborationPage() {
             const token = localStorage.getItem('token');
             const headers = { 'Authorization': `Bearer ${token}` };
 
-            if (user.isGraduate) {
+            if (!user.isGraduate) {
                 const res = await fetch(`${API_BASE_URL}/collaboration/my-requests`, { headers });
                 const data = await res.json();
                 if (res.ok) setMyRequests(data.data);
@@ -124,7 +124,7 @@ export default function CollaborationPage() {
                 ) : (
                     <div className="grid grid-cols-1 gap-8">
                         {/* Role-based View */}
-                        {!currentUser?.isGraduate ? (
+                        {currentUser?.isGraduate ? (
                             <section>
                                 <div className="flex items-center gap-3 mb-8">
                                     <h2 className="text-sm font-black text-white uppercase tracking-widest">Incoming Requests</h2>
@@ -154,7 +154,9 @@ export default function CollaborationPage() {
                                                         </div>
                                                         <div className="min-w-0">
                                                             <h3 className="text-sm font-bold text-white truncate">{req.alumni?.name}</h3>
-                                                            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Alumni / Graduate</span>
+                                                            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                                                                {req.alumni?.isGraduate ? 'Alumni' : 'Student'}
+                                                            </span>
                                                         </div>
                                                     </div>
 
@@ -250,6 +252,9 @@ export default function CollaborationPage() {
                                                                 <FaArrowRight className="text-[8px] text-gray-600" />
                                                             </div>
                                                             <h3 className="text-sm font-bold text-white truncate">{req.undergrad?.name}</h3>
+                                                            <span className="text-[9px] font-bold text-[#2DD4BF] uppercase tracking-widest">
+                                                                {req.undergrad?.isGraduate ? 'Alumni' : 'Student'}
+                                                            </span>
                                                         </div>
                                                     </div>
 

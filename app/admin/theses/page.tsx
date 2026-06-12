@@ -497,19 +497,13 @@ export default function AdminThesesPage() {
                                                                 <span className="flex-shrink-0 px-2 py-1 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-lg border border-green-500/20 flex items-center gap-1.5 shadow-sm">
                                                                     <FaCheck className="text-[7px]" /> Approved
                                                                 </span>
+                                                            ) : thesis.isRejected ? (
+                                                                <span className="flex-shrink-0 px-2 py-1 bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest rounded-lg border border-red-500/20 flex items-center gap-1.5 shadow-sm">
+                                                                    <FaTimes className="text-[7px]" /> Rejected by {thesis.rejectedByRole === 'faculty' ? 'Faculty' : 'Librarian'}
+                                                                </span>
                                                             ) : (
                                                                 <span className="flex-shrink-0 px-2 py-1 bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-widest rounded-lg border border-amber-500/20 flex items-center gap-1.5 shadow-sm">
-                                                                    <FaClock className="text-[7px]" /> Pending Admin
-                                                                </span>
-                                                            )}
-                                                            
-                                                            {thesis.isProfApproved ? (
-                                                                <span className="flex-shrink-0 px-2 py-1 bg-blue-500/10 text-blue-500 text-[8px] font-black uppercase tracking-widest rounded-lg border border-blue-500/20 flex items-center gap-1.5 shadow-sm">
-                                                                    <FaCheck className="text-[7px]" /> Prof Approved
-                                                                </span>
-                                                            ) : (
-                                                                <span className="flex-shrink-0 px-2 py-1 bg-white/5 text-white/20 text-[8px] font-black uppercase tracking-widest rounded-lg border border-white/10 flex items-center gap-1.5 shadow-sm">
-                                                                    <FaClock className="text-[7px]" /> Awaiting Prof
+                                                                    <FaClock className="text-[7px]" /> {thesis.isProfApproved ? 'Accepted by the Faculty, Pending for Librarian' : 'Awaiting Faculty'}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -536,7 +530,7 @@ export default function AdminThesesPage() {
                                             </div>
                                         </td>
                                         <td className="px-8 py-8 text-right">
-                                            <div className="flex items-center justify-end gap-3 lg:opacity-0 lg:group-hover:opacity-100 transition-all">
+                                            <div className="flex items-center justify-end gap-3 transition-all">
                                                 <button
                                                     onClick={() => router.push(`/search_result?id=${thesis._id}`)}
                                                     title="View Details"
@@ -554,25 +548,36 @@ export default function AdminThesesPage() {
                                                     </button>
                                                 ) }
                                                 {!thesis.isApproved ? (
-                                                    <button
-                                                        onClick={() => {
-                                                            if (!thesis.isProfApproved) {
-                                                                toast.info('Professor approval is required before Admin approval.');
-                                                                return;
-                                                            }
-                                                            handleApproveThesis(thesis._id);
-                                                        }}
-                                                        title={thesis.isProfApproved ? "Approve Thesis" : "Requires Professor Approval"}
-                                                        className={`p-3 rounded-xl border transition-all ${thesis.isProfApproved 
-                                                            ? 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20 hover:-translate-y-1' 
-                                                            : 'bg-white/5 text-white/10 border-white/5 cursor-not-allowed'}`}
-                                                    >
-                                                        <FaCheck className="text-sm" />
-                                                    </button>
+                                                    <>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (!thesis.isProfApproved) {
+                                                                    toast.info('Faculty approval is required before Admin approval.');
+                                                                    return;
+                                                                }
+                                                                handleApproveThesis(thesis._id);
+                                                            }}
+                                                            title={thesis.isProfApproved ? "Approve Thesis" : "Requires Faculty Approval"}
+                                                            className={`p-3 rounded-xl border transition-all ${thesis.isProfApproved 
+                                                                ? 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20 hover:-translate-y-1' 
+                                                                : 'bg-white/5 text-white/10 border-white/5 cursor-not-allowed'}`}
+                                                        >
+                                                            <FaCheck className="text-sm" />
+                                                        </button>
+                                                        {thesis.isProfApproved && !thesis.isRejected && (
+                                                            <button
+                                                                onClick={() => handleDisapproveThesis(thesis._id)}
+                                                                title="Reject Thesis"
+                                                                className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-xl border border-red-500/20 transition-all hover:-translate-y-1"
+                                                            >
+                                                                <FaTimes className="text-sm" />
+                                                            </button>
+                                                        )}
+                                                    </>
                                                 ) : (
                                                     <button
                                                         onClick={() => handleDisapproveThesis(thesis._id)}
-                                                        title="Disapprove Thesis"
+                                                        title="Disapprove / Revoke Approval"
                                                         className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-xl border border-red-500/20 transition-all hover:-translate-y-1"
                                                     >
                                                         <FaTimes className="text-sm" />

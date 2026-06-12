@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaFileAlt, FaArrowRight, FaLightbulb, FaEdit, FaTrash, FaFileImage, FaTimes } from 'react-icons/fa';
+import { FaFileAlt, FaArrowRight, FaLightbulb, FaEdit, FaTrash, FaFileImage, FaTimes, FaCheckCircle, FaExclamationTriangle, FaClock } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeleteThesisModal from './DeleteThesisModal';
 
@@ -20,6 +20,9 @@ interface Thesis {
     };
     approvedAt?: string;
     attachments?: string[];
+    isRejected?: boolean;
+    rejectedByRole?: 'faculty' | 'librarian';
+    deleteAt?: string;
 }
 
 interface MySubmissionsProps {
@@ -29,6 +32,13 @@ interface MySubmissionsProps {
     onDeleteThesis: (id: string) => void;
     hasAnalysisOrFile: boolean;
 }
+
+const getDaysRemaining = (deleteAtStr?: string) => {
+    if (!deleteAtStr) return 5;
+    const diffTime = new Date(deleteAtStr).getTime() - Date.now();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+};
 
 const MySubmissions: React.FC<MySubmissionsProps> = ({ myTheses, onViewThesis, onEditThesis, onDeleteThesis, hasAnalysisOrFile }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -72,80 +82,132 @@ const MySubmissions: React.FC<MySubmissionsProps> = ({ myTheses, onViewThesis, o
                     {myTheses.map((thesis) => (
                         <div
                             key={thesis._id}
-                            className="group relative bg-[#F8FAFC] rounded-lg border border-zinc-200 shadow-lg p-8 flex flex-col h-[520px] transition-all duration-300 hover:shadow-xl"
+                            className="group relative bg-white/[0.02] hover:bg-white/[0.04] rounded-[2rem] border border-white/10 hover:border-primary/30 shadow-2xl p-8 flex flex-col h-[520px] transition-all duration-500 hover:-translate-y-1"
                         >
                             <div className="relative z-10 flex-grow">
-                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-200/60">
-                                    <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+                                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
                                         {thesis.course || 'General'}
                                     </span>
-                                    <div className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${thesis.isApproved
-                                        ? 'bg-green-50 text-green-700 border-green-200'
-                                        : 'bg-zinc-100 text-zinc-500 border-zinc-200'
-                                        }`}>
-                                        {thesis.isApproved ? 'Approved' : thesis.isProfApproved ? 'Pending Admin' : 'Awaiting Prof'}
-                                    </div>
+                                    <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">
+                                        ID: {thesis._id.substring(0, 8).toUpperCase()}
+                                    </span>
                                 </div>
 
                                 <div className="space-y-6">
-                                    <h4 className="text-xl font-bold text-zinc-900 leading-snug">
+                                    <h4 className="text-xl font-black text-white leading-snug line-clamp-2 group-hover:text-primary transition-colors duration-300">
                                         {thesis.title}
                                     </h4>
                                     
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Author</span>
-                                            <p className="text-[11px] text-zinc-700 font-medium">
+                                            <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Author</span>
+                                            <p className="text-[11px] text-white/70 font-semibold truncate">
                                                 {thesis.author}
                                             </p>
                                         </div>
                                         <div className="space-y-1">
-                                            <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Year</span>
-                                            <p className="text-[11px] text-zinc-700 font-medium">
+                                            <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Year</span>
+                                            <p className="text-[11px] text-white/70 font-semibold">
                                                 {thesis.year_range || 'N/A'}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-4 pt-6 border-t border-zinc-100">
+                                    <div className="space-y-4 pt-6 border-t border-white/5">
                                         <div className="space-y-1">
-                                            <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Professor</span>
-                                            <p className="text-[11px] text-zinc-700 font-medium">
+                                            <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Faculty Reviewer</span>
+                                            <p className="text-[11px] text-white/70 font-semibold truncate">
                                                 {thesis.professorId?.name || 'Unassigned'}
                                             </p>
                                         </div>
                                         
                                         {thesis.isApproved && thesis.approvedBy && (
-                                            <div className="space-y-3 pt-2 bg-zinc-50 p-3 rounded-lg border border-zinc-100">
+                                            <div className="space-y-2 pt-2 bg-white/[0.02] p-3 rounded-xl border border-white/5">
                                                 <div className="flex justify-between items-center">
-                                                    <div className="space-y-1">
-                                                        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Approved By</span>
-                                                        <p className="text-[11px] text-zinc-800 font-semibold">{thesis.approvedBy.name}</p>
+                                                    <div className="space-y-0.5">
+                                                        <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Approved By</span>
+                                                        <p className="text-[10px] text-white/80 font-bold">{thesis.approvedBy.name}</p>
                                                     </div>
-                                                    <span className="text-[9px] text-zinc-400 font-medium italic">
+                                                    <span className="text-[9px] text-white/30 font-medium italic">
                                                         {thesis.approvedAt ? new Date(thesis.approvedAt).toLocaleDateString() : ''}
                                                     </span>
                                                 </div>
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Status Alert Banner */}
+                                    <div className="pt-2">
+                                        {thesis.isApproved ? (
+                                            <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                                                <FaCheckCircle className="text-sm flex-shrink-0" />
+                                                <span className="text-[10px] font-black uppercase tracking-wider">Approved & Cataloged</span>
+                                            </div>
+                                        ) : thesis.isRejected ? (
+                                            <div className="flex items-start gap-3 px-4 py-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl shadow-[0_0_15px_rgba(244,63,94,0.05)]">
+                                                <FaExclamationTriangle className="text-sm mt-0.5 flex-shrink-0 animate-pulse" />
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider block">
+                                                        Rejected by {thesis.rejectedByRole === 'faculty' ? 'Faculty' : 'Librarian'}
+                                                    </span>
+                                                    <span className="text-[9px] font-bold text-rose-400/70 uppercase tracking-widest block mt-0.5">
+                                                        Auto-deletes in {getDaysRemaining(thesis.deleteAt)} days
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ) : thesis.isProfApproved ? (
+                                            <div className="flex items-start gap-3 px-4 py-3 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.05)]">
+                                                <FaClock className="text-sm mt-0.5 flex-shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider block">Accepted by Faculty</span>
+                                                    <span className="text-[9px] font-bold text-cyan-400/70 uppercase tracking-widest block mt-0.5">Pending Librarian Review</span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.05)]">
+                                                <FaClock className="text-sm flex-shrink-0" />
+                                                <span className="text-[10px] font-black uppercase tracking-wider">Awaiting Faculty Approval</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="relative z-10 pt-6 mt-auto flex items-center gap-3">
+                            <div className="relative z-10 pt-6 mt-auto flex items-center gap-3 border-t border-white/5">
                                 {thesis.attachments && thesis.attachments.length > 0 && (
                                     <button
                                         onClick={() => setSelectedAttachments(thesis.attachments!)}
-                                        className="w-12 h-12 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-400 hover:text-primary hover:bg-primary/5 border border-zinc-200 transition-all group/attach"
+                                        className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/40 hover:text-primary hover:bg-primary/10 border border-white/10 hover:border-primary/30 transition-all duration-300 group/attach"
                                         title="View Supporting Documents"
                                     >
                                         <FaFileImage className="group-hover/attach:scale-110 transition-transform" />
                                     </button>
                                 )}
+                                {!thesis.isApproved && (
+                                    <>
+                                        <button
+                                            onClick={() => onEditThesis(thesis)}
+                                            className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/40 hover:text-primary hover:bg-primary/10 border border-white/10 hover:border-primary/30 transition-all duration-300"
+                                            title="Edit Submission"
+                                        >
+                                            <FaEdit />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteClick(thesis)}
+                                            className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/40 hover:text-red-400 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 transition-all duration-300"
+                                            title="Delete Submission"
+                                        >
+                                            <FaTrash />
+                                        </button>
+                                    </>
+                                )}
                                 <button
-                                    className={`flex-1 py-3 rounded-md text-[11px] font-bold uppercase tracking-widest transition-all ${thesis.isApproved 
-                                        ? 'bg-zinc-900 text-white hover:bg-zinc-800' 
-                                        : 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'}`}
+                                    className={`flex-1 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+                                        thesis.isApproved 
+                                            ? 'bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]' 
+                                            : 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed'
+                                    }`}
                                     onClick={() => onViewThesis(thesis._id)}
                                     disabled={!thesis.isApproved}
                                 >
