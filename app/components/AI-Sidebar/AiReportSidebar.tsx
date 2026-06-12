@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaTimes, FaRobot, FaSave } from 'react-icons/fa';
+import { FaTimes, FaRobot, FaDownload } from 'react-icons/fa';
 
 interface AiReportSidebarProps {
     isOpen: boolean;
@@ -30,6 +30,37 @@ const AiReportSidebar: React.FC<AiReportSidebarProps> = ({
 }) => {
     const accessionNumber = React.useMemo(() => `THESIS_${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`, [isOpen]);
     const analysisDate = React.useMemo(() => new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }), [isOpen]);
+
+    const handleDownloadTxt = () => {
+        const textContent = `TECHNOLOGICAL UNIVERSITY OF THE PHILIPPINES
+Taguig City Campus
+
+========================================================================
+STRATEGIC RESEARCH INTELLIGENCE & RECOMMENDATION REPORT
+========================================================================
+
+Accession Number: ${accessionNumber}
+Analysis Date: ${analysisDate}
+Subject Query: "${query}"
+${similarity !== undefined ? `Similarity Score: ${similarity}%\nReference Match: "${matchTitle || 'None'}"` : ''}
+
+========================================================================
+RECOMMENDATIONS & ANALYSIS
+========================================================================
+
+${recommendation.replace(/\*\*/g, '')}
+`;
+
+        const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${accessionNumber}_Report.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
 
     if (!isOpen) return null;
 
@@ -84,12 +115,6 @@ const AiReportSidebar: React.FC<AiReportSidebarProps> = ({
                                 <h4 className="text-[15px] font-black uppercase tracking-[0.2em]">Technological University of the Philippines</h4>
                                 <p className="text-[11px] font-bold text-[#666] uppercase tracking-[0.3em]">Taguig City Campus</p>
                             </div>
-
-                            <div className="w-full border-t border-[#1A1A1A]/10 pt-4 mt-2">
-                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#888]">
-                                    Office of the University Registrar • Digital Research Repository
-                                </p>
-                            </div>
                         </div>
 
                         {/* Accession / Meta Row */}
@@ -119,16 +144,19 @@ const AiReportSidebar: React.FC<AiReportSidebarProps> = ({
                         <div className="relative z-10 space-y-14 font-serif text-[#222]">
                             {/* Similarity Section */}
                             {similarity !== undefined && (
-                                <div className="border-l-4 border-[#1A1A1A] pl-8 py-2">
-                                    <h5 className="text-[12px] font-black uppercase tracking-[0.3em] text-[#666] mb-4">MATCH AUTHENTICATION</h5>
+                                <div className="border-l-4 border-amber-500 bg-amber-500/5 pl-8 pr-4 py-4 rounded-r-2xl border border-y-0 border-r-0 border-l-4 border-amber-500">
+                                    <h5 className="text-[12px] font-black uppercase tracking-[0.3em] text-amber-800 mb-4">SIMILARITY SCAN</h5>
                                     <div className="flex items-baseline gap-4">
-                                        <span className="text-4xl font-black">{similarity}%</span>
-                                        <span className="text-[11px] font-bold text-[#888] uppercase italic">Institutional Similarity Coefficient</span>
+                                        <span className={`text-4xl font-black ${similarity > 40 ? 'text-red-600' : 'text-emerald-600'}`}>{similarity}%</span>
+                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider pl-2">Matching Content</span>
                                     </div>
                                     {matchTitle && (
-                                        <p className="mt-4 text-sm text-[#444] leading-relaxed italic border-t border-[#1A1A1A]/5 pt-4">
-                                            Reference Match: &quot;{matchTitle}&quot;
-                                        </p>
+                                        <div className="mt-4 text-sm text-[#1A1A1A] font-medium leading-relaxed border-t border-[#1A1A1A]/5 pt-4">
+                                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-1">Closest Matching Paper</span>
+                                            <span className="bg-amber-100 text-amber-950 font-black px-3 py-1.5 rounded-lg border border-amber-200/50 inline-block font-sans text-xs shadow-sm">
+                                                {matchTitle}
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                             )}                            {/* Analysis Body */}
@@ -174,6 +202,92 @@ const AiReportSidebar: React.FC<AiReportSidebarProps> = ({
                                             });
                                         }
                                     }
+                                    const renderFormattedLine = (line: string, keyPrefix: string, isFirstParagraph?: boolean) => {
+                                        const trimmed = line.trim();
+                                        
+                                        // 1. Recommendations header
+                                        if (/^recommendations?:?/i.test(trimmed)) {
+                                            return (
+                                                <h4 key={keyPrefix} className="text-lg font-black text-[#1A1A1A] uppercase tracking-[0.1em] mt-8 mb-4">
+                                                    {trimmed}
+                                                </h4>
+                                            );
+                                        }
+                                        
+                                        // 2. Numbered titles: e.g. "1. Title of Thesis" or list items
+                                        if (/^\d+\./.test(trimmed)) {
+                                            const hasBoldMarkers = trimmed.includes('**');
+                                            const isShortTitle = trimmed.length < 180 && !hasBoldMarkers;
+                                            
+                                            if (isShortTitle) {
+                                                return (
+                                                    <p key={keyPrefix} className="font-black text-[#1A1A1A] text-[16px] mt-6 mb-2 leading-snug">
+                                                        {trimmed}
+                                                    </p>
+                                                );
+                                            }
+                                            
+                                            return (
+                                                <p key={keyPrefix} className="mb-4 text-[#222] leading-relaxed">
+                                                    {trimmed.split(/(\*\*.*?\*\*)/g).map((part, pIdx) => (
+                                                        part.startsWith('**') && part.endsWith('**')
+                                                            ? <strong key={pIdx} className="font-black text-[#000]">{part.slice(2, -2).trim()}</strong>
+                                                            : part
+                                                    ))}
+                                                </p>
+                                            );
+                                        }
+                                        
+                                        // 3. Rationale lines
+                                        const rationaleMatch = trimmed.match(/^(rationale:)\s*(.*)/i);
+                                        if (rationaleMatch) {
+                                            const [_, label, rest] = rationaleMatch;
+                                            return (
+                                                <p key={keyPrefix} className="text-[14.5px] text-[#444] leading-relaxed mt-2 mb-6 pl-4 border-l-2 border-amber-500/50 bg-amber-500/[0.02] py-1">
+                                                    <strong className="font-black text-[#1A1A1A] uppercase text-[11px] tracking-wider mr-2">{label}</strong>
+                                                    {rest.split(/(\*\*.*?\*\*)/g).map((part, pIdx) => (
+                                                        part.startsWith('**') && part.endsWith('**')
+                                                            ? <strong key={pIdx} className="font-black text-[#000]">{part.slice(2, -2).trim()}</strong>
+                                                            : part
+                                                    ))}
+                                                </p>
+                                            );
+                                        }
+                                        
+                                        // 4. Default lines with potential **bold** text
+                                        const isBullet = trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('•');
+                                        const cleanLine = isBullet ? trimmed.replace(/^[-*•]\s*/, '') : trimmed;
+                                        
+                                        if (isFirstParagraph && cleanLine.length > 50 && !isBullet) {
+                                            const dropCapMatch = cleanLine.match(/[a-zA-Z]/);
+                                            const dropCap = dropCapMatch ? dropCapMatch[0] : cleanLine.charAt(0);
+                                            const remainingText = dropCapMatch 
+                                                ? cleanLine.substring(cleanLine.indexOf(dropCap) + 1)
+                                                : cleanLine.substring(1);
+                                            return (
+                                                <p key={keyPrefix} className="mb-4 text-[#222]">
+                                                    <span className="float-left text-6xl font-black mr-4 mt-2 leading-[0.8] text-[#1A1A1A]">
+                                                        {dropCap}
+                                                    </span>
+                                                    {remainingText.split(/(\*\*.*?\*\*)/g).map((part, pIdx) => (
+                                                        part.startsWith('**') && part.endsWith('**')
+                                                            ? <strong key={pIdx} className="font-black text-[#000]">{part.slice(2, -2).trim()}</strong>
+                                                            : part
+                                                    ))}
+                                                </p>
+                                            );
+                                        }
+                                        
+                                        return (
+                                            <p key={keyPrefix} className={`mb-4 text-[#222] ${isBullet ? "pl-6 border-l border-[#1A1A1A]/10 italic text-[#555]" : ""}`}>
+                                                {cleanLine.split(/(\*\*.*?\*\*)/g).map((part, pIdx) => (
+                                                    part.startsWith('**') && part.endsWith('**')
+                                                        ? <strong key={pIdx} className="font-black text-[#000]">{part.slice(2, -2).trim()}</strong>
+                                                        : part
+                                                ))}
+                                            </p>
+                                        );
+                                    };
 
                                     return sections.map((section, idx) => {
                                         const isMainSection = section.title !== '';
@@ -188,57 +302,16 @@ const AiReportSidebar: React.FC<AiReportSidebarProps> = ({
                                                             <span className="flex-1 h-[1px] bg-[#1A1A1A]/10" />
                                                         </h4>
                                                         <div className="space-y-5">
-                                                            {section.content.map((line, lIdx) => {
-                                                                const trimmedLine = line.trim();
-                                                                const isBullet = trimmedLine.startsWith('-') || trimmedLine.startsWith('*') || trimmedLine.startsWith('•') || /^\d+\./.test(trimmedLine);
-                                                                const cleanLine = trimmedLine.replace(/^[-*•\d.]\s*/, '');
-                                                                
-                                                                return (
-                                                                    <p key={lIdx} className={isBullet ? "pl-8 border-l border-[#1A1A1A]/20 italic text-[#333]" : ""}>
-                                                                        {cleanLine.split(/(\*\*.*?\*\*)/g).map((part, pIdx) => (
-                                                                            part.startsWith('**') && part.endsWith('**') 
-                                                                                ? <strong key={pIdx} className="font-black text-[#000]">{part.slice(2, -2).trim()}</strong> 
-                                                                                : part
-                                                                        ))}
-                                                                    </p>
-                                                                );
-                                                            })}
+                                                            {section.content.map((line, lIdx) => 
+                                                                renderFormattedLine(line, `${idx}-${lIdx}`)
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-4">
-                                                        {section.content.map((line, lIdx) => {
-                                                            const trimmedLine = line.trim();
-                                                            // Sanitize for drop cap: find first alphanumeric
-                                                            const dropCapMatch = trimmedLine.match(/[a-zA-Z]/);
-                                                            const dropCap = dropCapMatch ? dropCapMatch[0] : trimmedLine.charAt(0);
-                                                            const remainingText = dropCapMatch 
-                                                                ? trimmedLine.substring(trimmedLine.indexOf(dropCap) + 1)
-                                                                : trimmedLine.substring(1);
-
-                                                            return (
-                                                                <p key={lIdx}>
-                                                                    {lIdx === 0 && idx === 0 && trimmedLine.length > 50 ? (
-                                                                        <>
-                                                                            <span className="float-left text-6xl font-black mr-4 mt-2 leading-[0.8] text-[#1A1A1A]">
-                                                                                {dropCap}
-                                                                            </span>
-                                                                            {remainingText.split(/(\*\*.*?\*\*)/g).map((part, pIdx) => (
-                                                                                part.startsWith('**') && part.endsWith('**') 
-                                                                                    ? <strong key={pIdx} className="font-black text-[#000]">{part.slice(2, -2).trim()}</strong> 
-                                                                                    : part
-                                                                            ))}
-                                                                        </>
-                                                                    ) : (
-                                                                        trimmedLine.split(/(\*\*.*?\*\*)/g).map((part, pIdx) => (
-                                                                            part.startsWith('**') && part.endsWith('**') 
-                                                                                ? <strong key={pIdx} className="font-black text-[#000]">{part.slice(2, -2).trim()}</strong> 
-                                                                                : part
-                                                                        ))
-                                                                    )}
-                                                                </p>
-                                                            );
-                                                        })}
+                                                        {section.content.map((line, lIdx) => 
+                                                            renderFormattedLine(line, `${idx}-${lIdx}`, lIdx === 0 && idx === 0)
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -248,7 +321,10 @@ const AiReportSidebar: React.FC<AiReportSidebarProps> = ({
                             </div>
                         </div>
 
-                        {/* Paper Footer - Removed Verification Certificate as requested */}
+                        {/* Paper Footer */}
+                        <div className="mt-16 py-4 bg-teal-50 border-t border-teal-100 text-center -mx-6 sm:-mx-12 md:-mx-20 -mb-6 sm:-mb-12 md:-mb-20">
+                            <p className="text-[9px] font-black uppercase tracking-[0.4em] text-teal-800">© {new Date().getFullYear()} TUPT Digital Archives • Institutional Property</p>
+                        </div>
                     </div>
                 </div>
                 
@@ -265,11 +341,11 @@ const AiReportSidebar: React.FC<AiReportSidebarProps> = ({
                             </button>
                         )}
                         <button
-                            onClick={onSave}
-                            className={`flex-1 flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase transition-all duration-500 active:scale-95 ${isSaved ? 'bg-green-500/20 text-green-400 border border-green-500/40' : 'bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30 hover:border-primary/60 shadow-lg'}`}
+                            onClick={handleDownloadTxt}
+                            className="flex-1 flex items-center justify-center gap-3 px-6 py-3.5 rounded-xl text-[10px] font-black tracking-[0.2em] uppercase transition-all duration-500 active:scale-95 bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30 hover:border-primary/60 shadow-lg"
                         >
-                            <FaSave className={isSaved ? 'text-green-400 text-lg' : 'text-primary text-lg'} />
-                            {isSaved ? 'REPORT SECURED' : 'COMMIT TO ARCHIVE'}
+                            <FaDownload className="text-primary text-lg" />
+                            DOWNLOAD TO TXT
                         </button>
                     </div>
                 </div>

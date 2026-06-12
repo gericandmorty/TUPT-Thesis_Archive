@@ -381,6 +381,25 @@ const SearchResultContent = () => {
                             </div>
                         </div>
                     )}
+                    {singleThesis && !currentUser?.isGraduate && singleThesis?.createdBy && String(singleThesis?.createdBy) !== String(currentUser?._id) && (
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    if (singleThesis.hasRequestedCollaboration) return;
+                                    setCollaborationThesis(singleThesis);
+                                    setIsCollaborationModalOpen(true);
+                                }}
+                                disabled={singleThesis.hasRequestedCollaboration}
+                                className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all active:scale-95 group z-20 shadow-lg ${singleThesis.hasRequestedCollaboration
+                                        ? 'bg-gray-500/10 border border-gray-500/20 text-gray-500 cursor-not-allowed'
+                                        : 'bg-primary/5 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'
+                                    }`}
+                            >
+                                <FaHandshake className={singleThesis.hasRequestedCollaboration ? "" : "group-hover:rotate-12 transition-transform"} />
+                                <span>{singleThesis.hasRequestedCollaboration ? 'Request Sent' : 'Request Collaboration'}</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* AI / Local Loading Overlays (Full Screen Modal) */}
@@ -438,12 +457,6 @@ const SearchResultContent = () => {
                                             <h4 className="text-[15px] font-black uppercase tracking-[0.2em]">Technological University of the Philippines</h4>
                                             <p className="text-[11px] font-bold text-[#666] uppercase tracking-[0.3em]">Taguig City Campus</p>
                                         </div>
-
-                                        <div className="w-full border-t border-[#1A1A1A]/10 pt-4 mt-2">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#888]">
-                                                Office of the University Registrar • Digital Research Repository
-                                            </p>
-                                        </div>
                                     </div>
 
                                     {/* Content Area */}
@@ -462,11 +475,11 @@ const SearchResultContent = () => {
 
                                         {/* Title Section */}
                                         <div className="text-center">
-                                            <h2 className="text-2xl md:text-3xl font-black text-[#1A1A1A] leading-tight font-serif uppercase tracking-tight">
+                                            <h2 className="text-2xl md:text-3xl font-black text-[#1A1A1A] leading-tight font-serif tracking-tight">
                                                 {singleThesis.title}
                                             </h2>
                                             <div className="mt-8 flex flex-col items-center gap-2">
-                                                <span className="text-[10px] font-black text-[#999] uppercase tracking-[0.5em]">Principal Author</span>
+                                                <span className="text-[10px] font-black text-[#999] uppercase tracking-[0.5em]">Author/s</span>
                                                 <p className="text-sm font-bold italic font-serif text-[#444] uppercase tracking-widest">{singleThesis.author || 'Institutional Member'}</p>
                                             </div>
                                         </div>
@@ -485,7 +498,7 @@ const SearchResultContent = () => {
                                             </div>
                                         </div>
 
-                                        {/* Attachments Section (Visible to Admins/Professors or Creator) */}
+                                        {/* Attachments Section (Visible to Admins/Faculty or Creator) */}
                                         {singleThesis.attachments && singleThesis.attachments.length > 0 && (
                                             <div className="space-y-8 mt-12 pt-12 border-t border-[#1A1A1A]/10">
                                                 <h4 className="text-[13px] font-black text-[#1A1A1A] uppercase tracking-[0.2em] flex items-center gap-4">
@@ -495,7 +508,7 @@ const SearchResultContent = () => {
                                                 </h4>
                                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                                                     {singleThesis.attachments.map((url, i) => (
-                                                        <motion.div 
+                                                        <motion.div
                                                             key={i}
                                                             whileHover={{ y: -5 }}
                                                             className="group/attach relative aspect-[3/4] bg-white border border-stone-200 rounded-sm shadow-md overflow-hidden cursor-pointer"
@@ -520,8 +533,28 @@ const SearchResultContent = () => {
                                         )}
                                     </div>
 
-                                    <div className="mt-16 pt-8 border-t border-[#1A1A1A]/10 text-center">
-                                        <p className="text-[8px] font-black uppercase tracking-[0.8em] text-[#888]">© {new Date().getFullYear()} TUPT Digital Archives • Institutional Property</p>
+                                    {!currentUser?.isGraduate && singleThesis?.createdBy && String(singleThesis?.createdBy) !== String(currentUser?._id) && (
+                                        <div className="mt-12 pt-8 border-t border-[#1A1A1A]/10 flex justify-center">
+                                            <button
+                                                onClick={() => {
+                                                    if (singleThesis.hasRequestedCollaboration) return;
+                                                    setCollaborationThesis(singleThesis);
+                                                    setIsCollaborationModalOpen(true);
+                                                }}
+                                                disabled={singleThesis.hasRequestedCollaboration}
+                                                className={`flex items-center gap-3 text-xs font-black uppercase tracking-widest px-6 py-3 rounded-md transition-all active:scale-95 group z-20 ${singleThesis.hasRequestedCollaboration
+                                                        ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed'
+                                                        : 'bg-[#1A1A1A] text-[#FCFCFA] hover:bg-[#333] border border-[#1A1A1A] shadow-md hover:shadow-lg'
+                                                    }`}
+                                            >
+                                                <FaHandshake className={singleThesis.hasRequestedCollaboration ? "" : "group-hover:rotate-12 transition-transform"} />
+                                                <span>{singleThesis.hasRequestedCollaboration ? 'Request Sent' : 'Request Collaboration'}</span>
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <div className="mt-16 py-4 bg-teal-50 border-t border-teal-100 text-center -mx-6 sm:-mx-12 md:-mx-20 -mb-6 sm:-mb-12 md:-mb-20">
+                                        <p className="text-[9px] font-black uppercase tracking-[0.4em] text-teal-800">© {new Date().getFullYear()} TUPT Digital Archives • Institutional Property</p>
                                     </div>
                                 </div>
                             </div>
@@ -533,7 +566,7 @@ const SearchResultContent = () => {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                            className={viewMode === 'grid' 
+                            className={viewMode === 'grid'
                                 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10"
                                 : "flex flex-col gap-6 relative z-10"
                             }
@@ -542,9 +575,8 @@ const SearchResultContent = () => {
                                 <div
                                     key={thesis.id}
                                     onClick={() => router.push(`/search_result?id=${thesis.id}`)}
-                                    className={`group bg-card rounded-2xl shadow-xl border border-border-custom hover:border-primary/30 hover:shadow-2xl active:scale-[0.99] transition-all duration-300 flex cursor-pointer overflow-hidden ${
-                                        viewMode === 'grid' ? 'flex-col p-6 h-full' : 'flex-col md:flex-row p-6 items-start gap-6'
-                                    }`}
+                                    className={`group bg-card rounded-2xl shadow-xl border border-border-custom hover:border-primary/30 hover:shadow-2xl active:scale-[0.99] transition-all duration-300 flex cursor-pointer overflow-hidden ${viewMode === 'grid' ? 'flex-col p-6 h-full' : 'flex-col md:flex-row p-6 items-start gap-6'
+                                        }`}
                                 >
                                     {/* Content Area */}
                                     <div className="flex-grow flex flex-col min-w-0">
@@ -566,25 +598,23 @@ const SearchResultContent = () => {
                                             )}
                                         </div>
 
-                                        <h3 className={`font-bold text-foreground mb-3 group-hover:text-primary transition-colors leading-[1.4] tracking-tight ${
-                                            viewMode === 'grid' ? 'text-base line-clamp-2' : 'text-xl md:text-2xl'
-                                        }`}>
+                                        <h3 className={`font-bold text-foreground mb-3 group-hover:text-primary transition-colors leading-[1.4] tracking-tight ${viewMode === 'grid' ? 'text-base line-clamp-2' : 'text-xl md:text-2xl'
+                                            }`}>
                                             {thesis.title}
                                         </h3>
 
                                         {viewMode === 'list' && (
                                             <div className="flex items-center gap-2 mb-4">
-                                                <span className="text-[11px] font-black text-primary/70 uppercase tracking-[0.1em]">Principal Author:</span>
+                                                <span className="text-[11px] font-black text-primary/70 uppercase tracking-[0.1em]">Author:</span>
                                                 <span className="text-[11px] font-bold text-gray-400 italic uppercase tracking-wider">
                                                     {thesis.author || 'Institutional Member'}
                                                 </span>
                                             </div>
                                         )}
 
-                                        <p className={`text-text-dim leading-relaxed font-medium ${
-                                            viewMode === 'grid' ? 'text-sm line-clamp-3 mb-6' : 'text-sm md:text-base mb-6 max-w-4xl'
-                                        }`}>
-                                            {viewMode === 'grid' 
+                                        <p className={`text-text-dim leading-relaxed font-medium ${viewMode === 'grid' ? 'text-sm line-clamp-3 mb-6' : 'text-sm md:text-base mb-6 max-w-4xl'
+                                            }`}>
+                                            {viewMode === 'grid'
                                                 ? `${thesis.abstract?.substring(0, 150)}...`
                                                 : thesis.abstract
                                             }
@@ -597,7 +627,7 @@ const SearchResultContent = () => {
                                                     <span className="truncate">{thesis.id}</span>
                                                 </div>
                                             )}
-                                            
+
                                             {viewMode === 'list' && (
                                                 <div className="flex items-center gap-4">
                                                     <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest">
@@ -608,7 +638,7 @@ const SearchResultContent = () => {
                                             )}
 
                                             <div className="flex gap-2 ml-auto">
-                                                {currentUser?.isGraduate && String(thesis?.createdBy) !== String(currentUser?._id) && (
+                                                {!currentUser?.isGraduate && thesis?.createdBy && String(thesis?.createdBy) !== String(currentUser?._id) && (
                                                     <button
                                                         onClick={(e) => {
                                                             e.preventDefault();
@@ -619,8 +649,8 @@ const SearchResultContent = () => {
                                                         }}
                                                         disabled={thesis.hasRequestedCollaboration}
                                                         className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all active:scale-95 group z-20 ${thesis.hasRequestedCollaboration
-                                                                ? 'bg-gray-500/10 border border-gray-500/20 text-gray-500 cursor-not-allowed'
-                                                                : 'bg-primary/5 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'
+                                                            ? 'bg-gray-500/10 border border-gray-500/20 text-gray-500 cursor-not-allowed'
+                                                            : 'bg-primary/5 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'
                                                             }`}
                                                     >
                                                         <FaHandshake className={thesis.hasRequestedCollaboration ? "" : "group-hover:rotate-12 transition-transform"} />
@@ -727,7 +757,7 @@ const SearchResultContent = () => {
                             <div className="flex justify-between items-center mb-6">
                                 <div>
                                     <h3 className="text-xl font-black text-white uppercase tracking-tight">Collaboration Request</h3>
-                                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1">Alumni to Undergraduate Proposal</p>
+                                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1">Alumni to Student Proposal</p>
                                 </div>
                                 <button
                                     onClick={() => setIsCollaborationModalOpen(false)}

@@ -40,35 +40,47 @@ const Register: React.FC = () => {
 
     const handleInputChange = (field: keyof FormData, value: string | boolean): void => {
         if (field === 'idNumber' && typeof value === 'string') {
-            const val = value.toUpperCase();
-            if (val.length < formData.idNumber.length) {
-                setFormData(prev => ({ ...prev, idNumber: val }));
-                return;
-            }
-
-            let clean = val.replace(/[^A-Z0-9]/g, '');
-            if (clean.length > 0 && !clean.startsWith('TUPT')) {
-                if (!'TUPT'.startsWith(clean)) {
-                    clean = 'TUPT' + clean;
+            // Only apply TUPT formatting for students (not faculty/professor and not alumni/graduate)
+            const isStudent = !formData.isGraduate && !formData.isProfessor;
+            if (isStudent) {
+                const val = value.toUpperCase();
+                if (val.length < formData.idNumber.length) {
+                    setFormData(prev => ({ ...prev, idNumber: val }));
+                    return;
                 }
-            }
 
-            let result = clean;
-            if (clean.length > 4) {
-                result = clean.slice(0, 4) + '-' + clean.slice(4);
+                let clean = val.replace(/[^A-Z0-9]/g, '');
+                if (clean.length > 0 && !clean.startsWith('TUPT')) {
+                    if (!'TUPT'.startsWith(clean)) {
+                        clean = 'TUPT' + clean;
+                    }
+                }
+
+                let result = clean;
+                if (clean.length > 4) {
+                    result = clean.slice(0, 4) + '-' + clean.slice(4);
+                }
+                if (result.length > 7) {
+                    result = result.slice(0, 7) + '-' + result.slice(7, 11);
+                }
+                setFormData(prev => ({ ...prev, idNumber: result.slice(0, 12) }));
+            } else {
+                // Faculty and Alumni: free-text ID input
+                setFormData(prev => ({ ...prev, idNumber: value }));
             }
-            if (result.length > 7) {
-                result = result.slice(0, 7) + '-' + result.slice(7, 11);
-            }
-            setFormData(prev => ({ ...prev, idNumber: result.slice(0, 12) }));
         } else {
             setFormData(prev => ({ ...prev, [field]: value }));
         }
     };
 
     const validateIDNumber = (idNumber: string): boolean => {
-        const idRegex = /^TUPT-\d{2}-\d{4}$/;
-        return idRegex.test(idNumber);
+        // Only validate TUPT format for students
+        if (!formData.isGraduate && !formData.isProfessor) {
+            const idRegex = /^TUPT-\d{2}-\d{4}$/;
+            return idRegex.test(idNumber);
+        }
+        // Faculty and Alumni just need a non-empty ID
+        return idNumber.trim().length > 0;
     };
 
     const handleRegister = async (): Promise<void> => {
@@ -78,12 +90,12 @@ const Register: React.FC = () => {
             toast.error('Please fill in all fields'); return;
         }
         if (!validateIDNumber(idNumber)) {
-            toast.error('Please enter a valid ID number in format: TUPT-XX-XXXX'); return;
+            const isStudent = !formData.isGraduate && !formData.isProfessor;
+            toast.error(isStudent ? 'Please enter a valid ID number in format: TUPT-XX-XXXX' : 'Please enter a valid ID number'); return;
         }
         if (password !== confirmPassword) { toast.error('Passwords do not match'); return; }
         if (password.length < 6) { toast.error('Password must be at least 6 characters long'); return; }
 
-        const startTime = Date.now();
         setIsLoading(true);
 
         try {
@@ -102,11 +114,6 @@ const Register: React.FC = () => {
 
             const data = await response.json();
 
-            const elapsed = Date.now() - startTime;
-            if (elapsed < 3000) {
-                await new Promise(resolve => setTimeout(resolve, 3000 - elapsed));
-            }
-
             if (response.ok) {
                 toast.success(data.message || 'Account created successfully!');
                 setTimeout(() => { router.push('/auth/login'); }, 1500);
@@ -115,10 +122,6 @@ const Register: React.FC = () => {
             }
         } catch (error) {
             console.error('Registration error:', error);
-            const elapsed = Date.now() - startTime;
-            if (elapsed < 3000) {
-                await new Promise(resolve => setTimeout(resolve, 3000 - elapsed));
-            }
             toast.error('Cannot connect to server. Please try again.');
         } finally {
             setIsLoading(false);
@@ -161,11 +164,11 @@ const Register: React.FC = () => {
                         <input
                             type="text"
                             className={inputInnerClasses}
-                            placeholder="TUPT-XX-XXXX"
+                            placeholder={(!formData.isGraduate && !formData.isProfessor) ? 'TUPT-XX-XXXX' : 'Enter your ID number'}
                             value={formData.idNumber}
                             onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange('idNumber', e.target.value)}
                             onKeyPress={handleKeyPress}
-                            maxLength={12}
+                            maxLength={(!formData.isGraduate && !formData.isProfessor) ? 12 : 50}
                             suppressHydrationWarning={true}
                         />
                     </div>
@@ -193,7 +196,7 @@ const Register: React.FC = () => {
                                     checked={!formData.isGraduate && !formData.isProfessor}
                                     onChange={() => setFormData(prev => ({ ...prev, isGraduate: false, isProfessor: false }))}
                                 />
-                                <span className="text-sm font-bold text-text-dim">Undergrad Student</span>
+                                <span className="text-sm font-bold text-text-dim">Student</span>
                             </label>
 
                             <label className={`flex items-center space-x-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.isGraduate ? 'border-primary bg-primary/5' : 'border-border-custom hover:bg-surface'}`}>
@@ -204,7 +207,7 @@ const Register: React.FC = () => {
                                     checked={formData.isGraduate}
                                     onChange={() => setFormData(prev => ({ ...prev, isGraduate: true, isProfessor: false }))}
                                 />
-                                <span className="text-sm font-bold text-text-dim">Graduate Student</span>
+                                <span className="text-sm font-bold text-text-dim">Alumni</span>
                             </label>
 
                             <label className={`flex items-center space-x-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.isProfessor ? 'border-primary bg-primary/5' : 'border-border-custom hover:bg-surface'}`}>
@@ -215,7 +218,7 @@ const Register: React.FC = () => {
                                     checked={formData.isProfessor}
                                     onChange={() => setFormData(prev => ({ ...prev, isGraduate: false, isProfessor: true }))}
                                 />
-                                <span className="text-sm font-bold text-text-dim">Professor</span>
+                                <span className="text-sm font-bold text-text-dim">Faculty</span>
                             </label>
                         </div>
                     </div>

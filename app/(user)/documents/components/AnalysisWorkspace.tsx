@@ -936,9 +936,9 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                                         <div className="space-y-3">
                                             {plagiarismReport.localSimilarity.topMatches.map((match: any, index: number) => (
                                                 <div key={index} className="bg-black/35 border border-white/5 rounded-xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                                    <div className="space-y-1 flex-1">
+                                                    <div className="space-y-2 flex-1">
                                                         <span className="text-[8px] font-black text-primary uppercase tracking-widest">Candidate #{index + 1}</span>
-                                                        <h5 className="text-xs font-black text-white leading-relaxed">{match.title}</h5>
+                                                        <h5 className="text-sm font-black text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3 py-2 rounded-lg leading-relaxed shadow-sm">{match.title}</h5>
                                                         <p className="text-[9px] font-medium text-white/40">Thesis ID: {match.thesisId}</p>
                                                     </div>
                                                     <div className="flex items-center gap-4">
@@ -986,12 +986,12 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                                                             <td className="py-4 pr-4 align-top max-w-xs font-serif leading-relaxed italic text-white/80">
                                                                 "{match.sentence}"
                                                             </td>
-                                                            <td className="py-4 px-4 align-top max-w-sm space-y-1.5">
+                                                            <td className="py-4 px-4 align-top max-w-sm space-y-2.5">
                                                                 <a
                                                                     href={match.matchedUrl}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="text-primary hover:underline font-black text-[10px] line-clamp-1 flex items-center gap-1.5"
+                                                                    className="text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3 py-1.5 rounded-lg hover:bg-amber-400/20 transition-all font-black text-[11px] line-clamp-1 inline-flex items-center gap-1.5 shadow-sm"
                                                                 >
                                                                     {match.matchedTitle || "Web Source Link"}
                                                                 </a>

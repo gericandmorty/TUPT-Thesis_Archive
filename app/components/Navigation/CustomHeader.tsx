@@ -12,7 +12,10 @@ import {
     FaSignOutAlt,
     FaRobot,
     FaMagic,
-    FaBars
+    FaBars,
+    FaBell,
+    FaCheckDouble,
+    FaTrashAlt
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
@@ -87,6 +90,139 @@ const CustomHeader = ({
     const [loading, setLoading] = useState(false);
 
     const [isLoadingAi, setIsLoadingAi] = useState(false);
+
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+    const notificationsContainerRef = useRef<HTMLDivElement>(null);
+
+    const fetchNotifications = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/notifications`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setNotifications(data.data || []);
+            }
+        } catch (err) {
+            console.error('Error fetching notifications:', err);
+        }
+    };
+
+    const markAsRead = async (id: string, link?: string) => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+                if (link) {
+                    router.push(link);
+                    setShowNotifications(false);
+                }
+            }
+        } catch (err) {
+            console.error('Error marking notification as read:', err);
+        }
+    };
+
+    const markAllAsRead = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/notifications/read-all`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                toast.success('All notifications marked as read');
+            }
+        } catch (err) {
+            console.error('Error marking all as read:', err);
+        }
+    };
+
+    const deleteNotification = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/notifications/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                setNotifications(prev => prev.filter(n => n._id !== id));
+            }
+        } catch (err) {
+            console.error('Error deleting notification:', err);
+        }
+    };
+
+    const clearAllNotifications = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/notifications`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (res.ok) {
+                setNotifications([]);
+                toast.success('All notifications cleared');
+            }
+        } catch (err) {
+            console.error('Error clearing notifications:', err);
+        }
+    };
+
+    const formatTime = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        const diffHrs = Math.floor(diffMins / 60);
+        if (diffHrs < 24) return `${diffHrs}h ago`;
+        const diffDays = Math.floor(diffHrs / 24);
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    };
+
+    useEffect(() => {
+        if (isLoggedIn) {
+            fetchNotifications();
+            const interval = setInterval(fetchNotifications, 10000);
+            return () => clearInterval(interval);
+        }
+    }, [isLoggedIn]);
+
+    useEffect(() => {
+        const handleClickOutsideNotif = (event: MouseEvent) => {
+            if (notificationsContainerRef.current && !notificationsContainerRef.current.contains(event.target as Node)) {
+                setShowNotifications(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutsideNotif);
+        return () => document.removeEventListener('mousedown', handleClickOutsideNotif);
+    }, []);
 
     useEffect(() => {
         const fetchFilters = async () => {
@@ -549,7 +685,115 @@ const CustomHeader = ({
                         </button>
                     </>
                 ) : (
-                    null
+                    <div ref={notificationsContainerRef} className="relative">
+                        <button
+                            onClick={() => setShowNotifications(!showNotifications)}
+                            className={`p-2.5 rounded-xl transition-all duration-300 relative border flex items-center justify-center cursor-pointer ${isRedHeader ? 'text-white/80 hover:text-white bg-white/5 border-white/10 hover:bg-white/10' : 'text-gray-500 hover:text-primary bg-surface border-border-custom hover:bg-card/50'}`}
+                            aria-label="Notifications"
+                        >
+                            <FaBell className="text-base" />
+                            {notifications.filter(n => !n.isRead).length > 0 && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-black animate-pulse shadow-md">
+                                    {notifications.filter(n => !n.isRead).length}
+                                </span>
+                            )}
+                        </button>
+
+                        {showNotifications && (
+                            <div className={`absolute right-0 mt-3 w-80 sm:w-96 backdrop-blur-xl rounded-2xl shadow-[0_15px_50px_rgba(0,0,0,0.6)] z-[100] border border-white/10 overflow-hidden flex flex-col animate-fade-in origin-top-right ${isRedHeader ? 'bg-[#12121e]/98' : 'bg-surface/98'}`}>
+                                <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-sm font-black text-white uppercase tracking-wider">Notifications</h3>
+                                        {notifications.filter(n => !n.isRead).length > 0 && (
+                                            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                                {notifications.filter(n => !n.isRead).length} new
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {notifications.filter(n => !n.isRead).length > 0 && (
+                                            <button
+                                                onClick={markAllAsRead}
+                                                className="text-[10px] font-bold text-[#2DD4BF] hover:underline flex items-center gap-1 bg-transparent border-none cursor-pointer"
+                                                title="Mark all as read"
+                                            >
+                                                <FaCheckDouble className="text-[9px]" /> Read All
+                                            </button>
+                                        )}
+                                        {notifications.length > 0 && (
+                                            <button
+                                                onClick={clearAllNotifications}
+                                                className="text-[10px] font-bold text-red-400 hover:underline flex items-center gap-1 bg-transparent border-none cursor-pointer"
+                                                title="Clear all"
+                                            >
+                                                <FaTrashAlt className="text-[9px]" /> Clear
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="max-h-[350px] overflow-y-auto custom-scrollbar divide-y divide-white/5">
+                                    {notifications.length > 0 ? (
+                                        notifications.map((notif) => (
+                                            <div
+                                                key={notif._id}
+                                                onClick={() => markAsRead(notif._id, notif.link)}
+                                                className={`px-5 py-4 hover:bg-white/5 cursor-pointer flex gap-4 transition-all relative group/notif-item ${!notif.isRead ? 'bg-white/[0.01]' : 'opacity-75'}`}
+                                            >
+                                                <div className="flex-shrink-0">
+                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center border text-white/40 ${!notif.isRead ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-white/5 border-white/5'}`}>
+                                                        {notif.sender?.profilePhoto ? (
+                                                            <img
+                                                                src={notif.sender.profilePhoto.startsWith('http') ? notif.sender.profilePhoto : `${API_BASE_URL}${notif.sender.profilePhoto}`}
+                                                                alt=""
+                                                                className="w-full h-full object-cover rounded-xl"
+                                                            />
+                                                        ) : (
+                                                            <FaBell className="text-sm" />
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <h4 className={`text-[11px] uppercase tracking-wider truncate ${!notif.isRead ? 'text-primary font-black' : 'text-slate-400 font-bold'}`}>
+                                                            {notif.title}
+                                                        </h4>
+                                                        <span className="text-[9px] text-slate-500 font-medium whitespace-nowrap">
+                                                            {formatTime(notif.createdAt)}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[11.5px] text-white/80 leading-normal font-medium break-words">
+                                                        {notif.message}
+                                                    </p>
+                                                </div>
+
+                                                <button
+                                                    onClick={(e) => deleteNotification(notif._id, e)}
+                                                    className="absolute right-4 bottom-4 opacity-0 group-hover/notif-item:opacity-100 p-1 hover:bg-white/5 rounded-md text-slate-500 hover:text-red-400 transition-all cursor-pointer border-none"
+                                                    title="Delete notification"
+                                                >
+                                                    <FaTrashAlt className="text-[9px]" />
+                                                </button>
+
+                                                {!notif.isRead && (
+                                                    <div className="absolute left-0 top-3 bottom-3 w-0.5 bg-primary rounded-r-full" />
+                                                )}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="py-12 text-center flex flex-col items-center justify-center gap-2">
+                                            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-slate-600 mb-2">
+                                                <FaBell className="text-xl" />
+                                            </div>
+                                            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">No Notifications</p>
+                                            <p className="text-[10px] text-slate-650 max-w-[200px]">You're all caught up!</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
         </header>
