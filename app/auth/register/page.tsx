@@ -4,9 +4,19 @@ import { useState, KeyboardEvent, ChangeEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaChevronDown } from 'react-icons/fa';
 import API_BASE_URL from '@/app/lib/api';
 import LottieLoader from '@/app/components/UI/LottieLoader';
+
+const SECRET_QUESTIONS = [
+    "What was the name of your first pet?",
+    "What is your mother's maiden name?",
+    "What was the name of your elementary school?",
+    "What city were you born in?",
+    "What is your oldest sibling's middle name?",
+    "What was the make of your first car?",
+    "What is the name of the street you grew up on?"
+];
 
 interface FormData {
     fullName: string;
@@ -16,6 +26,8 @@ interface FormData {
     confirmPassword: string;
     isGraduate: boolean;
     isProfessor: boolean;
+    secretQuestion: string;
+    secretAnswer: string;
 }
 
 const Register: React.FC = () => {
@@ -29,9 +41,12 @@ const Register: React.FC = () => {
         confirmPassword: '',
         isGraduate: false,
         isProfessor: false,
+        secretQuestion: '',
+        secretAnswer: ''
     });
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+    const [showSecretAnswer, setShowSecretAnswer] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     useEffect(() => {
@@ -40,7 +55,6 @@ const Register: React.FC = () => {
 
     const handleInputChange = (field: keyof FormData, value: string | boolean): void => {
         if (field === 'idNumber' && typeof value === 'string') {
-            // Only apply TUPT formatting for students (not faculty/professor and not alumni/graduate)
             const isStudent = !formData.isGraduate && !formData.isProfessor;
             if (isStudent) {
                 const val = value.toUpperCase();
@@ -65,7 +79,6 @@ const Register: React.FC = () => {
                 }
                 setFormData(prev => ({ ...prev, idNumber: result.slice(0, 12) }));
             } else {
-                // Faculty and Alumni: free-text ID input
                 setFormData(prev => ({ ...prev, idNumber: value }));
             }
         } else {
@@ -74,20 +87,18 @@ const Register: React.FC = () => {
     };
 
     const validateIDNumber = (idNumber: string): boolean => {
-        // Only validate TUPT format for students
         if (!formData.isGraduate && !formData.isProfessor) {
             const idRegex = /^TUPT-\d{2}-\d{4}$/;
             return idRegex.test(idNumber);
         }
-        // Faculty and Alumni just need a non-empty ID
         return idNumber.trim().length > 0;
     };
 
     const handleRegister = async (): Promise<void> => {
-        const { fullName, idNumber, birthdate, password, confirmPassword } = formData;
+        const { fullName, idNumber, birthdate, password, confirmPassword, secretQuestion, secretAnswer } = formData;
 
-        if (!fullName || !idNumber || !birthdate || !password || !confirmPassword) {
-            toast.error('Please fill in all fields'); return;
+        if (!fullName || !idNumber || !password || !confirmPassword) {
+            toast.error('Please fill in all required fields'); return;
         }
         if (!validateIDNumber(idNumber)) {
             const isStudent = !formData.isGraduate && !formData.isProfessor;
@@ -95,6 +106,10 @@ const Register: React.FC = () => {
         }
         if (password !== confirmPassword) { toast.error('Passwords do not match'); return; }
         if (password.length < 6) { toast.error('Password must be at least 6 characters long'); return; }
+
+        // Secret question validation: if one is provided, both must be
+        if (secretQuestion && !secretAnswer) { toast.error('Please provide an answer to your secret question'); return; }
+        if (secretAnswer && !secretQuestion) { toast.error('Please select a secret question'); return; }
 
         setIsLoading(true);
 
@@ -105,10 +120,12 @@ const Register: React.FC = () => {
                 body: JSON.stringify({
                     name: fullName,
                     idNumber: idNumber,
-                    birthdate: birthdate,
+                    birthdate: birthdate || null,
                     password: password,
                     isGraduate: formData.isGraduate,
-                    isProfessor: formData.isProfessor
+                    isProfessor: formData.isProfessor,
+                    secretQuestion: secretQuestion || null,
+                    secretAnswer: secretAnswer || null
                 }),
             });
 
@@ -129,7 +146,7 @@ const Register: React.FC = () => {
     };
 
     const handleClear = (): void => {
-        setFormData({ fullName: '', idNumber: '', birthdate: '', password: '', confirmPassword: '', isGraduate: false, isProfessor: false });
+        setFormData({ fullName: '', idNumber: '', birthdate: '', password: '', confirmPassword: '', isGraduate: false, isProfessor: false, secretQuestion: '', secretAnswer: '' });
     };
 
     const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>): void => {
@@ -169,18 +186,6 @@ const Register: React.FC = () => {
                             onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange('idNumber', e.target.value)}
                             onKeyPress={handleKeyPress}
                             maxLength={(!formData.isGraduate && !formData.isProfessor) ? 12 : 50}
-                            suppressHydrationWarning={true}
-                        />
-                    </div>
-
-                    <div className="space-y-1">
-                        <label className={labelClasses}>Birthdate:</label>
-                        <input
-                            type="date"
-                            className={inputInnerClasses}
-                            value={formData.birthdate}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange('birthdate', e.target.value)}
-                            max={mounted ? new Date().toISOString().split('T')[0] : undefined}
                             suppressHydrationWarning={true}
                         />
                     </div>
@@ -267,6 +272,70 @@ const Register: React.FC = () => {
                                 </button>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Optional: Birthdate */}
+                    <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                            <label className={labelClasses}>Birthdate: <span className="text-gray-400 font-normal text-[11px]">(optional)</span></label>
+                        </div>
+                        <input
+                            type="date"
+                            className={inputInnerClasses}
+                            value={formData.birthdate}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange('birthdate', e.target.value)}
+                            max={mounted ? new Date().toISOString().split('T')[0] : undefined}
+                            suppressHydrationWarning={true}
+                        />
+                    </div>
+
+                    {/* Optional: Secret Question for Account Recovery */}
+                    <div className="pt-2 space-y-3 border-t border-border-custom">
+                        <div>
+                            <label className={labelClasses}>Account Recovery <span className="text-gray-400 font-normal text-[11px]">(optional but recommended)</span></label>
+                            <p className="text-[11px] text-gray-400 mt-1">Set a secret question to recover your account without a birthdate.</p>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-text-dim">Secret Question:</label>
+                            <div className="relative">
+                                <select
+                                    className={`${inputInnerClasses} appearance-none pr-10`}
+                                    value={formData.secretQuestion}
+                                    onChange={(e: ChangeEvent<HTMLSelectElement>) => handleInputChange('secretQuestion', e.target.value)}
+                                >
+                                    <option value="">— Select a question —</option>
+                                    {SECRET_QUESTIONS.map((q, i) => (
+                                        <option key={i} value={q}>{q}</option>
+                                    ))}
+                                </select>
+                                <FaChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs" />
+                            </div>
+                        </div>
+
+                        {formData.secretQuestion && (
+                            <div className="space-y-1">
+                                <label className="text-[11px] font-bold text-text-dim">Your Answer:</label>
+                                <div className="relative">
+                                    <input
+                                        type={showSecretAnswer ? "text" : "password"}
+                                        className={`${inputInnerClasses} pr-12`}
+                                        placeholder="Enter your answer"
+                                        value={formData.secretAnswer}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => handleInputChange('secretAnswer', e.target.value)}
+                                        onKeyPress={handleKeyPress}
+                                        suppressHydrationWarning={true}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowSecretAnswer(!showSecretAnswer)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors focus:outline-none"
+                                    >
+                                        {showSecretAnswer ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center justify-between pt-4 pb-4">

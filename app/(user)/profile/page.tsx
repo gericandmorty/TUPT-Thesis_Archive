@@ -6,7 +6,6 @@ import {
     FaUser,
     FaIdCard,
     FaCalendarAlt,
-    FaClock,
     FaEdit,
     FaArrowLeft,
     FaGraduationCap,
@@ -100,17 +99,7 @@ const ProfilePage = () => {
         });
     };
 
-    const calculateAge = (birthdate: string) => {
-        if (!birthdate) return 'N/A';
-        const today = new Date();
-        const birthDate = new Date(birthdate);
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        return age;
-    };
+
 
     return (
         <div className="flex-1 relative z-10 py-32 px-6">
@@ -180,13 +169,7 @@ const ProfilePage = () => {
                                     <div className="w-8 h-0.5 bg-white/5 mt-2 group-hover:w-full group-hover:bg-primary transition-all duration-500" />
                                 </div>
 
-                                <div className="group">
-                                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                                        <FaClock className="text-primary opacity-80" /> Current Age
-                                    </p>
-                                    <p className="text-lg font-bold text-white group-hover:text-primary transition-colors">{calculateAge(currentUser.birthdate)} Years Old</p>
-                                    <div className="w-8 h-0.5 bg-white/5 mt-2 group-hover:w-full group-hover:bg-primary transition-all duration-500" />
-                                </div>
+
 
                                 <div className="group">
                                     <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">

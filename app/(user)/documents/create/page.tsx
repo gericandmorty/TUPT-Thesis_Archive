@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { FaCloudUploadAlt, FaArrowLeft, FaFileImage, FaTrash, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaArrowLeft, FaFileImage, FaTrash, FaCheckCircle, FaExclamationTriangle, FaFileAlt, FaTimes } from 'react-icons/fa';
 
 import CustomHeader from '@/app/components/Navigation/CustomHeader';
 import Sidebar from '@/app/components/Navigation/Sidebar';
@@ -31,6 +31,7 @@ const CreateDocumentPage: React.FC = () => {
         professorId: ''
     });
     const [attachments, setAttachments] = useState<File[]>([]);
+    const [abstractFile, setAbstractFile] = useState<File | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -90,6 +91,116 @@ const CreateDocumentPage: React.FC = () => {
 
     const removeAttachment = (index: number) => {
         setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleAbstractFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.txt') && file.type !== 'text/plain') {
+            toast.error('Only .txt files are accepted for abstract upload');
+            return;
+        }
+
+        setAbstractFile(file);
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const rawText = event.target?.result as string;
+                const token = localStorage.getItem('token');
+                
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/thesis/parse-txt`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ text: rawText })
+                });
+                
+                const data = await res.json();
+                if (data.success && data.data?.abstract) {
+                    setFormData(prev => ({ ...prev, abstract: data.data.abstract }));
+                    toast.success('Abstract extracted and auto-filled from file!');
+                } else {
+                    toast.warn(data.message || 'Could not extract abstract content from the file.');
+                }
+            } catch (err) {
+                console.error('Error fetching backend text parser:', err);
+                toast.error('An error occurred while parsing the abstract file.');
+            }
+        };
+        reader.readAsText(file);
+        // Reset input so same file can be re-uploaded
+        e.target.value = '';
+    };
+
+    const handleMainTxtFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.txt') && file.type !== 'text/plain') {
+            toast.error('Only .txt files are accepted for thesis parsing');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const rawText = event.target?.result as string;
+                console.log("Sending file raw text to backend for dissection:", file.name);
+                
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/thesis/parse-txt`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ text: rawText })
+                });
+
+                const resData = await res.json();
+                if (!resData.success) {
+                    toast.error(resData.message || 'Error occurred while dissecting document.');
+                    return;
+                }
+
+                const parsedData = resData.data || {};
+                console.log("Parser Output from backend:", parsedData);
+
+                setFormData(prev => ({
+                    ...prev,
+                    title: parsedData.title || prev.title,
+                    author: parsedData.author || prev.author,
+                    year_range: parsedData.year_range || prev.year_range,
+                    course: parsedData.course || prev.course,
+                    abstract: parsedData.abstract || prev.abstract
+                }));
+
+                const extracted = [];
+                if (parsedData.title) extracted.push('Title');
+                if (parsedData.author) extracted.push('Author');
+                if (parsedData.year_range) extracted.push('Year');
+                if (parsedData.course) extracted.push('Course');
+                if (parsedData.abstract) extracted.push('Abstract');
+
+                if (extracted.length > 0) {
+                    toast.success(`Dissected successfully! Auto-filled: ${extracted.join(', ')}`);
+                } else {
+                    toast.warn('Could not extract any metadata. Please fill the fields manually.');
+                }
+            } catch (err) {
+                console.error("Error communicating with backend parser:", err);
+                toast.error("An error occurred while communicating with the server.");
+            }
+        };
+        reader.onloadend = () => {
+            // Reset input value to allow re-uploading same file name if user updates it
+            e.target.value = '';
+        };
+        reader.readAsText(file);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -170,6 +281,30 @@ const CreateDocumentPage: React.FC = () => {
                                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
 
                                 <form onSubmit={handleSubmit} className="relative z-10 space-y-10">
+                                    {/* Auto-Fill / Dissect Thesis TXT Box */}
+                                    <div className="p-6 rounded-3xl bg-primary/5 border border-primary/20 hover:border-primary/40 transition-all duration-300 relative group/autofill">
+                                        <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
+                                                    <FaFileAlt className="text-lg animate-pulse" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-[11px] font-black uppercase tracking-wider text-white">Auto-populate with Thesis Document</h4>
+                                                    <p className="text-[10px] text-white/40 mt-0.5 leading-relaxed font-medium">Upload a .txt of your paper to automatically extract title, author, year, course, and abstract!</p>
+                                                </div>
+                                            </div>
+                                            <label className="px-5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all active:scale-95 flex-shrink-0 text-center">
+                                                Select File
+                                                <input
+                                                    type="file"
+                                                    accept=".txt,text/plain"
+                                                    onChange={handleMainTxtFileChange}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-8">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                             <div className="md:col-span-2">
@@ -239,13 +374,34 @@ const CreateDocumentPage: React.FC = () => {
                                         </div>
 
                                         <div>
-                                            <label className="block text-[10px] font-bold uppercase tracking-[0.3em] text-white/70 mb-4 ml-2">Abstract Summary</label>
+                                            <div className="flex items-center justify-between mb-4 ml-2">
+                                                <label className="block text-[10px] font-bold uppercase tracking-[0.3em] text-white/70">Abstract Summary</label>
+                                                <label className="flex items-center gap-2 cursor-pointer group text-[10px] font-bold uppercase tracking-wider transition-colors text-white/30 hover:text-primary">
+                                                    <FaFileAlt className="text-xs" />
+                                                    <span>{abstractFile ? abstractFile.name : 'Upload .txt'}</span>
+                                                    <input
+                                                        type="file"
+                                                        accept=".txt,text/plain"
+                                                        onChange={handleAbstractFileChange}
+                                                        className="hidden"
+                                                    />
+                                                    {abstractFile && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.preventDefault(); setAbstractFile(null); }}
+                                                            className="text-red-400/70 hover:text-red-400 ml-1"
+                                                        >
+                                                            <FaTimes size={10} />
+                                                        </button>
+                                                    )}
+                                                </label>
+                                            </div>
                                             <textarea
                                                 required
                                                 value={formData.abstract}
                                                 onChange={(e) => setFormData(prev => ({ ...prev, abstract: e.target.value }))}
                                                 className="w-full px-8 py-6 rounded-2xl bg-white/[0.02] border border-white/10 focus:border-primary/40 focus:bg-white/[0.05] focus:ring-4 focus:ring-primary/10 transition-all text-[14px] leading-relaxed font-medium outline-none min-h-[250px] shadow-sm resize-y text-white placeholder:text-white/30"
-                                                placeholder="Provide a comprehensive summary of the research..."
+                                                placeholder="Provide a comprehensive summary of the research, or upload a .txt file above to auto-fill..."
                                             />
                                         </div>
 
