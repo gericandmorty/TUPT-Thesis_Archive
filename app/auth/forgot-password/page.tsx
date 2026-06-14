@@ -29,6 +29,37 @@ const ForgotPassword: React.FC = () => {
         setMounted(true);
     }, []);
 
+    useEffect(() => {
+        const fetchSecretQuestion = async () => {
+            if (!idNumber) {
+                setSecretQuestion('');
+                return;
+            }
+            if (isStudent && idNumber.length < 12) {
+                setSecretQuestion('');
+                return;
+            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/secret-question/${idNumber}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setSecretQuestion(data.secretQuestion);
+                } else {
+                    setSecretQuestion('');
+                }
+            } catch (error) {
+                console.error("Error fetching secret question:", error);
+                setSecretQuestion('');
+            }
+        };
+
+        if (verificationMethod === 'secretQuestion') {
+            fetchSecretQuestion();
+        } else {
+            setSecretQuestion('');
+        }
+    }, [idNumber, verificationMethod, isStudent]);
+
     const handleIdInputChange = (value: string): void => {
         if (isStudent) {
             let formattedValue = value.replace(/[^a-zA-Z0-9]/g, '');
