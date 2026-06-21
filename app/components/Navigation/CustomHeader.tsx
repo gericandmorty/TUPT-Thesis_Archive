@@ -667,6 +667,19 @@ const CustomHeader = ({
 
             {/* Right Section: Auth or Notifications */}
             <div className="flex items-center gap-4 z-10">
+                {mounted && !isLoggedIn && (
+                    <button
+                        onClick={() => router.push('/about')}
+                        className={`text-[11px] font-bold uppercase tracking-widest px-4 py-2.5 rounded-xl transition-all relative cursor-pointer active:scale-95 duration-200 border ${
+                            pathname === '/about'
+                                ? 'text-primary bg-primary/10 border-primary/20 shadow-[0_0_15px_rgba(45,212,191,0.1)]'
+                                : 'text-white/70 hover:text-white hover:bg-white/5 border-transparent'
+                        }`}
+                    >
+                        About Us
+                    </button>
+                )}
+
                 {!mounted ? (
                     <div className="h-10 opacity-0 pointer-events-none w-24"></div>
                 ) : !isLoggedIn ? (
