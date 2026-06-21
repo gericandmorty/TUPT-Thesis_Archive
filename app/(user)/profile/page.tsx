@@ -10,7 +10,8 @@ import {
     FaArrowLeft,
     FaGraduationCap,
     FaCamera,
-    FaEnvelope
+    FaEnvelope,
+    FaLock
 } from 'react-icons/fa';
 import API_BASE_URL from '@/app/lib/api';
 import ProfileSkeleton from '@/app/components/UI/skeleton_loaders/users/ProfileSkeleton';
@@ -28,6 +29,7 @@ interface UserData {
     department?: string;
     student_id?: string;
     createdAt: string;
+    secretQuestion?: string;
 }
 
 const ProfilePage = () => {
@@ -35,6 +37,7 @@ const ProfilePage = () => {
     const [user, setUser] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [showSkeleton, setShowSkeleton] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
@@ -102,7 +105,7 @@ const ProfilePage = () => {
 
 
     return (
-        <div className="flex-1 relative z-10 py-32 px-6">
+        <div className="flex-1 relative z-10 py-32 px-6 overflow-x-hidden">
                     {/* Background Glows */}
                     <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-[#2DD4BF]/5 rounded-full blur-[120px] pointer-events-none" />
                     <div className="absolute bottom-[10%] left-[-5%] w-[500px] h-[500px] bg-[#2DD4BF]/5 rounded-full blur-[100px] pointer-events-none" />
@@ -120,12 +123,19 @@ const ProfilePage = () => {
                         <div className="bg-[#1E1E2E]/60 backdrop-blur-xl rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-12 border border-white/5 shadow-xl overflow-hidden relative group">
                             <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
                                 <div className="relative">
-                                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-[2.5rem] overflow-hidden border-4 border-white/5 shadow-xl group-hover:scale-105 transition-transform duration-700 bg-white/5">
-                                        <img
-                                            src={currentUser?.profilePhoto ? (currentUser.profilePhoto.startsWith('http') ? currentUser.profilePhoto : `${API_BASE_URL}${currentUser.profilePhoto}`) : (currentUser?.avatar || "/default-avatar.png")}
-                                            alt="Profile"
-                                            className="w-full h-full object-cover"
-                                        />
+                                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-[2.5rem] overflow-hidden border-4 border-white/5 shadow-xl group-hover:scale-105 transition-transform duration-700 bg-white/5 flex items-center justify-center">
+                                        {currentUser?.profilePhoto && !imageError ? (
+                                            <img
+                                                src={currentUser.profilePhoto.startsWith('http') ? currentUser.profilePhoto : `${API_BASE_URL}${currentUser.profilePhoto}`}
+                                                alt="Profile"
+                                                className="w-full h-full object-cover"
+                                                onError={() => setImageError(true)}
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary">
+                                                <FaUser className="text-5xl" />
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="absolute -bottom-2 -right-2 w-10 h-10 md:w-12 md:h-12 bg-[#1E1E2E] rounded-2xl flex items-center justify-center shadow-xl border border-white/10 text-primary">
                                         <FaCamera className="text-base md:text-lg" />
@@ -178,6 +188,23 @@ const ProfilePage = () => {
                                     <p className="text-lg font-bold text-white group-hover:text-primary transition-colors">
                                         {currentUser.createdAt ? new Date(currentUser.createdAt).getFullYear() : new Date().getFullYear()}
                                     </p>
+                                    <div className="w-8 h-0.5 bg-white/5 mt-2 group-hover:w-full group-hover:bg-primary transition-all duration-500" />
+                                </div>
+
+                                <div className="group md:col-span-2">
+                                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                                        <FaLock className="text-primary opacity-80" /> Security Question (Account Recovery)
+                                    </p>
+                                    {currentUser.secretQuestion ? (
+                                        <p className="text-sm font-bold text-white group-hover:text-primary transition-colors">{currentUser.secretQuestion}</p>
+                                    ) : (
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-sm font-bold text-amber-500">Not Set</p>
+                                            <span className="bg-amber-500/10 border border-amber-500/30 text-amber-500 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest animate-pulse">
+                                                Action Required
+                                            </span>
+                                        </div>
+                                    )}
                                     <div className="w-8 h-0.5 bg-white/5 mt-2 group-hover:w-full group-hover:bg-primary transition-all duration-500" />
                                 </div>
                             </div>
