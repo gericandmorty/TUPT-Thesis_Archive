@@ -6,6 +6,7 @@ import { FaUsers, FaArrowLeft, FaUserShield, FaUser, FaTrash, FaCheckCircle, FaE
 import { toast } from 'react-toastify';
 import AdminTableSkeleton from '@/app/components/UI/skeleton_loaders/admin/AdminTableSkeleton';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmModal from '@/app/components/UI/ConfirmModal';
 
 /* ───── Shared animation variants ───── */
 const fadeUp = {
@@ -30,6 +31,20 @@ export default function AdminUsersPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        confirmText?: string;
+        cancelText?: string;
+        variant?: 'danger' | 'primary' | 'warning' | 'success';
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+    });
     const [stats, setStats] = useState({
         users: 0,
         graduated: 0
@@ -42,7 +57,8 @@ export default function AdminUsersPage() {
         birthdate: '',
         password: '',
         isAdmin: false,
-        isGraduate: false
+        isGraduate: false,
+        isApproved: true
     });
 
     const handleIDNumberChange = (value: string) => {
@@ -149,7 +165,7 @@ export default function AdminUsersPage() {
             if (res.ok) {
                 toast.success('User created successfully');
                 setIsAddModalOpen(false);
-                setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false, isGraduate: false });
+                setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false, isGraduate: false, isApproved: true });
                 fetchUsers(1);
                 fetchStats();
             } else {
@@ -204,37 +220,78 @@ export default function AdminUsersPage() {
             birthdate: user.birthdate ? user.birthdate.split('T')[0] : '',
             password: '',
             isAdmin: user.isAdmin,
-            isGraduate: user.isGraduate
+            isGraduate: user.isGraduate,
+            isApproved: user.isApproved !== undefined ? user.isApproved : true
         });
         setIsEditModalOpen(true);
     };
 
-    const handleDeleteUser = async (userId: string) => {
-        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    const handleDeleteUser = (userId: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete User',
+            message: 'Are you sure you want to delete this user? This action cannot be undone.',
+            confirmText: 'Delete User',
+            variant: 'danger',
+            onConfirm: async () => {
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/users/${userId}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
 
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/users/${userId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (res.ok) {
-                toast.success('User deleted successfully');
-                fetchUsers(page);
-                fetchStats();
-            } else {
-                toast.error('Failed to delete user');
+                    if (res.ok) {
+                        toast.success('User deleted successfully');
+                        fetchUsers(page);
+                        fetchStats();
+                    } else {
+                        toast.error('Failed to delete user');
+                    }
+                } catch (err) {
+                    toast.error('Error deleting user');
+                }
             }
-        } catch (err) {
-            toast.error('Error deleting user');
-        }
+        });
     };
 
-    const toggleAdminStatus = async (user: any) => {
+    const toggleAdminStatus = (user: any) => {
         const action = user.isAdmin ? 'remove' : 'make';
-        if (!confirm(`Are you sure you want to ${action} this user an administrator?`)) return;
+        setConfirmModal({
+            isOpen: true,
+            title: user.isAdmin ? 'Revoke Administrator Privileges' : 'Grant Administrator Privileges',
+            message: `Are you sure you want to ${action} this user an administrator?`,
+            confirmText: user.isAdmin ? 'Revoke' : 'Grant',
+            variant: user.isAdmin ? 'warning' : 'primary',
+            onConfirm: async () => {
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/users/${user._id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ isAdmin: !user.isAdmin })
+                    });
 
+                    if (res.ok) {
+                        toast.success(`Updated ${user.name}'s status`);
+                        setUsers(users.map(u => u._id === user._id ? { ...u, isAdmin: !u.isAdmin } : u));
+                        fetchStats();
+                    } else {
+                        toast.error('Failed to update user status');
+                    }
+                } catch (err) {
+                    toast.error('Error updating user status');
+                }
+            }
+        });
+    };
+
+    const approveUser = async (user: any) => {
         try {
             const token = localStorage.getItem('token');
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/users/${user._id}`, {
@@ -243,18 +300,18 @@ export default function AdminUsersPage() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ isAdmin: !user.isAdmin })
+                body: JSON.stringify({ isApproved: true })
             });
 
             if (res.ok) {
-                toast.success(`Updated ${user.name}'s status`);
-                setUsers(users.map(u => u._id === user._id ? { ...u, isAdmin: !u.isAdmin } : u));
+                toast.success(`${user.name} approved successfully`);
+                setUsers(users.map(u => u._id === user._id ? { ...u, isApproved: true } : u));
                 fetchStats();
             } else {
-                toast.error('Failed to update user status');
+                toast.error('Failed to approve user');
             }
         } catch (err) {
-            toast.error('Error updating user status');
+            toast.error('Error approving user');
         }
     };
 
@@ -350,7 +407,7 @@ export default function AdminUsersPage() {
 
                     <button
                         onClick={() => {
-                            setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false, isGraduate: false });
+                            setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false, isGraduate: false, isApproved: true });
                             setIsAddModalOpen(true);
                         }}
                         className="flex items-center justify-center gap-4 px-10 py-5 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-primary/90 transition-all shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
@@ -413,6 +470,10 @@ export default function AdminUsersPage() {
                                                             <FaCheckCircle className="text-[10px]" /> Alumni
                                                         </span>
                                                     )}
+                                                    <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2 w-fit border shadow-sm ${user.isApproved ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/5 text-amber-400 border-amber-500/20 animate-pulse'}`}>
+                                                        {user.isApproved ? <FaCheckCircle className="text-[10px]" /> : <FaExclamationCircle className="text-[10px]" />}
+                                                        {user.isApproved ? 'Approved' : 'Pending Approval'}
+                                                    </span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-8">
@@ -423,6 +484,15 @@ export default function AdminUsersPage() {
                                             </td>
                                             <td className="px-8 py-8 text-right">
                                                 <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                                                    {!user.isApproved && (
+                                                        <button
+                                                            onClick={() => approveUser(user)}
+                                                            className="p-3 bg-white/5 text-white/40 hover:text-emerald-400 rounded-xl shadow-lg border border-white/5 hover:border-emerald-500/20 transition-all hover:-translate-y-1"
+                                                            title="Approve User"
+                                                        >
+                                                            <FaCheckCircle className="text-sm" />
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => openEditModal(user)}
                                                         className="p-3 bg-white/5 text-white/40 hover:text-primary rounded-xl shadow-lg border border-white/5 hover:border-primary/20 transition-all hover:-translate-y-1"
@@ -590,6 +660,19 @@ export default function AdminUsersPage() {
                                             <p className="text-[9px] text-emerald-400/40 font-medium uppercase tracking-tight">Mark as alumni/graduated</p>
                                         </div>
                                     </div>
+                                    <div className="flex items-center gap-4 p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10">
+                                        <input
+                                            type="checkbox"
+                                            id="isApproved"
+                                            checked={formData.isApproved}
+                                            onChange={(e) => setFormData({ ...formData, isApproved: e.target.checked })}
+                                            className="w-5 h-5 text-amber-500 bg-white/5 border-white/10 rounded focus:ring-amber-400/40 focus:ring-offset-0 transition-all"
+                                        />
+                                        <div>
+                                            <label htmlFor="isApproved" className="block text-[11px] font-bold text-amber-400/80 uppercase tracking-wider mb-0.5">Approved</label>
+                                            <p className="text-[9px] text-amber-400/40 font-medium uppercase tracking-tight">Allow user to login immediately</p>
+                                        </div>
+                                    </div>
                                 </div>
                                 <button
                                     type="submit"
@@ -684,6 +767,20 @@ export default function AdminUsersPage() {
                                                 <p className="text-[9px] text-emerald-400/40 font-medium uppercase tracking-tight">Mark student as graduated</p>
                                             </div>
                                         </div>
+                                        <div className="h-px bg-white/[0.05] w-full" />
+                                        <div className="flex items-center gap-4">
+                                            <input
+                                                type="checkbox"
+                                                id="isApprovedEdit"
+                                                checked={formData.isApproved}
+                                                onChange={(e) => setFormData({ ...formData, isApproved: e.target.checked })}
+                                                className="w-5 h-5 text-amber-500 bg-white/5 border-white/10 rounded focus:ring-amber-400/40 focus:ring-offset-0 transition-all"
+                                            />
+                                            <div>
+                                                <label htmlFor="isApprovedEdit" className="block text-[11px] font-bold text-amber-400/80 uppercase tracking-wider mb-0.5">Approved</label>
+                                                <p className="text-[9px] text-amber-400/40 font-medium uppercase tracking-tight">Allow login access</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <button
@@ -698,6 +795,17 @@ export default function AdminUsersPage() {
                     </div>
                 )}
             </AnimatePresence>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                cancelText={confirmModal.cancelText}
+                variant={confirmModal.variant}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 }

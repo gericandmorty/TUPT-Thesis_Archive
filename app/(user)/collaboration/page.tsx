@@ -10,7 +10,12 @@ import {
     FaUser, 
     FaBook, 
     FaEnvelopeOpenText,
-    FaArrowRight
+    FaArrowRight,
+    FaLink,
+    FaPaperPlane,
+    FaAddressCard,
+    FaCheckCircle,
+    FaEdit,
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
@@ -21,6 +26,11 @@ export default function CollaborationPage() {
     const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
     const [myRequests, setMyRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // Follow-up state: tracks which card is open and input value
+    const [followUpOpen, setFollowUpOpen] = useState<Record<string, boolean>>({});
+    const [followUpText, setFollowUpText] = useState<Record<string, string>>({});
+    const [followUpSubmitting, setFollowUpSubmitting] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         const userData = localStorage.getItem('userData');
@@ -42,9 +52,14 @@ export default function CollaborationPage() {
                 const data = await res.json();
                 if (res.ok) setMyRequests(data.data);
             } else {
-                const res = await fetch(`${API_BASE_URL}/collaboration/incoming`, { headers });
-                const data = await res.json();
-                if (res.ok) setIncomingRequests(data.data);
+                const [inRes, myRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/collaboration/incoming`, { headers }),
+                    fetch(`${API_BASE_URL}/collaboration/my-requests`, { headers }),
+                ]);
+                const inData = await inRes.json();
+                const myData = await myRes.json();
+                if (inRes.ok) setIncomingRequests(inData.data);
+                if (myRes.ok) setMyRequests(myData.data);
             }
         } catch (err) {
             console.error(err);
@@ -81,6 +96,41 @@ export default function CollaborationPage() {
         }
     };
 
+    const handleFollowUpSubmit = async (requestId: string) => {
+        const msg = followUpText[requestId]?.trim();
+        if (!msg) {
+            toast.error('Please enter your contact/social info');
+            return;
+        }
+
+        setFollowUpSubmitting(prev => ({ ...prev, [requestId]: true }));
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_BASE_URL}/collaboration/${requestId}/followup`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ followUpMessage: msg }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                toast.success('Contact info shared! The student has been notified.');
+                setMyRequests(prev => prev.map(req =>
+                    req._id === requestId ? { ...req, followUpMessage: msg } : req
+                ));
+                setFollowUpOpen(prev => ({ ...prev, [requestId]: false }));
+            } else {
+                toast.error(data.message || 'Failed to send follow-up');
+            }
+        } catch (err) {
+            toast.error('An error occurred');
+        } finally {
+            setFollowUpSubmitting(prev => ({ ...prev, [requestId]: false }));
+        }
+    };
+
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'accepted': return 'bg-green-500/10 text-green-400 border-green-500/20';
@@ -96,6 +146,10 @@ export default function CollaborationPage() {
             default: return <FaClock className="text-[10px]" />;
         }
     };
+
+    // Alumni has incoming (their thesis got requests) + outgoing (their own requests)
+    const alumniIncoming = currentUser?.isGraduate ? incomingRequests : [];
+    const alumniOutgoing = currentUser?.isGraduate ? myRequests : [];
 
     return (
         <div className="min-h-screen bg-background p-8 pt-28">
@@ -122,21 +176,21 @@ export default function CollaborationPage() {
                         <p className="text-[10px] font-black uppercase tracking-widest">Loading requests...</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 gap-8">
-                        {/* Role-based View */}
-                        {currentUser?.isGraduate ? (
+                    <div className="space-y-16">
+                        {/* ── Alumni: Incoming requests to their thesis ── */}
+                        {currentUser?.isGraduate && (
                             <section>
                                 <div className="flex items-center gap-3 mb-8">
                                     <h2 className="text-sm font-black text-white uppercase tracking-widest">Incoming Requests</h2>
                                     <span className="px-2 py-0.5 bg-primary/20 text-primary text-[10px] font-bold rounded-lg border border-primary/20">
-                                        {incomingRequests.length}
+                                        {alumniIncoming.length}
                                     </span>
                                 </div>
 
                                 <AnimatePresence mode="popLayout">
-                                    {incomingRequests.length > 0 ? (
+                                    {alumniIncoming.length > 0 ? (
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {incomingRequests.map((req, index) => (
+                                            {alumniIncoming.map((req, index) => (
                                                 <motion.div
                                                     key={req._id}
                                                     initial={{ opacity: 0, y: 20 }}
@@ -170,7 +224,7 @@ export default function CollaborationPage() {
                                                         </p>
                                                     </div>
 
-                                                    <div className="mb-8">
+                                                    <div className="mb-6">
                                                         <div className="flex items-center gap-2 mb-3">
                                                             <FaEnvelopeOpenText className="text-[10px] text-primary" />
                                                             <span className="text-[10px] font-black text-primary uppercase tracking-widest">Message</span>
@@ -181,23 +235,101 @@ export default function CollaborationPage() {
                                                     </div>
 
                                                     {req.status === 'pending' ? (
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <button 
-                                                                onClick={() => handleUpdateStatus(req._id, 'declined')}
-                                                                className="py-3 rounded-xl border border-white/5 hover:bg-red-500/10 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-all"
-                                                            >
-                                                                Decline
-                                                            </button>
+                                                        <div className="flex flex-col gap-2">
                                                             <button 
                                                                 onClick={() => handleUpdateStatus(req._id, 'accepted')}
-                                                                className="bg-primary hover:bg-primary-hover text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg"
+                                                                className="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-primary/20"
                                                             >
                                                                 Accept Collaboration
                                                             </button>
+                                                            <button 
+                                                                onClick={() => handleUpdateStatus(req._id, 'declined')}
+                                                                className="w-full py-2.5 rounded-xl border border-white/5 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-all text-white/30"
+                                                            >
+                                                                Decline
+                                                            </button>
                                                         </div>
                                                     ) : (
-                                                        <div className={`flex items-center justify-center gap-2 py-3 rounded-xl border ${getStatusStyle(req.status)} text-[10px] font-black uppercase tracking-widest`}>
-                                                            {getStatusIcon(req.status)} {req.status}
+                                                        <div>
+                                                            <div className={`flex items-center justify-center gap-2 py-3 rounded-xl border ${getStatusStyle(req.status)} text-[10px] font-black uppercase tracking-widest mb-4`}>
+                                                                {getStatusIcon(req.status)} {req.status}
+                                                            </div>
+
+                                                            {/* Follow-up contact section for alumni to share socials */}
+                                                            {req.status === 'accepted' && (
+                                                                <div className="mt-2">
+                                                                    {req.followUpMessage ? (
+                                                                        /* Already submitted */
+                                                                        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4">
+                                                                            <div className="flex items-center justify-between mb-2">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <FaCheckCircle className="text-primary text-[11px]" />
+                                                                                    <span className="text-[9px] font-black text-primary uppercase tracking-widest">Contact Info Shared</span>
+                                                                                </div>
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        setFollowUpText(prev => ({ ...prev, [req._id]: req.followUpMessage }));
+                                                                                        setFollowUpOpen(prev => ({ ...prev, [req._id]: true }));
+                                                                                    }}
+                                                                                    className="text-[9px] font-black text-white/30 hover:text-primary uppercase tracking-widest flex items-center gap-1 transition-colors"
+                                                                                >
+                                                                                    <FaEdit className="text-[9px]" /> Edit
+                                                                                </button>
+                                                                            </div>
+                                                                            <p className="text-[11px] text-white/60 leading-relaxed font-medium italic">
+                                                                                {req.followUpMessage}
+                                                                            </p>
+                                                                        </div>
+                                                                    ) : followUpOpen[req._id] ? (
+                                                                        /* Input form open */
+                                                                        <AnimatePresence>
+                                                                            <motion.div
+                                                                                initial={{ opacity: 0, y: 6 }}
+                                                                                animate={{ opacity: 1, y: 0 }}
+                                                                                exit={{ opacity: 0, y: 6 }}
+                                                                                className="bg-surface/60 border border-primary/20 rounded-2xl p-4"
+                                                                            >
+                                                                                <div className="flex items-center gap-2 mb-3">
+                                                                                    <FaAddressCard className="text-primary text-[11px]" />
+                                                                                    <span className="text-[9px] font-black text-primary uppercase tracking-widest">Share Your Contact / Socials</span>
+                                                                                </div>
+                                                                                <textarea
+                                                                                    rows={3}
+                                                                                    value={followUpText[req._id] || ''}
+                                                                                    onChange={e => setFollowUpText(prev => ({ ...prev, [req._id]: e.target.value }))}
+                                                                                    placeholder="e.g. Facebook: John Doe · Email: johndoe@gmail.com · LinkedIn: linkedin.com/in/johndoe"
+                                                                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-[11px] text-white placeholder-white/20 resize-none focus:outline-none focus:border-primary/50 transition-colors leading-relaxed font-medium mb-3"
+                                                                                />
+                                                                                <div className="flex gap-2">
+                                                                                    <button
+                                                                                        onClick={() => setFollowUpOpen(prev => ({ ...prev, [req._id]: false }))}
+                                                                                        className="flex-1 py-2.5 rounded-xl border border-white/5 text-white/30 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
+                                                                                    >
+                                                                                        Cancel
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={() => handleFollowUpSubmit(req._id)}
+                                                                                        disabled={followUpSubmitting[req._id]}
+                                                                                        className="flex-1 bg-primary hover:bg-primary-hover text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50"
+                                                                                    >
+                                                                                        <FaPaperPlane className="text-[10px]" />
+                                                                                        {followUpSubmitting[req._id] ? 'Sending...' : 'Send'}
+                                                                                    </button>
+                                                                                </div>
+                                                                            </motion.div>
+                                                                        </AnimatePresence>
+                                                                    ) : (
+                                                                        /* Prompt to share */
+                                                                        <button
+                                                                            onClick={() => setFollowUpOpen(prev => ({ ...prev, [req._id]: true }))}
+                                                                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/30 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 transition-all"
+                                                                        >
+                                                                            <FaLink className="text-[10px]" />
+                                                                            Share Contact / Socials
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </motion.div>
@@ -211,7 +343,140 @@ export default function CollaborationPage() {
                                     )}
                                 </AnimatePresence>
                             </section>
-                        ) : (
+                        )}
+
+                        {/* ── Alumni: Their own sent requests (with follow-up) ── */}
+                        {currentUser?.isGraduate && alumniOutgoing.length > 0 && (
+                            <section>
+                                <div className="flex items-center gap-3 mb-8">
+                                    <h2 className="text-sm font-black text-white uppercase tracking-widest">My Sent Requests</h2>
+                                    <span className="px-2 py-0.5 bg-primary/20 text-primary text-[10px] font-bold rounded-lg border border-primary/20">
+                                        {alumniOutgoing.length}
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {alumniOutgoing.map((req, index) => (
+                                        <motion.div
+                                            key={req._id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: index * 0.1 }}
+                                            className="bg-card border border-border-custom rounded-3xl p-6 hover:shadow-2xl hover:border-primary/20 transition-all"
+                                        >
+                                            <div className="flex items-center justify-between mb-6">
+                                                <div className={`px-3 py-1.5 rounded-xl border ${getStatusStyle(req.status)} flex items-center gap-2 text-[9px] font-black uppercase tracking-widest shadow-sm`}>
+                                                    {getStatusIcon(req.status)} {req.status}
+                                                </div>
+                                                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">ID: {req._id.slice(-6)}</span>
+                                            </div>
+
+                                            <div className="flex items-center gap-3 mb-6">
+                                                <div className="w-10 h-10 rounded-xl bg-surface border border-border-custom flex items-center justify-center overflow-hidden">
+                                                    {req.undergrad?.profilePhoto ? (
+                                                        <img src={req.undergrad.profilePhoto} alt="" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <FaUser className="text-gray-600" />
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">To</span>
+                                                        <FaArrowRight className="text-[8px] text-gray-600" />
+                                                    </div>
+                                                    <h3 className="text-sm font-bold text-white truncate">{req.undergrad?.name}</h3>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-surface/50 rounded-2xl p-4 border border-border-custom/50 mb-6">
+                                                <p className="text-[11px] font-bold text-primary line-clamp-2 leading-relaxed">
+                                                    {req.thesis?.title}
+                                                </p>
+                                            </div>
+
+                                            {/* Follow-up contact section — only on accepted */}
+                                            {req.status === 'accepted' && (
+                                                <div className="mt-2">
+                                                    {req.followUpMessage ? (
+                                                        /* Already submitted */
+                                                        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <FaCheckCircle className="text-primary text-[11px]" />
+                                                                    <span className="text-[9px] font-black text-primary uppercase tracking-widest">Contact Info Shared</span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setFollowUpText(prev => ({ ...prev, [req._id]: req.followUpMessage }));
+                                                                        setFollowUpOpen(prev => ({ ...prev, [req._id]: true }));
+                                                                    }}
+                                                                    className="text-[9px] font-black text-white/30 hover:text-primary uppercase tracking-widest flex items-center gap-1 transition-colors"
+                                                                >
+                                                                    <FaEdit className="text-[9px]" /> Edit
+                                                                </button>
+                                                            </div>
+                                                            <p className="text-[11px] text-white/60 leading-relaxed font-medium italic">
+                                                                {req.followUpMessage}
+                                                            </p>
+                                                        </div>
+                                                    ) : followUpOpen[req._id] ? (
+                                                        /* Input form open */
+                                                        <AnimatePresence>
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: 6 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                exit={{ opacity: 0, y: 6 }}
+                                                                className="bg-surface/60 border border-primary/20 rounded-2xl p-4"
+                                                            >
+                                                                <div className="flex items-center gap-2 mb-3">
+                                                                    <FaAddressCard className="text-primary text-[11px]" />
+                                                                    <span className="text-[9px] font-black text-primary uppercase tracking-widest">Share Your Contact / Socials</span>
+                                                                </div>
+                                                                <textarea
+                                                                    rows={3}
+                                                                    value={followUpText[req._id] || ''}
+                                                                    onChange={e => setFollowUpText(prev => ({ ...prev, [req._id]: e.target.value }))}
+                                                                    placeholder="e.g. Facebook: John Doe · Email: johndoe@gmail.com · LinkedIn: linkedin.com/in/johndoe"
+                                                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-[11px] text-white placeholder-white/20 resize-none focus:outline-none focus:border-primary/50 transition-colors leading-relaxed font-medium mb-3"
+                                                                />
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        onClick={() => setFollowUpOpen(prev => ({ ...prev, [req._id]: false }))}
+                                                                        className="flex-1 py-2.5 rounded-xl border border-white/5 text-white/30 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all"
+                                                                    >
+                                                                        Cancel
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleFollowUpSubmit(req._id)}
+                                                                        disabled={followUpSubmitting[req._id]}
+                                                                        className="flex-1 bg-primary hover:bg-primary-hover text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50"
+                                                                    >
+                                                                        <FaPaperPlane className="text-[10px]" />
+                                                                        {followUpSubmitting[req._id] ? 'Sending...' : 'Send'}
+                                                                    </button>
+                                                                </div>
+                                                            </motion.div>
+                                                        </AnimatePresence>
+                                                    ) : (
+                                                        /* Prompt to share */
+                                                        <button
+                                                            onClick={() => setFollowUpOpen(prev => ({ ...prev, [req._id]: true }))}
+                                                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/30 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 transition-all"
+                                                        >
+                                                            <FaLink className="text-[10px]" />
+                                                            Share Contact / Socials
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* ── Undergrad: My requests view ── */}
+                        {!currentUser?.isGraduate && (
                             <section>
                                 <div className="flex items-center gap-3 mb-8">
                                     <h2 className="text-sm font-black text-white uppercase tracking-widest">My Requests</h2>
@@ -264,13 +529,37 @@ export default function CollaborationPage() {
                                                         </p>
                                                     </div>
 
-                                                    <div className="pt-6 border-t border-white/5">
+                                                    <div className="pt-4 border-t border-white/5">
                                                         <div className="flex items-center gap-2 mb-3">
                                                             <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Sent Message</span>
                                                         </div>
                                                         <p className="text-[11px] text-gray-400 font-medium leading-relaxed italic line-clamp-3">
                                                             "{req.message}"
                                                         </p>
+
+                                                        {/* Show alumni's contact info if they shared it */}
+                                                        {req.status === 'accepted' && req.followUpMessage && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: 8 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                className="mt-4 bg-primary/5 border border-primary/20 rounded-2xl p-4"
+                                                            >
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <FaAddressCard className="text-primary text-[11px]" />
+                                                                    <span className="text-[9px] font-black text-primary uppercase tracking-widest">Alumni Contact Info</span>
+                                                                </div>
+                                                                <p className="text-[11px] text-white/70 leading-relaxed font-medium whitespace-pre-wrap">
+                                                                    {req.followUpMessage}
+                                                                </p>
+                                                            </motion.div>
+                                                        )}
+
+                                                        {req.status === 'accepted' && !req.followUpMessage && (
+                                                            <div className="mt-4 flex items-center gap-2 py-2.5 px-3 rounded-xl bg-white/[0.03] border border-white/5">
+                                                                <FaClock className="text-[10px] text-white/20" />
+                                                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Waiting for alumni contact info…</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </motion.div>
                                             ))}

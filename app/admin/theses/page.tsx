@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaBook, FaPlus, FaSearch, FaArrowLeft, FaEdit, FaTrash, FaCheck, FaTimes, FaChevronLeft, FaChevronRight, FaFileAlt, FaCalendarAlt, FaUserGraduate, FaBuilding, FaClock, FaFileImage, FaEye } from 'react-icons/fa';
+import { FaBook, FaPlus, FaSearch, FaArrowLeft, FaEdit, FaTrash, FaCheck, FaTimes, FaChevronLeft, FaChevronRight, FaFileAlt, FaCalendarAlt, FaUserGraduate, FaBuilding, FaClock, FaFileImage, FaEye, FaFilePdf, FaFileWord } from 'react-icons/fa';
 import AdminTableSkeleton from '@/app/components/UI/skeleton_loaders/admin/AdminTableSkeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
+import ConfirmModal from '@/app/components/UI/ConfirmModal';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 20 },
@@ -42,6 +43,20 @@ export default function AdminThesesPage() {
     });
     const [isCourseDropdownOpen, setIsCourseDropdownOpen] = useState(false);
     const [selectedAttachments, setSelectedAttachments] = useState<string[] | null>(null);
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        confirmText?: string;
+        cancelText?: string;
+        variant?: 'danger' | 'primary' | 'warning' | 'success';
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+    });
 
     const [formData, setFormData] = useState({
         id: '',
@@ -242,26 +257,34 @@ export default function AdminThesesPage() {
         }
     };
 
-    const handleDeleteThesis = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this thesis?')) return;
+    const handleDeleteThesis = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Thesis',
+            message: 'Are you sure you want to delete this thesis?',
+            confirmText: 'Delete Thesis',
+            variant: 'danger',
+            onConfirm: async () => {
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/theses/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
 
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/theses/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (res.ok) {
-                toast.success('Thesis deleted');
-                fetchTheses(currentPage);
-                fetchYears();
-            } else {
-                toast.error('Failed to delete thesis');
+                    if (res.ok) {
+                        toast.success('Thesis deleted');
+                        fetchTheses(currentPage);
+                        fetchYears();
+                    } else {
+                        toast.error('Failed to delete thesis');
+                    }
+                } catch (err) {
+                    toast.error('Error deleting thesis');
+                }
             }
-        } catch (err) {
-            toast.error('Error deleting thesis');
-        }
+        });
     };
 
     const handleApproveThesis = async (id: string) => {
@@ -812,31 +835,75 @@ export default function AdminThesesPage() {
                             
                             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {selectedAttachments.map((url, i) => (
-                                        <div key={i} className="group relative rounded-2xl overflow-hidden bg-white/5 border border-white/10 aspect-video sm:aspect-square">
-                                            <img 
-                                                src={url} 
-                                                alt={`Attachment ${i + 1}`} 
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-                                                <a 
-                                                    href={url} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest text-white border border-white/10 transition-all"
-                                                >
-                                                    Full Resolution
-                                                </a>
+                                    {selectedAttachments.map((url, i) => {
+                                        const lowerUrl = url.toLowerCase();
+                                        const isDoc = lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc') || lowerUrl.includes('/raw/upload/');
+                                        const isPdf = lowerUrl.endsWith('.pdf');
+                                        const fileName = url.split('/').pop()?.split('-').slice(0, -1).join('-') || 'Supporting Document';
+                                        
+                                        if (isDoc) {
+                                            return (
+                                                <div key={i} className="group relative rounded-2xl overflow-hidden bg-white/5 border border-white/10 aspect-video sm:aspect-square flex flex-col items-center justify-center p-6">
+                                                    <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                                        {isPdf ? (
+                                                            <FaFilePdf className="text-3xl text-rose-500" />
+                                                        ) : (
+                                                            <FaFileWord className="text-3xl text-blue-500" />
+                                                        )}
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest text-center line-clamp-1 mb-6 px-4">
+                                                        {fileName}
+                                                    </span>
+                                                    <a 
+                                                        href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/download?url=${encodeURIComponent(url)}`} 
+                                                        download
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="px-4 py-2 bg-primary hover:bg-primary/90 text-[#1A1A2E] rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all text-center"
+                                                    >
+                                                        Download Document
+                                                    </a>
+                                                </div>
+                                            );
+                                        }
+                                        
+                                        return (
+                                            <div key={i} className="group relative rounded-2xl overflow-hidden bg-white/5 border border-white/10 aspect-video sm:aspect-square">
+                                                <img 
+                                                    src={url} 
+                                                    alt={`Attachment ${i + 1}`} 
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                                                    <a 
+                                                        href={url} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest text-white border border-white/10 transition-all"
+                                                    >
+                                                        Full Resolution
+                                                    </a>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                cancelText={confirmModal.cancelText}
+                variant={confirmModal.variant}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 }

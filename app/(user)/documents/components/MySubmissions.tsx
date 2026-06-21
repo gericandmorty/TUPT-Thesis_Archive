@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaFileAlt, FaArrowRight, FaLightbulb, FaEdit, FaTrash, FaFileImage, FaTimes, FaCheckCircle, FaExclamationTriangle, FaClock } from 'react-icons/fa';
+import { FaFileAlt, FaArrowRight, FaLightbulb, FaEdit, FaTrash, FaFileImage, FaTimes, FaCheckCircle, FaExclamationTriangle, FaClock, FaFilePdf, FaFileWord } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeleteThesisModal from './DeleteThesisModal';
 
@@ -271,25 +271,58 @@ const MySubmissions: React.FC<MySubmissionsProps> = ({ myTheses, onViewThesis, o
                             
                             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    {selectedAttachments.map((url, i) => (
-                                        <div key={i} className="group relative rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200 aspect-square">
-                                            <img 
-                                                src={url} 
-                                                alt={`Attachment ${i + 1}`} 
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
-                                                <a 
-                                                    href={url} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl text-[10px] font-black uppercase tracking-widest text-white border border-white/20 transition-all"
-                                                >
-                                                    Full Resolution
-                                                </a>
+                                    {selectedAttachments.map((url, i) => {
+                                        const lowerUrl = url.toLowerCase();
+                                        const isDoc = lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc') || lowerUrl.includes('/raw/upload/');
+                                        const isPdf = lowerUrl.endsWith('.pdf');
+                                        const fileName = url.split('/').pop()?.split('-').slice(0, -1).join('-') || 'Supporting Document';
+                                        
+                                        if (isDoc) {
+                                            return (
+                                                <div key={i} className="group relative rounded-2xl overflow-hidden bg-zinc-50 border border-zinc-200 aspect-square flex flex-col items-center justify-center p-6 shadow-sm">
+                                                    <div className="w-16 h-16 rounded-2xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-zinc-200">
+                                                        {isPdf ? (
+                                                            <FaFilePdf className="text-3xl text-rose-500" />
+                                                        ) : (
+                                                            <FaFileWord className="text-3xl text-blue-500" />
+                                                        )}
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center line-clamp-1 mb-6 px-4">
+                                                        {fileName}
+                                                    </span>
+                                                    <a 
+                                                        href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/download?url=${encodeURIComponent(url)}`} 
+                                                        download
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="px-5 py-2.5 bg-[#2DD4BF] hover:bg-[#2DD4BF]/90 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all text-center font-sans"
+                                                    >
+                                                        Download Document
+                                                    </a>
+                                                </div>
+                                            );
+                                        }
+                                        
+                                        return (
+                                            <div key={i} className="group relative rounded-2xl overflow-hidden bg-zinc-100 border border-zinc-200 aspect-square">
+                                                <img 
+                                                    src={url} 
+                                                    alt={`Attachment ${i + 1}`} 
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+                                                    <a 
+                                                        href={url} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-xl text-[10px] font-black uppercase tracking-widest text-white border border-white/20 transition-all"
+                                                    >
+                                                        Full Resolution
+                                                    </a>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </motion.div>

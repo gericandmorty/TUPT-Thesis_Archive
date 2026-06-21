@@ -22,7 +22,9 @@ import {
     FaThLarge,
     FaList,
     FaPaperclip,
-    FaExternalLinkAlt
+    FaExternalLinkAlt,
+    FaFilePdf,
+    FaFileWord
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import LottieLoader from '@/app/components/UI/LottieLoader';
@@ -84,6 +86,9 @@ const SearchResultContent = () => {
             setCurrentUser(JSON.parse(userData));
         }
     }, []);
+
+    const isUndergrad = currentUser && !currentUser.isGraduate && !currentUser.isProfessor && !currentUser.isAdmin;
+    const isApprover = currentUser?.isProfessor || currentUser?.isAdmin;
 
     const isBackNavRef = useRef(false);
 
@@ -381,7 +386,7 @@ const SearchResultContent = () => {
                             </div>
                         </div>
                     )}
-                    {singleThesis && !currentUser?.isGraduate && singleThesis?.createdBy && String(singleThesis?.createdBy) !== String(currentUser?._id) && (
+                    {singleThesis && isUndergrad && singleThesis.createdBy && !singleThesis.isUploadedByUndergrad && String(singleThesis.createdBy) !== String(currentUser?._id) && (
                         <div className="flex gap-3">
                             <button
                                 onClick={() => {
@@ -400,6 +405,7 @@ const SearchResultContent = () => {
                             </button>
                         </div>
                     )}
+
                 </div>
 
                 {/* AI / Local Loading Overlays (Full Screen Modal) */}
@@ -498,8 +504,8 @@ const SearchResultContent = () => {
                                             </div>
                                         </div>
 
-                                        {/* Attachments Section (Visible to Admins/Faculty or Creator) */}
-                                        {singleThesis.attachments && singleThesis.attachments.length > 0 && (
+                                        {/* Attachments Section (Visible to Admins/Faculty/Librarian) */}
+                                        {isApprover && singleThesis.attachments && singleThesis.attachments.length > 0 && (
                                             <div className="space-y-8 mt-12 pt-12 border-t border-[#1A1A1A]/10">
                                                 <h4 className="text-[13px] font-black text-[#1A1A1A] uppercase tracking-[0.2em] flex items-center gap-4">
                                                     <span className="w-10 h-[2px] bg-[#1A1A1A]" />
@@ -512,16 +518,39 @@ const SearchResultContent = () => {
                                                             key={i}
                                                             whileHover={{ y: -5 }}
                                                             className="group/attach relative aspect-[3/4] bg-white border border-stone-200 rounded-sm shadow-md overflow-hidden cursor-pointer"
-                                                            onClick={() => window.open(url, '_blank')}
+                                                            onClick={() => {
+                                                                const lowerUrl = url.toLowerCase();
+                                                                const isDoc = lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc') || lowerUrl.includes('/raw/upload/');
+                                                                const targetUrl = isDoc
+                                                                    ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/download?url=${encodeURIComponent(url)}`
+                                                                    : url;
+                                                                window.open(targetUrl, '_blank');
+                                                            }}
                                                         >
-                                                            {url.toLowerCase().endsWith('.pdf') ? (
-                                                                <div className="w-full h-full flex flex-col items-center justify-center bg-stone-50 gap-3">
-                                                                    <FaFileAlt className="text-4xl text-red-800/40" />
-                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-[#999]">PDF Document</span>
-                                                                </div>
-                                                            ) : (
-                                                                <img src={url} alt={`Attachment ${i + 1}`} className="w-full h-full object-cover grayscale group-hover/attach:grayscale-0 transition-all duration-500" />
-                                                            )}
+                                                            {(() => {
+                                                                const lowerUrl = url.toLowerCase();
+                                                                const isPdf = lowerUrl.endsWith('.pdf');
+                                                                const isWord = lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc');
+                                                                const isDoc = isPdf || isWord || lowerUrl.includes('/raw/upload/');
+                                                                
+                                                                if (isDoc) {
+                                                                    return (
+                                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-stone-50 gap-3 p-4">
+                                                                            {isPdf ? (
+                                                                                <FaFilePdf className="text-4xl text-rose-500/80" />
+                                                                            ) : (
+                                                                                <FaFileWord className="text-4xl text-blue-500/80" />
+                                                                            )}
+                                                                            <span className="text-[9px] font-black uppercase tracking-widest text-[#999] text-center line-clamp-1">
+                                                                                {isPdf ? 'PDF Document' : 'Word Document'}
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                                return (
+                                                                    <img src={url} alt={`Attachment ${i + 1}`} className="w-full h-full object-cover grayscale group-hover/attach:grayscale-0 transition-all duration-500" />
+                                                                );
+                                                            })()}
                                                             <div className="absolute inset-0 bg-black/0 group-hover/attach:bg-black/5 transition-colors" />
                                                             <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center opacity-0 group-hover/attach:opacity-100 transition-opacity translate-y-2 group-hover/attach:translate-y-0 duration-300">
                                                                 <FaExternalLinkAlt className="text-[10px] text-primary" />
@@ -533,25 +562,7 @@ const SearchResultContent = () => {
                                         )}
                                     </div>
 
-                                    {!currentUser?.isGraduate && singleThesis?.createdBy && String(singleThesis?.createdBy) !== String(currentUser?._id) && (
-                                        <div className="mt-12 pt-8 border-t border-[#1A1A1A]/10 flex justify-center">
-                                            <button
-                                                onClick={() => {
-                                                    if (singleThesis.hasRequestedCollaboration) return;
-                                                    setCollaborationThesis(singleThesis);
-                                                    setIsCollaborationModalOpen(true);
-                                                }}
-                                                disabled={singleThesis.hasRequestedCollaboration}
-                                                className={`flex items-center gap-3 text-xs font-black uppercase tracking-widest px-6 py-3 rounded-md transition-all active:scale-95 group z-20 ${singleThesis.hasRequestedCollaboration
-                                                        ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed'
-                                                        : 'bg-[#1A1A1A] text-[#FCFCFA] hover:bg-[#333] border border-[#1A1A1A] shadow-md hover:shadow-lg'
-                                                    }`}
-                                            >
-                                                <FaHandshake className={singleThesis.hasRequestedCollaboration ? "" : "group-hover:rotate-12 transition-transform"} />
-                                                <span>{singleThesis.hasRequestedCollaboration ? 'Request Sent' : 'Request Collaboration'}</span>
-                                            </button>
-                                        </div>
-                                    )}
+
 
                                     <div className="mt-16 py-4 bg-teal-50 border-t border-teal-100 text-center -mx-6 sm:-mx-12 md:-mx-20 -mb-6 sm:-mb-12 md:-mb-20">
                                         <p className="text-[9px] font-black uppercase tracking-[0.4em] text-teal-800">© {new Date().getFullYear()} TUPT Digital Archives • Institutional Property</p>
@@ -638,7 +649,7 @@ const SearchResultContent = () => {
                                             )}
 
                                             <div className="flex gap-2 ml-auto">
-                                                {!currentUser?.isGraduate && thesis?.createdBy && String(thesis?.createdBy) !== String(currentUser?._id) && (
+                                                {isUndergrad && thesis.createdBy && !thesis.isUploadedByUndergrad && String(thesis.createdBy) !== String(currentUser?._id) && (
                                                     <button
                                                         onClick={(e) => {
                                                             e.preventDefault();
@@ -657,6 +668,7 @@ const SearchResultContent = () => {
                                                         <span>{thesis.hasRequestedCollaboration ? 'Request Sent' : 'Request Collaboration'}</span>
                                                     </button>
                                                 )}
+
                                                 <button className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/5 border border-primary/30 px-4 py-2 rounded-xl transition-all duration-300 hover:bg-primary/20 hover:border-primary/50 z-20 whitespace-nowrap">
                                                     View Details
                                                 </button>

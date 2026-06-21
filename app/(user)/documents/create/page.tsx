@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { FaCloudUploadAlt, FaArrowLeft, FaFileImage, FaTrash, FaCheckCircle, FaExclamationTriangle, FaFileAlt, FaTimes, FaQuestionCircle, FaChevronDown } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaArrowLeft, FaFileImage, FaTrash, FaCheckCircle, FaExclamationTriangle, FaFileAlt, FaTimes, FaQuestionCircle, FaChevronDown, FaFilePdf, FaFileWord } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import CustomHeader from '@/app/components/Navigation/CustomHeader';
@@ -102,6 +102,11 @@ const CreateDocumentPage: React.FC = () => {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files);
+            const rejected = newFiles.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+            if (rejected.length > 0) {
+                toast.error('PDF files are not allowed. Please upload DOCX or image files only.');
+                return;
+            }
             if (attachments.length + newFiles.length > 5) {
                 toast.error('Maximum 5 supporting documents allowed');
                 return;
@@ -109,6 +114,7 @@ const CreateDocumentPage: React.FC = () => {
             setAttachments(prev => [...prev, ...newFiles]);
         }
     };
+
 
     const removeAttachment = (index: number) => {
         setAttachments(prev => prev.filter((_, i) => i !== index));
@@ -518,10 +524,10 @@ const CreateDocumentPage: React.FC = () => {
                                                 <label className="flex flex-col items-center justify-center gap-4 p-8 rounded-3xl bg-white/[0.02] border-2 border-dashed border-white/10 hover:border-primary/40 hover:bg-white/[0.04] transition-all cursor-pointer group">
                                                     <FaCloudUploadAlt className="text-3xl text-white/20 group-hover:text-primary transition-colors" />
                                                     <span className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white">Select Files</span>
-                                                    <input
+                                                                                    <input
                                                         type="file"
                                                         multiple
-                                                        accept="image/*,application/pdf"
+                                                        accept="image/*,.docx,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
                                                         onChange={handleFileChange}
                                                         className="hidden"
                                                     />
@@ -534,21 +540,29 @@ const CreateDocumentPage: React.FC = () => {
                                                         </div>
                                                     ) : (
                                                         <div className="space-y-2">
-                                                            {attachments.map((file, index) => (
-                                                                <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/5 group">
-                                                                    <div className="flex items-center gap-3 overflow-hidden">
-                                                                        <FaFileImage className="text-primary flex-shrink-0" />
-                                                                        <span className="text-[11px] font-medium text-white/60 truncate uppercase tracking-tighter">{file.name}</span>
-                                                                    </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => removeAttachment(index)}
-                                                                        className="p-2 text-white/20 hover:text-red-400 transition-colors"
-                                                                    >
-                                                                        <FaTrash size={12} />
-                                                                    </button>
-                                                                </div>
-                                                            ))}
+                                                              {attachments.map((file, index) => {
+                                                                  const getFileIcon = (fileName: string) => {
+                                                                      const lowerName = fileName.toLowerCase();
+                                                                      if (lowerName.endsWith('.pdf')) return <FaFilePdf className="text-rose-400 flex-shrink-0" />;
+                                                                      if (lowerName.endsWith('.docx') || lowerName.endsWith('.doc')) return <FaFileWord className="text-blue-400 flex-shrink-0" />;
+                                                                      return <FaFileImage className="text-primary flex-shrink-0" />;
+                                                                  };
+                                                                  return (
+                                                                      <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/5 group">
+                                                                          <div className="flex items-center gap-3 overflow-hidden">
+                                                                              {getFileIcon(file.name)}
+                                                                              <span className="text-[11px] font-medium text-white/60 truncate uppercase tracking-tighter">{file.name}</span>
+                                                                          </div>
+                                                                          <button
+                                                                              type="button"
+                                                                              onClick={() => removeAttachment(index)}
+                                                                              className="p-2 text-white/20 hover:text-red-400 transition-colors"
+                                                                          >
+                                                                              <FaTrash size={12} />
+                                                                          </button>
+                                                                      </div>
+                                                                  );
+                                                              })}
                                                         </div>
                                                     )}
                                                 </div>

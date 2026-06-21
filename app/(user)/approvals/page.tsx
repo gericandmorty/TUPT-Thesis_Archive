@@ -11,7 +11,9 @@ import {
     FaCalendarAlt, 
     FaFolderOpen,
     FaArrowLeft,
-    FaFileImage
+    FaFileImage,
+    FaFilePdf,
+    FaFileWord
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import API_BASE_URL from '@/app/lib/api';
@@ -178,8 +180,8 @@ const ApprovalsPage = () => {
                                                     <span className="text-[10px] font-bold tracking-[0.2em]">{thesis.year_range}</span>
                                                 </div>
                                                 <div className="h-px flex-1 bg-white/5" />
-                                                <div className={`px-3 py-1 rounded-sm text-[8px] font-black uppercase tracking-widest ${thesis.isApproved ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
-                                                    {thesis.isApproved ? 'Validated' : 'Pending Review'}
+                                                <div className={`px-3 py-1 rounded-sm text-[8px] font-black uppercase tracking-widest ${thesis.isProfApproved ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                                                    {thesis.isProfApproved ? 'Validated' : 'Pending Review'}
                                                 </div>
                                             </div>
 
@@ -229,17 +231,14 @@ const ApprovalsPage = () => {
                                                 Reject
                                             </button>
 
-                                            <button
-                                                onClick={() => handleApprove(thesis._id, thesis.title)}
-                                                disabled={thesis.isApproved}
-                                                className={`w-full lg:w-32 py-3 rounded-sm transition-all font-bold text-[9px] uppercase tracking-[0.2em] shadow-xl ${
-                                                    thesis.isApproved 
-                                                    ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 cursor-default'
-                                                    : 'bg-primary text-[#0F172A] hover:bg-primary/90 hover:shadow-primary/20'
-                                                }`}
-                                            >
-                                                {thesis.isApproved ? 'Approved' : 'Approve'}
-                                            </button>
+                                            {!thesis.isProfApproved && (
+                                                <button
+                                                    onClick={() => handleApprove(thesis._id, thesis.title)}
+                                                    className="w-full lg:w-32 py-3 rounded-sm bg-primary text-[#0F172A] hover:bg-primary/90 hover:shadow-primary/20 transition-all font-bold text-[9px] uppercase tracking-[0.2em] shadow-xl"
+                                                >
+                                                    Approve
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -295,25 +294,58 @@ const ApprovalsPage = () => {
                             
                             <div className="flex-1 overflow-y-auto p-10 custom-scrollbar bg-[#0F172A]/50">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    {selectedAttachments.map((url, i) => (
-                                        <div key={i} className="group relative rounded-lg overflow-hidden bg-white/[0.02] border border-white/5 aspect-[4/3] shadow-inner">
-                                            <img 
-                                                src={url} 
-                                                alt={`Attachment ${i + 1}`} 
-                                                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700 opacity-80 group-hover:opacity-100"
-                                            />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-6">
-                                                <a 
-                                                    href={url} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="px-6 py-3 bg-white text-[#0F172A] rounded-sm text-[9px] font-black uppercase tracking-[0.2em] transition-all hover:scale-105"
-                                                >
-                                                    View Full Document
-                                                </a>
+                                    {selectedAttachments.map((url, i) => {
+                                        const lowerUrl = url.toLowerCase();
+                                        const isDoc = lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc') || lowerUrl.includes('/raw/upload/');
+                                        const isPdf = lowerUrl.endsWith('.pdf');
+                                        const fileName = url.split('/').pop()?.split('-').slice(0, -1).join('-') || 'Supporting Document';
+                                        
+                                        if (isDoc) {
+                                            return (
+                                                <div key={i} className="group relative rounded-lg overflow-hidden bg-white/[0.02] border border-white/5 aspect-[4/3] flex flex-col items-center justify-center p-6 shadow-inner">
+                                                    <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                                        {isPdf ? (
+                                                            <FaFilePdf className="text-3xl text-rose-500" />
+                                                        ) : (
+                                                            <FaFileWord className="text-3xl text-blue-500" />
+                                                        )}
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest text-center line-clamp-1 mb-6 px-4">
+                                                        {fileName}
+                                                    </span>
+                                                    <a 
+                                                        href={`${process.env.NEXT_PUBLIC_API_BASE_URL}/user/download?url=${encodeURIComponent(url)}`} 
+                                                        download
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="px-6 py-3 bg-white text-[#0F172A] rounded-sm text-[9px] font-black uppercase tracking-[0.2em] transition-all hover:scale-105 text-center"
+                                                    >
+                                                        Download Document
+                                                    </a>
+                                                </div>
+                                            );
+                                        }
+                                        
+                                        return (
+                                            <div key={i} className="group relative rounded-lg overflow-hidden bg-white/[0.02] border border-white/5 aspect-[4/3] shadow-inner">
+                                                <img 
+                                                    src={url} 
+                                                    alt={`Attachment ${i + 1}`} 
+                                                    className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700 opacity-80 group-hover:opacity-100"
+                                                />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-6">
+                                                    <a 
+                                                        href={url} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="px-6 py-3 bg-white text-[#0F172A] rounded-sm text-[9px] font-black uppercase tracking-[0.2em] transition-all hover:scale-105"
+                                                    >
+                                                        View Full Document
+                                                    </a>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </motion.div>
