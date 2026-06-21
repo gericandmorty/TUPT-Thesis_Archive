@@ -19,6 +19,7 @@ function AppContent({ children }: { children: ReactNode }) {
   const { isExpanded, isReady, toggleSidebar: onToggle } = useSidebar();
   const [mounted, setMounted] = useState(false);
   const [canAnimate, setCanAnimate] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -32,10 +33,19 @@ function AppContent({ children }: { children: ReactNode }) {
     }
   }, [mounted, isReady]);
 
+  // Check auth state on mount and whenever pathname changes
+  useEffect(() => {
+    if (mounted) {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('userData');
+      setIsLoggedIn(!!(token && userData));
+    }
+  }, [mounted, pathname]);
+
   const noLayoutRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password'];
   const isLanding = pathname === '/';
   const isAuthPage = noLayoutRoutes.includes(pathname);
-  const hasSidebar = !isAuthPage && !isLanding;
+  const hasSidebar = !isAuthPage && !isLanding && isLoggedIn;
 
   // Padding should only apply if sidebar is present
   const paddingClass = hasSidebar

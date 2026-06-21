@@ -102,7 +102,7 @@ export default function Sidebar() {
             { icon: FaUserShield, label: 'Admin Dashboard', path: '/admin' },
             { icon: FaHandshake, label: 'Collaboration', path: '/admin/collaboration' },
             { icon: FaFileAlt, label: 'Thesis Management', path: '/admin/theses' },
-            { icon: FaUsers, label: 'User Management', path: '/admin/users' },
+            { icon: FaUsers, label: 'User Management', path: '/admin/users' }
         ]
         : [
             { icon: FaHome, label: 'Home', path: '/home' },
@@ -112,7 +112,7 @@ export default function Sidebar() {
                 { icon: FaFolderOpen, label: 'My Submissions', path: '/documents/submissions' },
             ] : []),
             ...(user?.isProfessor ? [{ icon: FaUsers, label: 'Pending Approvals', path: '/approvals', section: 'FACULTY' }] : []),
-            { icon: FaHandshake, label: 'Collaboration', path: '/collaboration', section: 'SOCIAL' },
+            { icon: FaHandshake, label: 'Collaboration', path: '/collaboration', section: 'SOCIAL' }
         ];
 
     const handleLogout = async () => {
