@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import { FaCloudUploadAlt, FaArrowLeft, FaFileImage, FaTrash, FaCheckCircle, FaExclamationTriangle, FaFileAlt, FaTimes } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaArrowLeft, FaFileImage, FaTrash, FaCheckCircle, FaExclamationTriangle, FaFileAlt, FaTimes, FaQuestionCircle, FaChevronDown } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import CustomHeader from '@/app/components/Navigation/CustomHeader';
 import Sidebar from '@/app/components/Navigation/Sidebar';
@@ -19,6 +20,7 @@ const DEPARTMENTS = [
 const CreateDocumentPage: React.FC = () => {
     const router = useRouter();
     const [mounted, setMounted] = useState(false);
+    const [isGuideExpanded, setIsGuideExpanded] = useState(false);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [professors, setProfessors] = useState<any[]>([]);
@@ -45,6 +47,25 @@ const CreateDocumentPage: React.FC = () => {
         }
         checkExistingSubmissions();
         fetchProfessors();
+
+        const prefilled = localStorage.getItem('prefilledThesisData');
+        if (prefilled) {
+            try {
+                const parsed = JSON.parse(prefilled);
+                setFormData(prev => ({
+                    ...prev,
+                    title: parsed.title || prev.title,
+                    abstract: parsed.abstract || prev.abstract,
+                    author: parsed.author || prev.author,
+                    year_range: parsed.year_range || prev.year_range,
+                    course: parsed.course || prev.course
+                }));
+                toast.success('Auto-populated solved data from Analysis Workspace!');
+                localStorage.removeItem('prefilledThesisData');
+            } catch (err) {
+                console.error('Failed to load prefilled data:', err);
+            }
+        }
     }, [router]);
 
     const checkExistingSubmissions = async () => {
@@ -136,71 +157,95 @@ const CreateDocumentPage: React.FC = () => {
         e.target.value = '';
     };
 
-    const handleMainTxtFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleMainFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (!file.name.endsWith('.txt') && file.type !== 'text/plain') {
-            toast.error('Only .txt files are accepted for thesis parsing');
+        // Supported file types: PDF, DOCX, TXT
+        const allowedTypes = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain'
+        ];
+        const isAllowedExtension = file.name.endsWith('.txt') || file.name.endsWith('.pdf') || file.name.endsWith('.docx');
+
+        if (!allowedTypes.includes(file.type) && !isAllowedExtension) {
+            toast.error('Only .pdf, .docx, and .txt files are accepted for auto-populating');
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            try {
-                const rawText = event.target?.result as string;
-                console.log("Sending file raw text to backend for dissection:", file.name);
-                
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/thesis/parse-txt`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ text: rawText })
+        const toastId = toast.loading("Processing document, extracting metadata...");
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/thesis/parse-file`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const resData = await res.json();
+            if (!resData.success) {
+                toast.update(toastId, {
+                    render: resData.message || 'Error occurred while dissecting document.',
+                    type: 'error',
+                    isLoading: false,
+                    autoClose: 3000
                 });
-
-                const resData = await res.json();
-                if (!resData.success) {
-                    toast.error(resData.message || 'Error occurred while dissecting document.');
-                    return;
-                }
-
-                const parsedData = resData.data || {};
-                console.log("Parser Output from backend:", parsedData);
-
-                setFormData(prev => ({
-                    ...prev,
-                    title: parsedData.title || prev.title,
-                    author: parsedData.author || prev.author,
-                    year_range: parsedData.year_range || prev.year_range,
-                    course: parsedData.course || prev.course,
-                    abstract: parsedData.abstract || prev.abstract
-                }));
-
-                const extracted = [];
-                if (parsedData.title) extracted.push('Title');
-                if (parsedData.author) extracted.push('Author');
-                if (parsedData.year_range) extracted.push('Year');
-                if (parsedData.course) extracted.push('Course');
-                if (parsedData.abstract) extracted.push('Abstract');
-
-                if (extracted.length > 0) {
-                    toast.success(`Dissected successfully! Auto-filled: ${extracted.join(', ')}`);
-                } else {
-                    toast.warn('Could not extract any metadata. Please fill the fields manually.');
-                }
-            } catch (err) {
-                console.error("Error communicating with backend parser:", err);
-                toast.error("An error occurred while communicating with the server.");
+                return;
             }
-        };
-        reader.onloadend = () => {
+
+            const parsedData = resData.data || {};
+            console.log("Parser Output from backend:", parsedData);
+
+            setFormData(prev => ({
+                ...prev,
+                title: parsedData.title || prev.title,
+                author: parsedData.author || prev.author,
+                year_range: parsedData.year_range || prev.year_range,
+                course: parsedData.course || prev.course,
+                abstract: parsedData.abstract || prev.abstract
+            }));
+
+            const extracted = [];
+            if (parsedData.title) extracted.push('Title');
+            if (parsedData.author) extracted.push('Author');
+            if (parsedData.year_range) extracted.push('Year');
+            if (parsedData.course) extracted.push('Course');
+            if (parsedData.abstract) extracted.push('Abstract');
+
+            if (extracted.length > 0) {
+                toast.update(toastId, {
+                    render: `Dissected successfully! Auto-filled: ${extracted.join(', ')}`,
+                    type: 'success',
+                    isLoading: false,
+                    autoClose: 3000
+                });
+            } else {
+                toast.update(toastId, {
+                    render: 'Could not extract any metadata. Please fill the fields manually.',
+                    type: 'warning',
+                    isLoading: false,
+                    autoClose: 3000
+                });
+            }
+        } catch (err) {
+            console.error("Error communicating with backend parser:", err);
+            toast.update(toastId, {
+                render: "An error occurred while communicating with the server.",
+                type: 'error',
+                isLoading: false,
+                autoClose: 3000
+            });
+        } finally {
             // Reset input value to allow re-uploading same file name if user updates it
             e.target.value = '';
-        };
-        reader.readAsText(file);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -267,6 +312,7 @@ const CreateDocumentPage: React.FC = () => {
                             <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.4em]">Repository Archive Registration</p>
                         </div>
                         <button
+                            type="button"
                             onClick={() => router.push('/documents')}
                             className="group flex items-center gap-3 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-primary hover:border-primary/30 transition-all active:scale-95"
                         >
@@ -274,10 +320,66 @@ const CreateDocumentPage: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                        {/* Left Column: Form Card */}
-                        <div className="lg:col-span-8">
-                            <div className="bg-[#1E293B]/40 backdrop-blur-2xl rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-white/5 relative overflow-hidden group">
+                    {/* Expandable Submission Guide */}
+                    <div className="mb-8 bg-[#1E293B]/40 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden group">
+                        <button
+                            type="button"
+                            onClick={() => setIsGuideExpanded(!isGuideExpanded)}
+                            className="w-full flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors text-left outline-none cursor-pointer"
+                        >
+                            <div className="flex items-center gap-3 text-primary">
+                                <FaQuestionCircle className="text-sm" />
+                                <span className="text-xs font-black uppercase tracking-widest">Submission Guide & Guidelines</span>
+                            </div>
+                            <FaChevronDown className={`text-white/40 text-xs transition-transform duration-300 ${isGuideExpanded ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        <AnimatePresence initial={false}>
+                            {isGuideExpanded && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                >
+                                    <div className="p-6 pt-0 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        {/* Left Side: Submission Guide Details */}
+                                        <div className="space-y-4 pt-4">
+                                            <ul className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                {[
+                                                    { title: 'Full Title', desc: 'Ensure the title matches the final approved manuscript.' },
+                                                    { title: 'Abstract', desc: 'Summary should include background, methodology, and results.' },
+                                                    { title: 'Authorship', desc: 'List authors according to contribution hierarchy.' }
+                                                ].map((item, i) => (
+                                                    <li key={i} className="space-y-1">
+                                                        <p className="text-[10px] font-bold text-white uppercase tracking-wider">{item.title}</p>
+                                                        <p className="text-[11px] text-white/40 leading-relaxed font-medium">{item.desc}</p>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+
+                                        {/* Right Side: Digital Archive Info */}
+                                        <div className="pt-4">
+                                            <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-2xl p-6 flex items-start gap-4 h-full">
+                                                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
+                                                    <FaCloudUploadAlt className="text-lg" />
+                                                </div>
+                                                <div>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary block mb-1">Digital Archive</span>
+                                                    <p className="text-[11px] text-white/60 leading-relaxed font-medium">
+                                                        Submitted research will undergo institutional verification before being cataloged in the TUPT Digital Repository.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    <div className="bg-[#1E293B]/40 backdrop-blur-2xl rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-white/5 relative overflow-hidden group">
                                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
 
                                 <form onSubmit={handleSubmit} className="relative z-10 space-y-10">
@@ -290,15 +392,15 @@ const CreateDocumentPage: React.FC = () => {
                                                 </div>
                                                 <div>
                                                     <h4 className="text-[11px] font-black uppercase tracking-wider text-white">Auto-populate with Thesis Document</h4>
-                                                    <p className="text-[10px] text-white/40 mt-0.5 leading-relaxed font-medium">Upload a .txt of your paper to automatically extract title, author, year, course, and abstract!</p>
+                                                    <p className="text-[10px] text-white/40 mt-0.5 leading-relaxed font-medium">Upload a .pdf, .docx, or .txt of your paper to automatically extract title, author, year, course, and abstract!</p>
                                                 </div>
                                             </div>
                                             <label className="px-5 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all active:scale-95 flex-shrink-0 text-center">
                                                 Select File
                                                 <input
                                                     type="file"
-                                                    accept=".txt,text/plain"
-                                                    onChange={handleMainTxtFileChange}
+                                                    accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                                                    onChange={handleMainFileChange}
                                                     className="hidden"
                                                 />
                                             </label>
@@ -488,42 +590,9 @@ const CreateDocumentPage: React.FC = () => {
                                 </form>
                             </div>
                         </div>
-
-                        {/* Right Column: Info / Guidelines */}
-                        <div className="lg:col-span-4 space-y-8">
-                            <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-8 space-y-6">
-                                <h3 className="text-xs font-black uppercase tracking-[0.4em] text-primary">Submission Guide</h3>
-                                <ul className="space-y-4">
-                                    {[
-                                        { title: 'Full Title', desc: 'Ensure the title matches the final approved manuscript.' },
-                                        { title: 'Abstract', desc: 'Summary should include background, methodology, and results.' },
-                                        { title: 'Authorship', desc: 'List authors according to contribution hierarchy.' }
-                                    ].map((item, i) => (
-                                        <li key={i} className="space-y-1">
-                                            <p className="text-[10px] font-bold text-white uppercase tracking-wider">{item.title}</p>
-                                            <p className="text-[11px] text-white/40 leading-relaxed font-medium">{item.desc}</p>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-3xl p-8">
-                                <div className="flex items-center gap-3 mb-4 text-primary">
-                                    <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center">
-                                        <FaCloudUploadAlt className="text-sm" />
-                                    </div>
-                                    <span className="text-xs font-black uppercase tracking-widest">Digital Archive</span>
-                                </div>
-                                <p className="text-[11px] text-white/60 leading-relaxed font-medium">
-                                    Submitted research will undergo institutional verification before being cataloged in the TUPT Digital Repository.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    </main>
                 </div>
-            </main>
-        </div>
-    );
-};
+            );
+        };
 
 export default CreateDocumentPage;

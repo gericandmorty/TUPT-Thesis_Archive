@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaChevronDown, FaChevronUp, FaDownload, FaRedo, FaTimes, FaFileAlt, FaSearch, FaLightbulb, FaInfoCircle, FaCheckCircle, FaExclamationTriangle, FaMagic } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 export interface AnalysisIssue {
     title: string;
@@ -53,6 +54,8 @@ interface AnalysisWorkspaceProps {
 }
 
 const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onClose }) => {
+    const router = useRouter();
+    const [isRedirecting, setIsRedirecting] = useState(false);
     const [expandedCategories, setExpandedCategories] = useState<Record<number, boolean>>({});
     const [activePage, setActivePage] = useState<number | null>(null);
     const [selectedIssueContext, setSelectedIssueContext] = useState<string | null>(null);
@@ -183,34 +186,50 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
         return () => clearTimeout(timer);
     }, [localPagesText, appliedIssueIds]);
 
+    const getIssueId = (issue: any) => {
+        return issue.id || `${issue.title}-${issue.context}`.replace(/[^a-z0-9]/gi, '-').substring(0, 50);
+    };
+
     // Flatten issues and add unique IDs for stable keys
-    const allIssues = result?.categories?.flatMap((cat: any) =>
+    const rawIssues = result?.categories?.flatMap((cat: any) =>
         cat.issues
             .filter((issue: any) => {
-                const id = `${issue.title}-${issue.context}`.replace(/[^a-z0-9]/gi, '-').substring(0, 50);
+                const id = getIssueId(issue);
                 return !appliedIssueIds.includes(id);
             })
             .map((issue: any) => ({
                 ...issue,
                 categoryName: cat.name,
-                id: `${issue.title}-${issue.context}`.replace(/[^a-z0-9]/gi, '-').substring(0, 50)
+                id: getIssueId(issue)
             }))
     ) || (result as any)?.recommendations?.map((issue: any) => ({
         ...issue,
         categoryName: issue.category,
-        id: `${issue.title}-${issue.context}`.replace(/[^a-z0-9]/gi, '-').substring(0, 50)
+        id: getIssueId(issue)
     })) || [];
 
-    const getIssueId = (issue: any) => {
-        return issue.id || `${issue.title}-${issue.context}`.replace(/[^a-z0-9]/gi, '-').substring(0, 50);
-    };
+    // Deduplicate on the frontend to protect against historical drafts containing duplicate recommendations
+    const seenIssueIds = new Set<string>();
+    const allIssues = rawIssues.filter((issue: any) => {
+        const id = issue.id;
+        if (seenIssueIds.has(id)) {
+            return false;
+        }
+        seenIssueIds.add(id);
+        return true;
+    });
 
+    const seenActiveIssueIds = new Set<string>();
     const activeCategories = result?.categories
         ?.map((cat: any) => ({
             ...cat,
             issues: cat.issues.filter((issue: any) => {
                 const id = getIssueId(issue);
-                return !appliedIssueIds.includes(id);
+                if (appliedIssueIds.includes(id) || seenActiveIssueIds.has(id)) {
+                    return false;
+                }
+                seenActiveIssueIds.add(id);
+                return true;
             })
         }))
         .filter((cat: any) => cat.issues.length > 0) || [];
@@ -371,6 +390,62 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
         setTimeout(() => setFixSuccess(null), 3000);
     };
 
+    const handleProceedToSubmission = async () => {
+        if (!file) return;
+        setIsRedirecting(true);
+        const fullContent = localPagesText.map(p => p.text).join('\n\n');
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/thesis/parse-txt`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ text: fullContent })
+            });
+            const data = await response.json();
+            
+            if (data.success && data.data) {
+                localStorage.setItem('prefilledThesisData', JSON.stringify({
+                    title: data.data.title || '',
+                    author: data.data.author || '',
+                    year_range: data.data.year_range || '',
+                    course: data.data.course || '',
+                    abstract: data.data.abstract || ''
+                }));
+            } else {
+                const firstLines = (localPagesText[0]?.text || '').split('\n').filter(l => l.trim().length > 5).slice(0, 5);
+                const fallbackTitle = firstLines.length > 0 ? firstLines.reduce((a, b) => a.length > b.length ? a : b) : file.name.split('.')[0];
+                const fallbackAbstract = fullContent.substring(0, 1000);
+                
+                localStorage.setItem('prefilledThesisData', JSON.stringify({
+                    title: fallbackTitle,
+                    author: '',
+                    year_range: '',
+                    course: '',
+                    abstract: fallbackAbstract
+                }));
+            }
+        } catch (err) {
+            console.error('Error pre-populating submission data:', err);
+            const firstLines = (localPagesText[0]?.text || '').split('\n').filter(l => l.trim().length > 5).slice(0, 5);
+            const fallbackTitle = firstLines.length > 0 ? firstLines.reduce((a, b) => a.length > b.length ? a : b) : file.name.split('.')[0];
+            const fallbackAbstract = fullContent.substring(0, 1000);
+            
+            localStorage.setItem('prefilledThesisData', JSON.stringify({
+                title: fallbackTitle,
+                author: '',
+                year_range: '',
+                course: '',
+                abstract: fallbackAbstract
+            }));
+        } finally {
+            setIsRedirecting(false);
+        }
+        router.push('/documents/create');
+    };
+
     const scrollToSidebarIssue = (issueId: string) => {
         const categories = result?.categories || [];
         const catIndex = categories.findIndex(c => c.issues.some(i => {
@@ -502,6 +577,7 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                                                     const isHovered = hoveredIssueId === issue.id;
 
                                                     const newParts: (string | React.ReactNode)[] = [];
+                                                    let highlightIndex = 0;
                                                     parts.forEach(part => {
                                                         if (typeof part !== 'string') {
                                                             newParts.push(part);
@@ -512,11 +588,12 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                                                         const regex = new RegExp(`(${escapedContext})`, 'gi');
                                                         const subParts = part.split(regex);
 
-                                                        subParts.forEach((subPart, subIndex) => {
+                                                        subParts.forEach((subPart) => {
                                                             if (regex.test(subPart)) {
+                                                                highlightIndex++;
                                                                 newParts.push(
                                                                     <span
-                                                                        key={`${issue.id}-${subIndex}`}
+                                                                        key={`${issue.id}-highlight-${highlightIndex}`}
                                                                         id={`highlight-${issue.id}`}
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
@@ -640,7 +717,10 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                     </div>
 
                     {/* Scrollable Findings Area */}
-                    <div className="flex-1 overflow-y-auto p-4 md:p-5 custom-scrollbar">                        {/* Similarity Analysis - Compact */}
+                    <div className="flex-1 overflow-y-auto pt-0 px-4 md:px-5 pb-4 md:pb-5 custom-scrollbar">
+                        {/* Spacer to preserve design padding before scroll */}
+                        <div className="h-4 md:h-5 shrink-0" />
+                        {/* Similarity Analysis - Compact */}
                         <div className="mb-6 bg-gradient-to-br from-white/[0.05] to-transparent rounded-[1.5rem] p-4 border border-white/10 relative overflow-hidden group hover:border-primary/30 transition-all">
                             <div className="relative z-10">
                                 <div className="flex items-center justify-between mb-3">
@@ -728,7 +808,7 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                                 activeCategories.map((category: any, idx: number) => (
                                     <div key={idx} className="relative">
                                         {/* Sticky Category Header - More Compact */}
-                                        <div className="sticky top-0 z-20 -mx-4 px-4 py-2 bg-card/80 backdrop-blur-xl border-y border-white/5 mb-4 flex items-center justify-between">
+                                        <div className="sticky top-0 z-20 -mx-4 md:-mx-5 px-4 md:px-5 py-2 bg-[#252534] border-y border-white/5 mb-4 flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: category.color }} />
                                                 <h4 className="font-black text-[9px] text-white uppercase tracking-widest">{category.name}</h4>
@@ -825,10 +905,33 @@ const AnalysisWorkspace: React.FC<AnalysisWorkspaceProps> = ({ result, file, onC
                                     </div>
                                 ))
                             ) : (
-                                <div className="py-12 text-center flex flex-col items-center">
-                                    <FaCheckCircle className="text-primary text-xl mb-3" />
-                                    <h4 className="text-white font-black text-[10px] uppercase tracking-widest mb-1">Clear</h4>
-                                    <p className="text-[8px] text-white/40 uppercase tracking-widest">No issues detected.</p>
+                                <div className="py-12 px-6 text-center flex flex-col items-center bg-gradient-to-br from-[#2DD4BF]/10 to-transparent border border-[#2DD4BF]/20 rounded-3xl relative overflow-hidden animate-fade-in">
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-[#2DD4BF]/10 blur-[40px] pointer-events-none" />
+                                    <div className="w-12 h-12 rounded-full bg-[#2DD4BF]/20 flex items-center justify-center text-[#2DD4BF] mb-4 shadow-lg shadow-[#2DD4BF]/20">
+                                        <FaCheckCircle className="text-2xl animate-bounce-gentle text-primary" />
+                                    </div>
+                                    <h4 className="text-white font-black text-xs uppercase tracking-widest mb-1.5">Manuscript Refined</h4>
+                                    <p className="text-[10px] text-white/50 leading-relaxed max-w-xs mb-6">
+                                        All identified issues have been resolved. Your paper is ready to be submitted to the institutional archive.
+                                    </p>
+                                    
+                                    <button
+                                        onClick={handleProceedToSubmission}
+                                        disabled={isRedirecting}
+                                        className="w-full py-3.5 bg-primary hover:bg-primary/95 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                    >
+                                        {isRedirecting ? (
+                                            <>
+                                                <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                                <span>Preparing Submission...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>Proceed to Submission</span>
+                                                <span className="group-hover:translate-x-1 transition-transform">→</span>
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             )}
                         </div>

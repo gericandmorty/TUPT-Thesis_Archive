@@ -13,9 +13,20 @@ import {
     FaEye,
     FaEyeSlash,
     FaCamera,
-    FaEnvelope
+    FaEnvelope,
+    FaChevronDown
 } from 'react-icons/fa';
 import API_BASE_URL from '@/app/lib/api';
+
+const SECRET_QUESTIONS = [
+    "What was the name of your first pet?",
+    "What is your mother's maiden name?",
+    "What was the name of your elementary school?",
+    "What city were you born in?",
+    "What is your oldest sibling's middle name?",
+    "What was the make of your first car?",
+    "What is the name of the street you grew up on?"
+];
 
 interface UserData {
     _id: string;
@@ -46,7 +57,9 @@ const EditProfilePage = () => {
         birthdate: '',
         currentPassword: '',
         newPassword: '',
-        confirmNewPassword: ''
+        confirmNewPassword: '',
+        secretQuestion: '',
+        secretAnswer: ''
     });
 
     const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
@@ -62,11 +75,13 @@ const EditProfilePage = () => {
             return;
         }
 
-        const user: UserData = JSON.parse(userData);
+        const user: any = JSON.parse(userData);
         setFormData(prev => ({
             ...prev,
             name: user.name,
-            birthdate: user.birthdate ? new Date(user.birthdate).toISOString().split('T')[0] : ''
+            birthdate: user.birthdate ? new Date(user.birthdate).toISOString().split('T')[0] : '',
+            secretQuestion: user.secretQuestion || '',
+            secretAnswer: ''
         }));
         setCurrentPhoto(user.profilePhoto || null);
     }, [router]);
@@ -171,7 +186,9 @@ const EditProfilePage = () => {
                     name: formData.name,
                     birthdate: formData.birthdate,
                     currentPassword: formData.currentPassword,
-                    newPassword: formData.newPassword
+                    newPassword: formData.newPassword,
+                    secretQuestion: formData.secretQuestion || null,
+                    secretAnswer: formData.secretAnswer || undefined
                 }),
             });
 
@@ -299,6 +316,42 @@ const EditProfilePage = () => {
                                 </div>
 
                                 <div className="space-y-6">
+                                    {/* Security Question and Answer */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-white/5">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                                                Security Question
+                                            </label>
+                                            <div className="relative">
+                                                <select
+                                                    name="secretQuestion"
+                                                    value={formData.secretQuestion}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, secretQuestion: e.target.value }))}
+                                                    className="w-full bg-[#1E293B] border border-white/10 px-5 py-4 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white/[0.05] transition-all text-white appearance-none pr-10"
+                                                >
+                                                    <option value="" className="bg-[#1E293B]">Select a security question</option>
+                                                    {SECRET_QUESTIONS.map((q, i) => (
+                                                        <option key={i} value={q} className="bg-[#1E293B]">{q}</option>
+                                                    ))}
+                                                </select>
+                                                <FaChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none text-xs" />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                                                Security Answer
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="secretAnswer"
+                                                value={formData.secretAnswer}
+                                                onChange={handleChange}
+                                                className="w-full bg-white/[0.03] border border-white/10 px-5 py-4 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white/[0.05] transition-all text-white placeholder:text-white/20"
+                                                placeholder="Leave blank to keep unchanged"
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-2">
                                             <FaLock className="text-primary" /> Current Password
