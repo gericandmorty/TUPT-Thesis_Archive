@@ -6,6 +6,7 @@ import { FaHandshake, FaUser, FaFileAlt, FaCheck, FaTimes, FaClock, FaArrowRight
 import { toast } from 'react-toastify';
 import API_BASE_URL from '@/app/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmModal from '@/app/components/UI/ConfirmModal';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 20 },
@@ -21,6 +22,22 @@ export default function AdminCollaborationPage() {
     const router = useRouter();
     const [collaborations, setCollaborations] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        confirmText?: string;
+        cancelText?: string;
+        variant?: 'danger' | 'primary' | 'warning' | 'success';
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+    });
+
+    const closeConfirmModal = () => setConfirmModal(prev => ({ ...prev, isOpen: false }));
 
     useEffect(() => {
         fetchCollaborations();
@@ -186,14 +203,30 @@ export default function AdminCollaborationPage() {
                                             {collab.adminStatus === 'pending' ? (
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button 
-                                                        onClick={() => handleAdminStatus(collab._id, 'approved')}
+                                                        onClick={() => setConfirmModal({
+                                                            isOpen: true,
+                                                            title: 'Approve Collaboration',
+                                                            message: `Are you sure you want to approve the collaboration request for "${collab.thesis?.title || 'this thesis'}"? The recipient will be notified.`,
+                                                            confirmText: 'Approve',
+                                                            cancelText: 'Cancel',
+                                                            variant: 'success',
+                                                            onConfirm: () => { handleAdminStatus(collab._id, 'approved'); closeConfirmModal(); },
+                                                        })}
                                                         className="h-8 w-8 rounded-lg bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-all flex items-center justify-center"
                                                         title="Approve"
                                                     >
                                                         <FaCheck className="text-xs" />
                                                     </button>
                                                     <button 
-                                                        onClick={() => handleAdminStatus(collab._id, 'declined')}
+                                                        onClick={() => setConfirmModal({
+                                                            isOpen: true,
+                                                            title: 'Decline Collaboration',
+                                                            message: `Are you sure you want to decline the collaboration request for "${collab.thesis?.title || 'this thesis'}"? This action cannot be undone.`,
+                                                            confirmText: 'Decline',
+                                                            cancelText: 'Cancel',
+                                                            variant: 'danger',
+                                                            onConfirm: () => { handleAdminStatus(collab._id, 'declined'); closeConfirmModal(); },
+                                                        })}
                                                         className="h-8 w-8 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center"
                                                         title="Decline"
                                                     >
@@ -220,6 +253,17 @@ export default function AdminCollaborationPage() {
                     </table>
                 </div>
             </motion.div>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                cancelText={confirmModal.cancelText}
+                variant={confirmModal.variant}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={closeConfirmModal}
+            />
         </main>
     );
 }
