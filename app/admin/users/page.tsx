@@ -47,7 +47,8 @@ export default function AdminUsersPage() {
     });
     const [stats, setStats] = useState({
         users: 0,
-        graduated: 0
+        graduated: 0,
+        admins: 0
     });
 
     // Form State
@@ -360,7 +361,7 @@ export default function AdminUsersPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
                     {[
                         { label: 'Total Users', value: stats.users, icon: <FaUsers />, color: 'primary', desc: 'Active Database' },
-                        { label: 'Admins', value: users.filter(u => u.isAdmin).length, icon: <FaUserShield />, color: 'blue', desc: 'System Oversight' },
+                        { label: 'Admins', value: stats.admins, icon: <FaUserShield />, color: 'blue', desc: 'System Oversight' },
                         { label: 'Graduated', value: stats.graduated, icon: <FaCheckCircle />, color: 'emerald', desc: 'Alumni Students' }
                     ].map((s, i) => (
                         <motion.div
