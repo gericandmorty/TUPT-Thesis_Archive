@@ -51,7 +51,10 @@ export default function AdminCollaborationPage() {
             });
             const data = await res.json();
             if (data.success) {
-                setCollaborations(data.data);
+                const activeCollaborations = (data.data || []).filter(
+                    (collab: any) => collab.alumni && collab.undergrad
+                );
+                setCollaborations(activeCollaborations);
             } else {
                 toast.error(data.message);
             }
