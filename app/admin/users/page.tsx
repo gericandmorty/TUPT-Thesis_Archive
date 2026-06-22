@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaUsers, FaArrowLeft, FaUserShield, FaUser, FaTrash, FaCheckCircle, FaExclamationCircle, FaPlus, FaChevronLeft, FaChevronRight, FaTimes, FaSearch, FaEdit } from 'react-icons/fa';
+import { FaUsers, FaArrowLeft, FaUserShield, FaUser, FaTrash, FaCheckCircle, FaExclamationCircle, FaPlus, FaChevronLeft, FaChevronRight, FaTimes, FaSearch, FaEdit, FaGraduationCap } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import AdminTableSkeleton from '@/app/components/UI/skeleton_loaders/admin/AdminTableSkeleton';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,6 +59,7 @@ export default function AdminUsersPage() {
         password: '',
         isAdmin: false,
         isGraduate: false,
+        isProfessor: false,
         isApproved: true
     });
 
@@ -157,16 +158,20 @@ export default function AdminUsersPage() {
         e.preventDefault();
         setIsSubmitting(true);
         try {
+            const payload = {
+                ...formData,
+                birthdate: formData.birthdate || null
+            };
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             if (res.ok) {
                 toast.success('User created successfully');
                 setIsAddModalOpen(false);
-                setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false, isGraduate: false, isApproved: true });
+                setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false, isGraduate: false, isProfessor: false, isApproved: true });
                 fetchUsers(1);
                 fetchStats();
             } else {
@@ -185,7 +190,8 @@ export default function AdminUsersPage() {
         setIsSubmitting(true);
         try {
             const { password, ...dataToSubmit } = formData as any;
-            const payload = formData.password ? formData : dataToSubmit;
+            const payload = formData.password ? { ...formData } : { ...dataToSubmit };
+            payload.birthdate = payload.birthdate || null;
 
             const token = localStorage.getItem('token');
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/users/${editingUser._id}`, {
@@ -222,6 +228,7 @@ export default function AdminUsersPage() {
             password: '',
             isAdmin: user.isAdmin,
             isGraduate: user.isGraduate,
+            isProfessor: user.isProfessor || false,
             isApproved: user.isApproved !== undefined ? user.isApproved : true
         });
         setIsEditModalOpen(true);
@@ -408,7 +415,7 @@ export default function AdminUsersPage() {
 
                     <button
                         onClick={() => {
-                            setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false, isGraduate: false, isApproved: true });
+                            setFormData({ name: '', idNumber: '', birthdate: '', password: '', isAdmin: false, isGraduate: false, isProfessor: false, isApproved: true });
                             setIsAddModalOpen(true);
                         }}
                         className="flex items-center justify-center gap-4 px-10 py-5 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-primary/90 transition-all shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
@@ -462,9 +469,21 @@ export default function AdminUsersPage() {
                                             </td>
                                             <td className="px-8 py-8">
                                                 <div className="flex flex-col gap-2">
-                                                    <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2 w-fit border shadow-sm ${user.isAdmin ? 'bg-primary/5 text-primary border-primary/20' : 'bg-white/5 text-white/40 border-white/5'}`}>
-                                                        {user.isAdmin ? <FaUserShield className="text-[10px]" /> : <FaUser className="text-[10px]" />}
-                                                        {user.isAdmin ? 'Administrator' : 'Researcher'}
+                                                    <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2 w-fit border shadow-sm ${
+                                                        user.isAdmin 
+                                                            ? 'bg-primary/5 text-primary border-primary/20' 
+                                                            : user.isProfessor 
+                                                                ? 'bg-blue-500/5 text-blue-400 border-blue-500/20' 
+                                                                : 'bg-white/5 text-white/40 border-white/5'
+                                                    }`}>
+                                                        {user.isAdmin ? (
+                                                            <FaUserShield className="text-[10px]" />
+                                                        ) : user.isProfessor ? (
+                                                            <FaGraduationCap className="text-[10px]" />
+                                                        ) : (
+                                                            <FaUser className="text-[10px]" />
+                                                        )}
+                                                        {user.isAdmin ? 'Administrator' : user.isProfessor ? 'Faculty' : 'Researcher'}
                                                     </span>
                                                     {user.isGraduate && (
                                                         <span className="px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-2 w-fit border shadow-sm bg-emerald-500/5 text-emerald-400 border-emerald-500/20">
@@ -617,9 +636,9 @@ export default function AdminUsersPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Date of Birth</label>
+                                        <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Date of Birth (Optional)</label>
                                         <input
-                                            type="date" required
+                                            type="date"
                                             value={formData.birthdate}
                                             onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
                                             className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white invert-[0.8] brightness-[0.8]"
@@ -653,12 +672,25 @@ export default function AdminUsersPage() {
                                             type="checkbox"
                                             id="isGraduate"
                                             checked={formData.isGraduate}
-                                            onChange={(e) => setFormData({ ...formData, isGraduate: e.target.checked })}
+                                            onChange={(e) => setFormData({ ...formData, isGraduate: e.target.checked, isProfessor: e.target.checked ? false : formData.isProfessor })}
                                             className="w-5 h-5 text-emerald-500 bg-white/5 border-white/10 rounded focus:ring-emerald-400/40 focus:ring-offset-0 transition-all"
                                         />
                                         <div>
                                             <label htmlFor="isGraduate" className="block text-[11px] font-bold text-emerald-400/80 uppercase tracking-wider mb-0.5">Graduation Status</label>
                                             <p className="text-[9px] text-emerald-400/40 font-medium uppercase tracking-tight">Mark as alumni/graduated</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10">
+                                        <input
+                                            type="checkbox"
+                                            id="isProfessor"
+                                            checked={formData.isProfessor}
+                                            onChange={(e) => setFormData({ ...formData, isProfessor: e.target.checked, isGraduate: e.target.checked ? false : formData.isGraduate })}
+                                            className="w-5 h-5 text-blue-500 bg-white/5 border-white/10 rounded focus:ring-blue-400/40 focus:ring-offset-0 transition-all"
+                                        />
+                                        <div>
+                                            <label htmlFor="isProfessor" className="block text-[11px] font-bold text-blue-400/80 uppercase tracking-wider mb-0.5">Faculty Status</label>
+                                            <p className="text-[9px] text-blue-400/40 font-medium uppercase tracking-tight">Mark as faculty/professor</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4 p-4 bg-amber-500/5 rounded-2xl border border-amber-500/10">
@@ -732,9 +764,9 @@ export default function AdminUsersPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Record Date of Birth</label>
+                                        <label className="block text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-2 ml-1">Record Date of Birth (Optional)</label>
                                         <input
-                                            type="date" required
+                                            type="date"
                                             value={formData.birthdate}
                                             onChange={(e) => setFormData({ ...formData, birthdate: e.target.value })}
                                             className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all text-sm text-white invert-[0.8] brightness-[0.8]"
@@ -760,12 +792,26 @@ export default function AdminUsersPage() {
                                                 type="checkbox"
                                                 id="isGraduateEdit"
                                                 checked={formData.isGraduate}
-                                                onChange={(e) => setFormData({ ...formData, isGraduate: e.target.checked })}
+                                                onChange={(e) => setFormData({ ...formData, isGraduate: e.target.checked, isProfessor: e.target.checked ? false : formData.isProfessor })}
                                                 className="w-5 h-5 text-emerald-500 bg-white/5 border-white/10 rounded focus:ring-emerald-400/40 focus:ring-offset-0 transition-all"
                                             />
                                             <div>
                                                 <label htmlFor="isGraduateEdit" className="block text-[11px] font-bold text-emerald-400/80 uppercase tracking-wider mb-0.5">Alumni Status</label>
                                                 <p className="text-[9px] text-emerald-400/40 font-medium uppercase tracking-tight">Mark student as graduated</p>
+                                            </div>
+                                        </div>
+                                        <div className="h-px bg-white/[0.05] w-full" />
+                                        <div className="flex items-center gap-4">
+                                            <input
+                                                type="checkbox"
+                                                id="isProfessorEdit"
+                                                checked={formData.isProfessor}
+                                                onChange={(e) => setFormData({ ...formData, isProfessor: e.target.checked, isGraduate: e.target.checked ? false : formData.isGraduate })}
+                                                className="w-5 h-5 text-blue-500 bg-white/5 border-white/10 rounded focus:ring-blue-400/40 focus:ring-offset-0 transition-all"
+                                            />
+                                            <div>
+                                                <label htmlFor="isProfessorEdit" className="block text-[11px] font-bold text-blue-400/80 uppercase tracking-wider mb-0.5">Faculty Status</label>
+                                                <p className="text-[9px] text-blue-400/40 font-medium uppercase tracking-tight">Mark user as faculty/professor</p>
                                             </div>
                                         </div>
                                         <div className="h-px bg-white/[0.05] w-full" />
