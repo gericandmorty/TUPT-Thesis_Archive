@@ -122,17 +122,18 @@ const DocumentsPage: React.FC = () => {
 
     const validateAndSetFile = (file: File) => {
         const allowedTypes = [
-            'application/pdf',
             'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'text/plain'
         ];
+        const allowedExtensions = ['.doc', '.docx', '.txt'];
+        const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
 
-        if (allowedTypes.includes(file.type)) {
+        if ((allowedTypes.includes(file.type) || allowedExtensions.includes(fileExtension)) && fileExtension !== '.pdf') {
             setSelectedFile(file);
             setAnalysisResult(null); // Reset previous analysis
         } else {
-            toast.error('Invalid file type. Please upload a PDF, DOCX, or TXT file.');
+            toast.error('Invalid file type. Please upload a DOCX or TXT file.');
         }
     };
 
