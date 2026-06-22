@@ -101,7 +101,7 @@ const UploadSection: React.FC<UploadSectionProps> = ({
                                         ref={fileInputRef}
                                         onChange={onFileSelect}
                                         className="hidden"
-                                        accept=".pdf,.doc,.docx,.txt"
+                                        accept=".doc,.docx,.txt"
                                     />
                                     
                                     <button
@@ -112,7 +112,6 @@ const UploadSection: React.FC<UploadSectionProps> = ({
                                     </button>
                                     
                                     <div className="mt-8 flex items-center justify-center gap-3">
-                                        <span className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[8px] font-black text-white/40 uppercase tracking-widest">PDF</span>
                                         <span className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[8px] font-black text-white/40 uppercase tracking-widest">DOCX</span>
                                         <span className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[8px] font-black text-white/40 uppercase tracking-widest">TXT</span>
                                     </div>

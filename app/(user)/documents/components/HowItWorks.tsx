@@ -14,7 +14,7 @@ const HowItWorks: React.FC = () => {
                     {
                         icon: <FaFileAlt className="text-2xl text-[#2DD4BF]" />,
                         title: "Smart Extraction",
-                        desc: "Our 'Digital Readers' carefully scan your PDF or DOCX, preserving every sentence and page layout precisely.",
+                        desc: "Our 'Digital Readers' carefully scan your DOCX, preserving every sentence and page layout precisely.",
                         tech: "Powered by mammoth & pdf-parse"
                     },
                     {
