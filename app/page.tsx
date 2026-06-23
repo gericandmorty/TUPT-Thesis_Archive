@@ -16,6 +16,8 @@ import {
   FaRocket,
   FaRobot,
   FaFileUpload,
+  FaAndroid,
+  FaDownload,
 } from 'react-icons/fa';
 import Link from 'next/link';
 import LottieLoader from '@/app/components/UI/LottieLoader';
@@ -127,6 +129,111 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* ════════════════════════════════════════════
+          MOBILE APP SECTION
+      ════════════════════════════════════════════ */}
+      <section className="py-32 px-6 bg-gradient-to-br from-[#1E1E2E] via-[#262637] to-[#1E1E2E] overflow-hidden border-t border-white/5 relative">
+        {/* Decorative background glows */}
+        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+
+            {/* LEFT SIDE: App Info and Download */}
+            <motion.div
+              className="flex-1 space-y-8 text-left"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: false, amount: 0.3 }}
+              variants={fadeLeft}
+              transition={{ duration: 0.8, ease: smoothEase }}
+            >
+
+
+              <h2 className="text-4xl md:text-7xl font-black tracking-tighter leading-[0.9] text-white uppercase">
+                TUPT Archive <br />
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary animate-gradient">
+                  On The Go
+                </span>
+              </h2>
+
+              <p className="text-xl text-text-dim leading-relaxed font-normal text-subtle">
+                Access the Technological University of the Philippines Taguig Thesis Archive right from your mobile device. Browse research papers, upload documents, and leverage AI analysis on your phone.
+              </p>
+
+              {/* Mobile App Highlights */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+                {[
+                  'Instant PDF Uploads',
+                  'Optimized Mobile Search',
+                  'Secure Student Access',
+                  'Academic Title Generator'
+                ].map((highlight, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <FaCheckCircle className="text-primary flex-shrink-0" />
+                    <span className="text-sm text-foreground/90 font-medium">{highlight}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-6">
+                <a
+                  href="/assets/apk/tupt-thesisv1.3.0.apk"
+                  download="tupt-thesisv1.3.0.apk"
+                  className="flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-secondary/90 text-background font-bold rounded-2xl shadow-[0_4px_20px_rgba(45,212,191,0.25)] hover:shadow-[0_4px_30px_rgba(45,212,191,0.4)] transition-all duration-300 transform hover:-translate-y-0.5 text-center cursor-pointer"
+                >
+                  <FaDownload className="text-lg" />
+                  <span>Download APK</span>
+                </a>
+
+                <span className="text-[11px] text-text-dim font-medium max-w-xs leading-normal">
+                  Requires Android 8.0 or above. You may need to enable &quot;Install from Unknown Sources&quot; in settings.
+                </span>
+              </div>
+            </motion.div>
+
+            {/* RIGHT SIDE: QR Code Framing */}
+            <motion.div
+              className="flex-1 w-full max-w-md"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: false, amount: 0.3 }}
+              variants={fadeRight}
+              transition={{ duration: 0.8, ease: smoothEase, delay: 0.15 }}
+            >
+              <div className="bg-card/40 backdrop-blur-md rounded-[2.5rem] p-8 sm:p-12 border border-border-custom relative overflow-hidden group shadow-2xl">
+                {/* Decorative border highlight */}
+                <div className="absolute inset-0 border border-primary/20 rounded-[2.5rem] pointer-events-none group-hover:border-primary/40 transition-all duration-500" />
+
+                <div className="flex flex-col items-center text-center space-y-6">
+                  {/* QR Code Container with scan lines */}
+                  <div className="relative p-6 bg-white rounded-3xl shadow-inner max-w-[240px] mx-auto overflow-hidden">
+                    <img
+                      src="/assets/qr/qr.png"
+                      alt="TUPT Thesis Android Download QR Code"
+                      className="w-full h-auto"
+                    />
+                    {/* Scanner line animation */}
+                    <div className="absolute inset-x-0 h-0.5 bg-primary/70 shadow-[0_0_10px_#2DD4BF] animate-scan pointer-events-none" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-bold uppercase tracking-tight text-white">
+                      Scan to Download
+                    </h3>
+                    <p className="text-xs text-text-dim max-w-xs mx-auto leading-relaxed">
+                      Scan this QR code with your Android device&apos;s camera or QR reader to download the app directly.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════
           FEATURE SECTIONS — alternating left/right
       ════════════════════════════════════════════ */}
       {features.map((feat, i) => {
@@ -152,7 +259,7 @@ const LandingPage: React.FC = () => {
                     {feat.title}
                   </h2>
                   <div className="w-16 h-1 rounded-full" style={{ backgroundColor: feat.color }} />
-                  
+
                   {/* For Lottie features, move text here */}
                   {feat.lottieType && (
                     <div className="space-y-6 pt-6">
