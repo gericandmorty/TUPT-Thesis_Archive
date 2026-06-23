@@ -168,79 +168,219 @@ const ApprovalsPage = () => {
                                     transition={{ delay: index * 0.1 }}
                                     className="group relative bg-[#0F172A]/40 hover:bg-[#0F172A]/60 border border-white/[0.03] hover:border-white/10 rounded-xl p-10 transition-all duration-500"
                                 >
-                                    <div className="flex flex-col lg:flex-row gap-12">
-                                        {/* Info Block */}
-                                        <div className="flex-1 space-y-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="px-3 py-1 bg-white/[0.03] border border-white/10 rounded-sm">
-                                                    <span className="text-[9px] font-bold text-primary/70 uppercase tracking-[0.2em]">{thesis.course}</span>
+                                    {thesis.hasDuplicate ? (
+                                        <div className="flex flex-col gap-6 w-full">
+                                            {/* Alert Banner */}
+                                            <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-300 text-xs font-bold uppercase tracking-wider">
+                                                <span className="text-base animate-pulse">⚠️</span>
+                                                <span>Duplicate Title Alert: Professor, a thesis with this exact title already exists in the system. Submissions are arranged side-by-side for comparison.</span>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
+                                                {/* Left Column: Thesis Under Review */}
+                                                <div className="bg-[#0F172A]/45 border-2 border-amber-500/40 rounded-xl p-8 flex flex-col justify-between relative shadow-[0_0_25px_rgba(245,158,11,0.12)]">
+                                                    <div className="absolute top-4 right-4 px-2 py-0.5 bg-primary/10 border border-primary/30 text-primary text-[8px] font-bold rounded uppercase tracking-widest">
+                                                        Under Review
+                                                    </div>
+                                                    
+                                                    <div className="space-y-6 flex-grow">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="px-3 py-1 bg-white/[0.03] border border-white/10 rounded-sm">
+                                                                <span className="text-[9px] font-bold text-primary/70 uppercase tracking-[0.2em]">{thesis.course}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-white/20">
+                                                                <FaCalendarAlt className="text-[10px]" />
+                                                                <span className="text-[10px] font-bold tracking-[0.2em]">{thesis.year_range}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <h3 className="text-xl font-bold text-amber-400 tracking-tight hover:text-amber-300 transition-colors cursor-pointer leading-snug flex items-start gap-2"
+                                                                onClick={() => router.push(`/search_result?id=${thesis._id}`)}
+                                                            >
+                                                                <span className="text-amber-500 shrink-0">⚠️</span>
+                                                                <span>{thesis.title}</span>
+                                                            </h3>
+                                                            <div className="flex items-center gap-3 text-white/40">
+                                                                <FaGraduationCap className="text-xs text-primary/40" />
+                                                                <span className="text-xs font-medium uppercase tracking-widest">{thesis.author}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        <p className="text-white/30 text-xs leading-relaxed line-clamp-4 font-light italic">
+                                                            "{thesis.abstract}"
+                                                        </p>
+                                                    </div>
+
+                                                    {/* Actions inline for this column */}
+                                                    <div className="mt-8 pt-6 border-t border-white/5 flex flex-wrap items-center justify-between gap-4">
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => router.push(`/search_result?id=${thesis._id}`)}
+                                                                className="w-10 h-10 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-primary/40 transition-all group/btn"
+                                                                title="Detailed View"
+                                                            >
+                                                                <FaEye className="text-white/30 group-hover/btn:text-white transition-colors text-xs" />
+                                                            </button>
+
+                                                            {thesis.attachments && thesis.attachments.length > 0 && (
+                                                                <button
+                                                                    onClick={() => openAttachments(thesis.attachments)}
+                                                                    className="w-10 h-10 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center hover:bg-primary/20 hover:border-primary/40 transition-all group/btn"
+                                                                    title="Supporting Documents"
+                                                                >
+                                                                    <FaFileImage className="text-primary/60 group-hover/btn:text-primary transition-colors text-xs" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => handleDisapprove(thesis._id, thesis.title)}
+                                                                className="px-4 py-2 rounded-sm bg-transparent border border-red-500/20 text-red-500/60 hover:bg-red-500/10 hover:text-red-500 transition-all font-bold text-[9px] uppercase tracking-[0.2em]"
+                                                            >
+                                                                Reject
+                                                            </button>
+
+                                                            {!thesis.isProfApproved && (
+                                                                <button
+                                                                    onClick={() => handleApprove(thesis._id, thesis.title)}
+                                                                    className="px-4 py-2 rounded-sm bg-primary text-[#0F172A] hover:bg-primary/90 hover:shadow-primary/20 transition-all font-bold text-[9px] uppercase tracking-[0.2em]"
+                                                                >
+                                                                    Approve
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-white/20">
-                                                    <FaCalendarAlt className="text-[10px]" />
-                                                    <span className="text-[10px] font-bold tracking-[0.2em]">{thesis.year_range}</span>
-                                                </div>
-                                                <div className="h-px flex-1 bg-white/5" />
-                                                <div className={`px-3 py-1 rounded-sm text-[8px] font-black uppercase tracking-widest ${thesis.isProfApproved ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
-                                                    {thesis.isProfApproved ? 'Validated' : 'Pending Review'}
+
+                                                {/* Right Column: Existing/Duplicate Theses in Database */}
+                                                <div className="flex flex-col gap-4">
+                                                    {thesis.duplicates.map((dup: any) => (
+                                                        <div key={dup._id} className="bg-[#0F172A]/20 border-2 border-amber-500/20 rounded-xl p-8 flex flex-col justify-between relative flex-grow shadow-[0_0_15px_rgba(245,158,11,0.06)]">
+                                                            <div className={`absolute top-4 right-4 px-2 py-0.5 text-[8px] font-bold rounded uppercase tracking-widest ${dup.isApproved ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'}`}>
+                                                                {dup.isApproved ? 'Archived (Approved)' : 'Pending elsewhere'}
+                                                            </div>
+
+                                                            <div className="space-y-4">
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="px-3 py-1 bg-white/[0.01] border border-white/5 rounded-sm">
+                                                                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.2em]">{dup.course}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 text-white/20">
+                                                                        <FaCalendarAlt className="text-[10px]" />
+                                                                        <span className="text-[10px] font-bold tracking-[0.2em]">{dup.year_range}</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    <h4 className="text-lg font-semibold text-amber-300/90 leading-snug">
+                                                                        {dup.title}
+                                                                    </h4>
+                                                                    <div className="flex items-center gap-3 text-white/30">
+                                                                        <FaGraduationCap className="text-xs" />
+                                                                        <span className="text-xs font-medium uppercase tracking-widest">{dup.author}</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                <p className="text-white/20 text-[11px] leading-relaxed line-clamp-4 font-light italic">
+                                                                    "{dup.abstract}"
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
+                                                                <button
+                                                                    onClick={() => router.push(`/search_result?id=${dup._id}`)}
+                                                                    className="w-10 h-10 rounded-full bg-white/[0.01] border border-white/5 flex items-center justify-center hover:bg-white/10 hover:border-primary/40 transition-all group/btn"
+                                                                    title="Detailed View"
+                                                                >
+                                                                    <FaEye className="text-white/30 group-hover/btn:text-white transition-colors text-xs" />
+                                                                </button>
+                                                                
+                                                                <span className="text-[9px] font-bold text-amber-500/60 uppercase tracking-[0.2em] flex items-center gap-1.5 animate-pulse">
+                                                                    ⚠️ Database Duplicate
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
-
-                                            <div className="space-y-3">
-                                                <h3 className="text-2xl font-light text-white tracking-tight hover:text-primary transition-colors cursor-pointer leading-snug"
-                                                    onClick={() => router.push(`/search_result?id=${thesis._id}`)}
-                                                >
-                                                    {thesis.title}
-                                                </h3>
-                                                <div className="flex items-center gap-3 text-white/40">
-                                                    <FaGraduationCap className="text-xs text-primary/40" />
-                                                    <span className="text-xs font-medium uppercase tracking-widest">{thesis.author}</span>
-                                                </div>
-                                            </div>
-
-                                            <p className="text-white/30 text-sm leading-relaxed line-clamp-3 font-light italic">
-                                                "{thesis.abstract}"
-                                            </p>
                                         </div>
+                                    ) : (
+                                        <div className="flex flex-col lg:flex-row gap-12">
+                                            {/* Info Block */}
+                                            <div className="flex-1 space-y-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="px-3 py-1 bg-white/[0.03] border border-white/10 rounded-sm">
+                                                        <span className="text-[9px] font-bold text-primary/70 uppercase tracking-[0.2em]">{thesis.course}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-white/20">
+                                                        <FaCalendarAlt className="text-[10px]" />
+                                                        <span className="text-[10px] font-bold tracking-[0.2em]">{thesis.year_range}</span>
+                                                    </div>
+                                                    <div className="h-px flex-1 bg-white/5" />
+                                                    <div className={`px-3 py-1 rounded-sm text-[8px] font-black uppercase tracking-widest ${thesis.isProfApproved ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                                                        {thesis.isProfApproved ? 'Validated' : 'Pending Review'}
+                                                    </div>
+                                                </div>
 
-                                        {/* Action Block */}
-                                        <div className="flex flex-row lg:flex-col items-center justify-center gap-4 shrink-0 border-l border-white/5 pl-0 lg:pl-12">
-                                            <div className="flex gap-3 mb-0 lg:mb-4">
+                                                <div className="space-y-3">
+                                                    <h3 className="text-2xl font-light text-white tracking-tight hover:text-primary transition-colors cursor-pointer leading-snug"
+                                                        onClick={() => router.push(`/search_result?id=${thesis._id}`)}
+                                                    >
+                                                        {thesis.title}
+                                                    </h3>
+                                                    <div className="flex items-center gap-3 text-white/40">
+                                                        <FaGraduationCap className="text-xs text-primary/40" />
+                                                        <span className="text-xs font-medium uppercase tracking-widest">{thesis.author}</span>
+                                                    </div>
+                                                </div>
+
+                                                <p className="text-white/30 text-sm leading-relaxed line-clamp-3 font-light italic">
+                                                    "{thesis.abstract}"
+                                                </p>
+                                            </div>
+
+                                            {/* Action Block */}
+                                            <div className="flex flex-row lg:flex-col items-center justify-center gap-4 shrink-0 border-l border-white/5 pl-0 lg:pl-12">
+                                                <div className="flex gap-3 mb-0 lg:mb-4">
+                                                    <button
+                                                        onClick={() => router.push(`/search_result?id=${thesis._id}`)}
+                                                        className="w-11 h-11 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-primary/40 transition-all group/btn"
+                                                        title="Detailed View"
+                                                    >
+                                                        <FaEye className="text-white/30 group-hover/btn:text-white transition-colors text-sm" />
+                                                    </button>
+
+                                                    {thesis.attachments && thesis.attachments.length > 0 && (
+                                                        <button
+                                                            onClick={() => openAttachments(thesis.attachments)}
+                                                            className="w-11 h-11 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center hover:bg-primary/20 hover:border-primary/40 transition-all group/btn"
+                                                            title="Supporting Documents"
+                                                        >
+                                                            <FaFileImage className="text-primary/60 group-hover/btn:text-primary transition-colors text-sm" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                
                                                 <button
-                                                    onClick={() => router.push(`/search_result?id=${thesis._id}`)}
-                                                    className="w-11 h-11 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-primary/40 transition-all group/btn"
-                                                    title="Detailed View"
+                                                    onClick={() => handleDisapprove(thesis._id, thesis.title)}
+                                                    className="w-full lg:w-32 py-3 rounded-sm bg-transparent border border-red-500/20 text-red-500/60 hover:bg-red-500/10 hover:text-red-500 transition-all font-bold text-[9px] uppercase tracking-[0.2em]"
                                                 >
-                                                    <FaEye className="text-white/30 group-hover/btn:text-white transition-colors text-sm" />
+                                                    Reject
                                                 </button>
 
-                                                {thesis.attachments && thesis.attachments.length > 0 && (
+                                                {!thesis.isProfApproved && (
                                                     <button
-                                                        onClick={() => openAttachments(thesis.attachments)}
-                                                        className="w-11 h-11 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center hover:bg-primary/20 hover:border-primary/40 transition-all group/btn"
-                                                        title="Supporting Documents"
+                                                        onClick={() => handleApprove(thesis._id, thesis.title)}
+                                                        className="w-full lg:w-32 py-3 rounded-sm bg-primary text-[#0F172A] hover:bg-primary/90 hover:shadow-primary/20 transition-all font-bold text-[9px] uppercase tracking-[0.2em] shadow-xl"
                                                     >
-                                                        <FaFileImage className="text-primary/60 group-hover/btn:text-primary transition-colors text-sm" />
+                                                        Approve
                                                     </button>
                                                 )}
                                             </div>
-                                            
-                                            <button
-                                                onClick={() => handleDisapprove(thesis._id, thesis.title)}
-                                                className="w-full lg:w-32 py-3 rounded-sm bg-transparent border border-red-500/20 text-red-500/60 hover:bg-red-500/10 hover:text-red-500 transition-all font-bold text-[9px] uppercase tracking-[0.2em]"
-                                            >
-                                                Reject
-                                            </button>
-
-                                            {!thesis.isProfApproved && (
-                                                <button
-                                                    onClick={() => handleApprove(thesis._id, thesis.title)}
-                                                    className="w-full lg:w-32 py-3 rounded-sm bg-primary text-[#0F172A] hover:bg-primary/90 hover:shadow-primary/20 transition-all font-bold text-[9px] uppercase tracking-[0.2em] shadow-xl"
-                                                >
-                                                    Approve
-                                                </button>
-                                            )}
                                         </div>
-                                    </div>
+                                    )}
                                 </motion.div>
                             ))}
                         </AnimatePresence>
