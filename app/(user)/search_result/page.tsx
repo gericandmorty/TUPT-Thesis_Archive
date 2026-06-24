@@ -50,6 +50,7 @@ interface Thesis {
     createdBy?: string;
     hasRequestedCollaboration?: boolean;
     attachments?: string[];
+    downloads?: number;
 }
 
 const SearchResultContent = () => {
@@ -84,6 +85,7 @@ const SearchResultContent = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     // IEEE & ACM Filter states
+    const [keywordFilter, setKeywordFilter] = useState('');
     const [isOpenAccessOnly, setIsOpenAccessOnly] = useState(false);
     const [yearFilterMode, setYearFilterMode] = useState<'range' | 'single'>('range');
     const [minYearInput, setMinYearInput] = useState('');
@@ -96,7 +98,8 @@ const SearchResultContent = () => {
         show: true,
         year: true,
         author: true,
-        course: true
+        course: true,
+        keyword: true
     });
     const [expandedAbstracts, setExpandedAbstracts] = useState<Record<string, boolean>>({});
     const [selectedResults, setSelectedResults] = useState<Record<string, boolean>>({});
@@ -130,6 +133,7 @@ const SearchResultContent = () => {
         setSelectedAuthors([]);
         setExpandedAbstracts({});
         setSelectedResults({});
+        setKeywordFilter('');
     }, [query]);
 
     useEffect(() => {
@@ -138,6 +142,17 @@ const SearchResultContent = () => {
             setCurrentUser(JSON.parse(userData));
         }
     }, []);
+
+    useEffect(() => {
+        if (isLoadingAi || isLoadingLocal || loading) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isLoadingAi, isLoadingLocal, loading]);
 
     const isUndergrad = currentUser && !currentUser.isGraduate && !currentUser.isProfessor && !currentUser.isAdmin;
     const isApprover = currentUser?.isProfessor || currentUser?.isAdmin;
@@ -318,6 +333,32 @@ const SearchResultContent = () => {
         } catch (err) { console.error(err); }
     };
 
+    const incrementLocalDownloadCount = (thesisId: string) => {
+        setResults(prev => prev.map(t => 
+            (t._id === thesisId || t.id === thesisId) ? { ...t, downloads: (t.downloads || 0) + 1 } : t
+        ));
+        if (singleThesis && (singleThesis._id === thesisId || singleThesis.id === thesisId)) {
+            setSingleThesis(prev => prev ? { ...prev, downloads: (prev.downloads || 0) + 1 } : null);
+        }
+    };
+
+    const handleDownloadClick = async (thesis: Thesis) => {
+        try {
+            const token = localStorage.getItem('token');
+            const targetId = thesis._id || thesis.id;
+            incrementLocalDownloadCount(targetId);
+            
+            await fetch(`${API_BASE_URL}/thesis/${targetId}/download`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
+        } catch (err) {
+            console.error('Failed to increment download count:', err);
+        }
+    };
+
     const handleRequestCollaboration = async () => {
         if (!collaborationMessage.trim()) {
             toast.error('Please enter a message for your collaboration request.');
@@ -379,20 +420,26 @@ const SearchResultContent = () => {
             .replace(/&mdash;/g, "—");
     };
 
-    const highlightText = (text: string | undefined, searchWord: string | null) => {
+    const highlightText = (text: string | undefined, searchWord: string | null, secondWord?: string | null) => {
         const sanitized = sanitizeText(text);
-        if (!searchWord) return sanitized;
-        const cleanQuery = searchWord.trim();
-        if (!cleanQuery) return sanitized;
+        if (!sanitized) return '';
         
-        // Escape special regex characters
-        const escapedQuery = cleanQuery.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-        const regex = new RegExp(`(${escapedQuery})`, 'gi');
+        const wordsToHighlight: string[] = [];
+        if (searchWord && searchWord.trim()) wordsToHighlight.push(searchWord.trim());
+        if (secondWord && secondWord.trim()) wordsToHighlight.push(secondWord.trim());
+        
+        if (wordsToHighlight.length === 0) return sanitized;
+        
+        const escapedWords = wordsToHighlight.map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
+        escapedWords.sort((a, b) => b.length - a.length);
+        
+        const pattern = `(${escapedWords.join('|')})`;
+        const regex = new RegExp(pattern, 'gi');
         const parts = sanitized.split(regex);
         return (
             <>
                 {parts.map((part, index) =>
-                    regex.test(part) ? <span key={index} className="bg-teal-500/10 text-primary font-black px-0.5 rounded">{part}</span> : part
+                    regex.test(part) ? <span key={index} className="bg-teal-500/15 text-primary font-black px-0.5 rounded border border-primary/10 shadow-sm">{part}</span> : part
                 )}
             </>
         );
@@ -488,7 +535,16 @@ const SearchResultContent = () => {
             });
         }
 
-        // 5. Sorting
+        // 5. Keyword Filter (full phrase match)
+        if (keywordFilter.trim()) {
+            const lowerFilter = keywordFilter.trim().toLowerCase();
+            items = items.filter(t => 
+                (t.title && t.title.toLowerCase().includes(lowerFilter)) ||
+                (t.abstract && t.abstract.toLowerCase().includes(lowerFilter))
+            );
+        }
+
+        // 6. Sorting
         if (sortBy === 'newest') {
             items.sort((a, b) => {
                 const aYr = parseInt((a.year_range || '').match(/\d{4}/)?.[0] || '0');
@@ -504,6 +560,22 @@ const SearchResultContent = () => {
         }
 
         return items;
+    })();
+
+    const recommendedProjects = (() => {
+        const isFiltering = isOpenAccessOnly || appliedMinYear !== '' || appliedMaxYear !== '' || selectedCourses.length > 0 || selectedAuthors.length > 0 || keywordFilter.trim() !== '';
+        if (!isFiltering) return [];
+        
+        const filteredIds = new Set(sortedFilteredResults.map(r => r.id));
+        let candidates = results.filter(r => !filteredIds.has(r.id));
+        
+        if (candidates.length === 0) {
+            candidates = results.filter(r => filteredIds.has(r.id));
+        }
+        
+        return candidates
+            .sort((a: any, b: any) => (b.downloads || 0) - (a.downloads || 0))
+            .slice(0, 3);
     })();
 
     const handleCheckboxChange = (thesisId: string) => {
@@ -539,7 +611,7 @@ const SearchResultContent = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/30">
+        <div className="min-h-screen bg-transparent flex flex-col font-sans selection:bg-primary/30">
             {/* Header Navigation Area */}
             <div className="z-40 w-full pt-28 px-4 md:px-8 max-w-7xl mx-auto">
                 <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -699,6 +771,10 @@ const SearchResultContent = () => {
                                                 <span className="font-black text-[#999] uppercase tracking-widest">Accession Number</span>
                                                 <span className="font-bold uppercase">{singleThesis.id}</span>
                                             </div>
+                                            <div className="flex flex-col items-center gap-1 text-center">
+                                                <span className="font-black text-[#999] uppercase tracking-widest">Downloads</span>
+                                                <span className="font-bold uppercase">{singleThesis.downloads || 0}</span>
+                                            </div>
                                             <div className="flex flex-col items-end gap-1 text-right">
                                                 <span className="font-black text-[#999] uppercase tracking-widest">Course</span>
                                                 <span className="font-bold uppercase">{singleThesis.course}</span>
@@ -744,7 +820,8 @@ const SearchResultContent = () => {
                                                             key={i}
                                                             whileHover={{ y: -5 }}
                                                             className="group/attach relative aspect-[3/4] bg-white border border-stone-200 rounded-sm shadow-md overflow-hidden cursor-pointer"
-                                                            onClick={() => {
+                                                            onClick={async () => {
+                                                                await handleDownloadClick(singleThesis);
                                                                 const lowerUrl = url.toLowerCase();
                                                                 const isDoc = lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc') || lowerUrl.includes('/raw/upload/');
                                                                 const targetUrl = isDoc
@@ -801,6 +878,41 @@ const SearchResultContent = () => {
                             {/* LEFT SIDEBAR: FILTERS */}
                             <aside className="w-full lg:w-[280px] flex-shrink-0 flex flex-col gap-4">
                                 
+                                {/* Accordion: Keyword Filter */}
+                                <div className="bg-card border border-border-custom rounded-xl overflow-hidden shadow-sm">
+                                    <button
+                                        onClick={() => toggleAccordion('keyword')}
+                                        className="w-full px-5 py-4 flex items-center justify-between font-bold text-sm text-foreground hover:bg-white/[0.02] cursor-pointer"
+                                    >
+                                        <span>Keyword Filter</span>
+                                        {expandedAccordions.keyword ? <FaChevronUp className="text-xs text-gray-400" /> : <FaChevronDown className="text-xs text-gray-400" />}
+                                    </button>
+                                    
+                                    <AnimatePresence initial={false}>
+                                        {expandedAccordions.keyword && (
+                                            <motion.div
+                                                initial={{ height: 0 }}
+                                                animate={{ height: 'auto' }}
+                                                exit={{ height: 0 }}
+                                                className="overflow-hidden border-t border-border-custom"
+                                            >
+                                                <div className="p-5 flex flex-col gap-3">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Enter full phrase..."
+                                                            value={keywordFilter}
+                                                            onChange={(e) => setKeywordFilter(e.target.value)}
+                                                            className="w-full pl-8 pr-3 py-2 bg-surface border border-border-custom rounded-xl text-xs font-semibold text-foreground placeholder:text-gray-600 outline-none focus:border-primary"
+                                                        />
+                                                        <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500" />
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
                                 {/* Accordion: Show */}
                                 <div className="bg-card border border-border-custom rounded-xl overflow-hidden shadow-sm">
                                     <button
@@ -1145,7 +1257,7 @@ const SearchResultContent = () => {
                                                     <div className="flex items-start justify-between gap-4">
                                                         <h3 className="font-bold text-lg text-sky-400 hover:text-sky-300 leading-snug">
                                                             <Link href={`/search_result?id=${thesis.id}`} className="hover:underline transition-colors">
-                                                                {highlightText(thesis.title, query)}
+                                                                {highlightText(thesis.title, query, keywordFilter)}
                                                             </Link>
                                                         </h3>
                                                         
@@ -1170,7 +1282,7 @@ const SearchResultContent = () => {
 
                                                     {/* Metadata line */}
                                                     <div className="text-xs text-gray-400 mt-2 font-medium">
-                                                        Year: {thesis.year_range || 'Archive'} | Course: {thesis.course || 'General'} | Publisher: TUPT Digital Archives
+                                                        Year: {thesis.year_range || 'Archive'} | Course: {thesis.course || 'General'} | Downloads: {thesis.downloads || 0} | Publisher: TUPT Digital Archives
                                                     </div>
 
                                                     {/* Action Buttons Row */}
@@ -1196,8 +1308,9 @@ const SearchResultContent = () => {
                                                         {/* PDF Download Button */}
                                                         {thesis.attachments && thesis.attachments.length > 0 && (
                                                             <button
-                                                                onClick={(e) => {
+                                                                onClick={async (e) => {
                                                                     e.stopPropagation();
+                                                                    await handleDownloadClick(thesis);
                                                                     const url = thesis.attachments![0];
                                                                     const lowerUrl = url.toLowerCase();
                                                                     const isDoc = lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc') || lowerUrl.includes('/raw/upload/');
@@ -1253,8 +1366,8 @@ const SearchResultContent = () => {
                                                                 transition={{ duration: 0.25 }}
                                                                 className="overflow-hidden mt-3"
                                                             >
-                                                                <div className="text-xs leading-relaxed text-gray-300 text-justify bg-white/[0.01] p-4 rounded-xl border border-white/5">
-                                                                    {thesis.abstract}
+                                                                <div className="text-xs leading-relaxed text-gray-300 text-justify bg-white/[0.01] p-4 rounded-xl border border-white/5 whitespace-pre-line">
+                                                                    {highlightText(thesis.abstract, query, keywordFilter)}
                                                                 </div>
                                                             </motion.div>
                                                         )}
@@ -1262,10 +1375,91 @@ const SearchResultContent = () => {
                                                 </div>
                                             </div>
                                         ))}
+                                        
+                                        <div className="mt-8 mb-4 text-center">
+                                            <p className="text-xs text-gray-500 font-medium">
+                                                Not finding what you need?{" "}
+                                                <button
+                                                    onClick={handleRecommendByAi}
+                                                    className="text-primary hover:text-primary-hover font-bold hover:underline transition-all cursor-pointer inline-flex items-center gap-1.5 bg-transparent border-none p-0"
+                                                >
+                                                    <FaRobot className="text-[10px]" /> Let AI suggest titles and directions
+                                                </button>
+                                            </p>
+                                        </div>
                                     </div>
                                 ) : (
-                                    <div className="bg-card border border-border-custom rounded-xl p-12 text-center text-gray-400 font-medium text-xs">
-                                        No items match the active filter criteria. Try clearing some filters.
+                                    <div className="flex flex-col gap-4">
+                                        <div className="bg-card border border-border-custom rounded-xl p-12 text-center text-gray-400 font-medium text-xs">
+                                            No items match the active filter criteria. Try clearing some filters.
+                                        </div>
+                                        <div className="mt-4 mb-2 text-center">
+                                            <p className="text-xs text-gray-500 font-medium">
+                                                Not finding the right research?{" "}
+                                                <button
+                                                    onClick={handleRecommendByAi}
+                                                    className="text-primary hover:text-primary-hover font-bold hover:underline transition-all cursor-pointer inline-flex items-center gap-1.5 bg-transparent border-none p-0"
+                                                >
+                                                    <FaRobot className="text-[10px]" /> Let AI recommend titles and directions based on your search query
+                                                </button>
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Recommended Projects Section */}
+                                {recommendedProjects.length > 0 && (
+                                    <div className="mt-12 pt-8 border-t border-border-custom/30 animate-fade-in">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                                <FaMagic className="text-primary text-sm animate-pulse" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-base text-white">Recommended Projects</h3>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Related research papers from search & filters</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {recommendedProjects.map((thesis) => (
+                                                <div
+                                                    key={`rec-${thesis.id}`}
+                                                    className="bg-card rounded-xl border border-border-custom/50 hover:border-primary/20 p-5 flex flex-col justify-between transition-all duration-300 shadow-sm hover:shadow-md relative overflow-hidden group"
+                                                >
+                                                    <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    
+                                                    <div className="flex flex-col">
+                                                        <div className="flex items-start justify-between gap-2 mb-3">
+                                                            <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
+                                                                {thesis.course || 'General'}
+                                                            </span>
+                                                            <span className="text-[9px] font-bold text-gray-500">
+                                                                {thesis.year_range || 'Archive'}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <h4 className="font-bold text-xs text-sky-400 hover:text-sky-300 transition-colors line-clamp-2 mb-2">
+                                                            <Link href={`/search_result?id=${thesis.id}`}>
+                                                                {thesis.title}
+                                                            </Link>
+                                                        </h4>
+                                                        
+                                                        <p className="text-[10px] leading-relaxed text-gray-400 line-clamp-3 mb-4 text-justify">
+                                                            {thesis.abstract}
+                                                        </p>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center justify-between border-t border-white/[0.03] pt-3 text-[9px] font-bold text-gray-500">
+                                                        <span className="truncate max-w-[100px] italic">
+                                                            By {thesis.author ? thesis.author.split(/;\s*/)[0] : 'Academic Group'}
+                                                        </span>
+                                                        <span className="text-[#2DD4BF] flex items-center gap-1">
+                                                            {thesis.downloads || 0} downloads
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
 
