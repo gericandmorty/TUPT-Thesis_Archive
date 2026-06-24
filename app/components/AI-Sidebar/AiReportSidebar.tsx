@@ -142,24 +142,7 @@ ${recommendation.replace(/\*\*/g, '')}
 
                         {/* Content Sections */}
                         <div className="relative z-10 space-y-14 font-serif text-[#222]">
-                            {/* Similarity Section */}
-                            {similarity !== undefined && (
-                                <div className="border-l-4 border-amber-500 bg-amber-500/5 pl-8 pr-4 py-4 rounded-r-2xl border border-y-0 border-r-0 border-l-4 border-amber-500">
-                                    <h5 className="text-[12px] font-black uppercase tracking-[0.3em] text-amber-800 mb-4">SIMILARITY SCAN</h5>
-                                    <div className="flex items-baseline gap-4">
-                                        <span className={`text-4xl font-black ${similarity > 40 ? 'text-red-600' : 'text-emerald-600'}`}>{similarity}%</span>
-                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider pl-2">Matching Content</span>
-                                    </div>
-                                    {matchTitle && (
-                                        <div className="mt-4 text-sm text-[#1A1A1A] font-medium leading-relaxed border-t border-[#1A1A1A]/5 pt-4">
-                                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-1">Closest Matching Paper</span>
-                                            <span className="bg-amber-100 text-amber-950 font-black px-3 py-1.5 rounded-lg border border-amber-200/50 inline-block font-sans text-xs shadow-sm">
-                                                {matchTitle}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            )}                            {/* Analysis Body */}
+                            {/* Analysis Body */}
                             <div className="space-y-12 text-[15.5px] leading-[1.8]">
                                 {(() => {
                                     // Robust Section Splitter
@@ -204,15 +187,14 @@ ${recommendation.replace(/\*\*/g, '')}
                                     }
                                     const renderFormattedLine = (line: string, keyPrefix: string, isFirstParagraph?: boolean) => {
                                         const trimmed = line.trim();
-                                        
-                                        // 1. Recommendations header
-                                        if (/^recommendations?:?/i.test(trimmed)) {
-                                            return (
-                                                <h4 key={keyPrefix} className="text-lg font-black text-[#1A1A1A] uppercase tracking-[0.1em] mt-8 mb-4">
-                                                    {trimmed}
-                                                </h4>
-                                            );
-                                        }
+                                                                                // 1. Recommendations and other section headers
+                                         if (/^(recommendations|functional requirements|conclusion|analysis|improvements|final tip):?/i.test(trimmed)) {
+                                             return (
+                                                 <h4 key={keyPrefix} className="text-lg font-black text-[#1A1A1A] uppercase tracking-[0.1em] mt-8 mb-4">
+                                                     {trimmed}
+                                                 </h4>
+                                             );
+                                         }
                                         
                                         // 2. Numbered titles: e.g. "1. Title of Thesis" or list items
                                         if (/^\d+\./.test(trimmed)) {
@@ -319,6 +301,25 @@ ${recommendation.replace(/\*\*/g, '')}
                                     });
                                 })()}
                             </div>
+
+                            {/* Similarity Section */}
+                            {similarity !== undefined && (
+                                <div className="border-l-4 border-amber-500 bg-amber-500/5 pl-8 pr-4 py-4 rounded-r-2xl border border-y-0 border-r-0 border-l-4 border-amber-500">
+                                    <h5 className="text-[12px] font-black uppercase tracking-[0.3em] text-amber-800 mb-4">SIMILARITY SCAN</h5>
+                                    <div className="flex items-baseline gap-4">
+                                        <span className={`text-4xl font-black ${similarity > 40 ? 'text-red-600' : 'text-emerald-600'}`}>{similarity}%</span>
+                                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider pl-2">Matching Content</span>
+                                    </div>
+                                    {matchTitle && (
+                                        <div className="mt-4 text-sm text-[#1A1A1A] font-medium leading-relaxed border-t border-[#1A1A1A]/5 pt-4">
+                                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block mb-1">Closest Matching Paper</span>
+                                            <span className="bg-amber-100 text-amber-950 font-black px-3 py-1.5 rounded-lg border border-amber-200/50 inline-block font-sans text-xs shadow-sm">
+                                                {matchTitle}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Paper Footer */}

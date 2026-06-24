@@ -24,7 +24,10 @@ import {
     FaPaperclip,
     FaExternalLinkAlt,
     FaFilePdf,
-    FaFileWord
+    FaFileWord,
+    FaLock,
+    FaUnlock,
+    FaFilter
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import LottieLoader from '@/app/components/UI/LottieLoader';
@@ -47,6 +50,7 @@ interface Thesis {
     createdBy?: string;
     hasRequestedCollaboration?: boolean;
     attachments?: string[];
+    downloads?: number;
 }
 
 const SearchResultContent = () => {
@@ -78,7 +82,59 @@ const SearchResultContent = () => {
     const [collaborationThesis, setCollaborationThesis] = useState<Thesis | null>(null);
     const [collaborationMessage, setCollaborationMessage] = useState('');
     const [isSubmittingCollaboration, setIsSubmittingCollaboration] = useState(false);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+    // IEEE & ACM Filter states
+    const [keywordFilter, setKeywordFilter] = useState('');
+    const [isOpenAccessOnly, setIsOpenAccessOnly] = useState(false);
+    const [yearFilterMode, setYearFilterMode] = useState<'range' | 'single'>('range');
+    const [minYearInput, setMinYearInput] = useState('');
+    const [maxYearInput, setMaxYearInput] = useState('');
+    const [appliedMinYear, setAppliedMinYear] = useState('');
+    const [appliedMaxYear, setAppliedMaxYear] = useState('');
+    const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
+    const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
+    const [expandedAccordions, setExpandedAccordions] = useState<Record<string, boolean>>({
+        show: true,
+        year: true,
+        author: true,
+        course: true,
+        keyword: true
+    });
+    const [expandedAbstracts, setExpandedAbstracts] = useState<Record<string, boolean>>({});
+    const [selectedResults, setSelectedResults] = useState<Record<string, boolean>>({});
+    const [sortBy, setSortBy] = useState('relevance');
+    const [selectAll, setSelectAll] = useState(false);
+
+    const toggleAccordion = (name: string) => {
+        setExpandedAccordions(prev => ({ ...prev, [name]: !prev[name] }));
+    };
+
+    const toggleCourse = (courseName: string) => {
+        setSelectedCourses(prev =>
+            prev.includes(courseName) ? prev.filter(c => c !== courseName) : [...prev, courseName]
+        );
+    };
+
+    const toggleAuthor = (authorName: string) => {
+        setSelectedAuthors(prev =>
+            prev.includes(authorName) ? prev.filter(a => a !== authorName) : [...prev, authorName]
+        );
+    };
+
+    // Auto-reset filters when query/results change
+    useEffect(() => {
+        setIsOpenAccessOnly(false);
+        setMinYearInput('');
+        setMaxYearInput('');
+        setAppliedMinYear('');
+        setAppliedMaxYear('');
+        setSelectedCourses([]);
+        setSelectedAuthors([]);
+        setExpandedAbstracts({});
+        setSelectedResults({});
+        setKeywordFilter('');
+    }, [query]);
 
     useEffect(() => {
         const userData = localStorage.getItem('userData');
@@ -86,6 +142,17 @@ const SearchResultContent = () => {
             setCurrentUser(JSON.parse(userData));
         }
     }, []);
+
+    useEffect(() => {
+        if (isLoadingAi || isLoadingLocal || loading) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isLoadingAi, isLoadingLocal, loading]);
 
     const isUndergrad = currentUser && !currentUser.isGraduate && !currentUser.isProfessor && !currentUser.isAdmin;
     const isApprover = currentUser?.isProfessor || currentUser?.isAdmin;
@@ -266,6 +333,32 @@ const SearchResultContent = () => {
         } catch (err) { console.error(err); }
     };
 
+    const incrementLocalDownloadCount = (thesisId: string) => {
+        setResults(prev => prev.map(t => 
+            (t._id === thesisId || t.id === thesisId) ? { ...t, downloads: (t.downloads || 0) + 1 } : t
+        ));
+        if (singleThesis && (singleThesis._id === thesisId || singleThesis.id === thesisId)) {
+            setSingleThesis(prev => prev ? { ...prev, downloads: (prev.downloads || 0) + 1 } : null);
+        }
+    };
+
+    const handleDownloadClick = async (thesis: Thesis) => {
+        try {
+            const token = localStorage.getItem('token');
+            const targetId = thesis._id || thesis.id;
+            incrementLocalDownloadCount(targetId);
+            
+            await fetch(`${API_BASE_URL}/thesis/${targetId}/download`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
+        } catch (err) {
+            console.error('Failed to increment download count:', err);
+        }
+    };
+
     const handleRequestCollaboration = async () => {
         if (!collaborationMessage.trim()) {
             toast.error('Please enter a message for your collaboration request.');
@@ -312,8 +405,213 @@ const SearchResultContent = () => {
 
     const extractAuthors = (thesis: Thesis) => thesis.author || 'Institutional Submission';
 
+    // Highlight function
+    const sanitizeText = (text: string | undefined) => {
+        if (!text) return '';
+        return text
+            .replace(/Â€™/g, "'")
+            .replace(/Â€“/g, "—")
+            .replace(/Â/g, "")
+            .replace(/&lsquo;/g, "'")
+            .replace(/&rsquo;/g, "'")
+            .replace(/&ldquo;/g, '"')
+            .replace(/&rdquo;/g, '"')
+            .replace(/&ndash;/g, "—")
+            .replace(/&mdash;/g, "—");
+    };
+
+    const highlightText = (text: string | undefined, searchWord: string | null, secondWord?: string | null) => {
+        const sanitized = sanitizeText(text);
+        if (!sanitized) return '';
+        
+        const wordsToHighlight: string[] = [];
+        if (searchWord && searchWord.trim()) wordsToHighlight.push(searchWord.trim());
+        if (secondWord && secondWord.trim()) wordsToHighlight.push(secondWord.trim());
+        
+        if (wordsToHighlight.length === 0) return sanitized;
+        
+        const escapedWords = wordsToHighlight.map(w => w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
+        escapedWords.sort((a, b) => b.length - a.length);
+        
+        const pattern = `(${escapedWords.join('|')})`;
+        const regex = new RegExp(pattern, 'gi');
+        const parts = sanitized.split(regex);
+        return (
+            <>
+                {parts.map((part, index) =>
+                    regex.test(part) ? <span key={index} className="bg-teal-500/15 text-primary font-black px-0.5 rounded border border-primary/10 shadow-sm">{part}</span> : part
+                )}
+            </>
+        );
+    };
+
+    // Calculate distributions and facets
+    const availableCourses = (() => {
+        const counts: Record<string, number> = {};
+        results.forEach(t => {
+            if (t.course) {
+                counts[t.course] = (counts[t.course] || 0) + 1;
+            }
+        });
+        return Object.entries(counts).map(([name, count]) => ({ name, count }));
+    })();
+
+    const availableAuthors = (() => {
+        const counts: Record<string, number> = {};
+        results.forEach(t => {
+            if (t.author) {
+                const parts = t.author.split(/;\s*/).map(p => p.trim());
+                parts.forEach(p => {
+                    if (p && p.toLowerCase() !== 'institutional submission') {
+                        counts[p] = (counts[p] || 0) + 1;
+                    }
+                });
+            }
+        });
+        return Object.entries(counts)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 8); // top 8
+    })();
+
+    const yearsDistribution = (() => {
+        const counts: Record<string, number> = {};
+        results.forEach(t => {
+            const yrStr = t.year_range || '';
+            const match = yrStr.match(/\d{4}/);
+            if (match) {
+                const yr = match[0];
+                counts[yr] = (counts[yr] || 0) + 1;
+            }
+        });
+        return Object.entries(counts)
+            .map(([year, count]) => ({ year: parseInt(year), count }))
+            .sort((a, b) => a.year - b.year);
+    })();
+
+    const maxTimelineCount = Math.max(...yearsDistribution.map(d => d.count), 1);
+
+    // Apply filters
+    const sortedFilteredResults = (() => {
+        let items = [...results];
+        
+        // 1. Show / Open Access Filter
+        if (isOpenAccessOnly) {
+            items = items.filter(t => t.attachments && t.attachments.length > 0);
+        }
+
+        // 2. Year filter
+        if (appliedMinYear) {
+            const minVal = parseInt(appliedMinYear);
+            items = items.filter(t => {
+                const match = (t.year_range || '').match(/\d{4}/);
+                if (!match) return false;
+                const yr = parseInt(match[0]);
+                if (yearFilterMode === 'single') return yr === minVal;
+                return yr >= minVal;
+            });
+        }
+        if (appliedMaxYear && yearFilterMode === 'range') {
+            const maxVal = parseInt(appliedMaxYear);
+            items = items.filter(t => {
+                const match = (t.year_range || '').match(/\d{4}/);
+                if (!match) return false;
+                const yr = parseInt(match[0]);
+                return yr <= maxVal;
+            });
+        }
+
+        // 3. Course filter
+        if (selectedCourses.length > 0) {
+            items = items.filter(t => t.course && selectedCourses.includes(t.course));
+        }
+
+        // 4. Author filter
+        if (selectedAuthors.length > 0) {
+            items = items.filter(t => {
+                if (!t.author) return false;
+                const authorsList = t.author.split(/;\s*/).map(a => a.trim().toLowerCase());
+                return selectedAuthors.some(sel => authorsList.some(ta => ta.includes(sel.toLowerCase())));
+            });
+        }
+
+        // 5. Keyword Filter (full phrase match)
+        if (keywordFilter.trim()) {
+            const lowerFilter = keywordFilter.trim().toLowerCase();
+            items = items.filter(t => 
+                (t.title && t.title.toLowerCase().includes(lowerFilter)) ||
+                (t.abstract && t.abstract.toLowerCase().includes(lowerFilter))
+            );
+        }
+
+        // 6. Sorting
+        if (sortBy === 'newest') {
+            items.sort((a, b) => {
+                const aYr = parseInt((a.year_range || '').match(/\d{4}/)?.[0] || '0');
+                const bYr = parseInt((b.year_range || '').match(/\d{4}/)?.[0] || '0');
+                return bYr - aYr;
+            });
+        } else if (sortBy === 'oldest') {
+            items.sort((a, b) => {
+                const aYr = parseInt((a.year_range || '').match(/\d{4}/)?.[0] || '0');
+                const bYr = parseInt((b.year_range || '').match(/\d{4}/)?.[0] || '0');
+                return aYr - bYr;
+            });
+        }
+
+        return items;
+    })();
+
+    const recommendedProjects = (() => {
+        const isFiltering = isOpenAccessOnly || appliedMinYear !== '' || appliedMaxYear !== '' || selectedCourses.length > 0 || selectedAuthors.length > 0 || keywordFilter.trim() !== '';
+        if (!isFiltering) return [];
+        
+        const filteredIds = new Set(sortedFilteredResults.map(r => r.id));
+        let candidates = results.filter(r => !filteredIds.has(r.id));
+        
+        if (candidates.length === 0) {
+            candidates = results.filter(r => filteredIds.has(r.id));
+        }
+        
+        return candidates
+            .sort((a: any, b: any) => (b.downloads || 0) - (a.downloads || 0))
+            .slice(0, 3);
+    })();
+
+    const handleCheckboxChange = (thesisId: string) => {
+        setSelectedResults(prev => ({
+            ...prev,
+            [thesisId]: !prev[thesisId]
+        }));
+    };
+
+    const handleSelectAllChange = () => {
+        if (selectAll) {
+            setSelectedResults({});
+        } else {
+            const nextSelected: Record<string, boolean> = {};
+            sortedFilteredResults.forEach(r => {
+                nextSelected[r.id] = true;
+            });
+            setSelectedResults(nextSelected);
+        }
+        setSelectAll(!selectAll);
+    };
+
+    const clearYearFilters = () => {
+        setMinYearInput('');
+        setMaxYearInput('');
+        setAppliedMinYear('');
+        setAppliedMaxYear('');
+    };
+
+    const applyYearFilters = () => {
+        setAppliedMinYear(minYearInput);
+        setAppliedMaxYear(maxYearInput);
+    };
+
     return (
-        <div className="min-h-screen bg-background flex flex-col font-sans selection:bg-primary/30">
+        <div className="min-h-screen bg-transparent flex flex-col font-sans selection:bg-primary/30">
             {/* Header Navigation Area */}
             <div className="z-40 w-full pt-28 px-4 md:px-8 max-w-7xl mx-auto">
                 <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -473,6 +771,10 @@ const SearchResultContent = () => {
                                                 <span className="font-black text-[#999] uppercase tracking-widest">Accession Number</span>
                                                 <span className="font-bold uppercase">{singleThesis.id}</span>
                                             </div>
+                                            <div className="flex flex-col items-center gap-1 text-center">
+                                                <span className="font-black text-[#999] uppercase tracking-widest">Downloads</span>
+                                                <span className="font-bold uppercase">{singleThesis.downloads || 0}</span>
+                                            </div>
                                             <div className="flex flex-col items-end gap-1 text-right">
                                                 <span className="font-black text-[#999] uppercase tracking-widest">Course</span>
                                                 <span className="font-bold uppercase">{singleThesis.course}</span>
@@ -518,7 +820,8 @@ const SearchResultContent = () => {
                                                             key={i}
                                                             whileHover={{ y: -5 }}
                                                             className="group/attach relative aspect-[3/4] bg-white border border-stone-200 rounded-sm shadow-md overflow-hidden cursor-pointer"
-                                                            onClick={() => {
+                                                            onClick={async () => {
+                                                                await handleDownloadClick(singleThesis);
                                                                 const lowerUrl = url.toLowerCase();
                                                                 const isDoc = lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc') || lowerUrl.includes('/raw/upload/');
                                                                 const targetUrl = isDoc
@@ -571,113 +874,597 @@ const SearchResultContent = () => {
                             </div>
                         </motion.div>
                     ) : results.length > 0 ? (
-                        <motion.div
-                            key={viewMode === 'grid' ? "results-grid" : "results-list"}
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                            className={viewMode === 'grid'
-                                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10"
-                                : "flex flex-col gap-6 relative z-10"
-                            }
-                        >
-                            {results.map((thesis) => (
-                                <div
-                                    key={thesis.id}
-                                    onClick={() => router.push(`/search_result?id=${thesis.id}`)}
-                                    className={`group bg-card rounded-2xl shadow-xl border border-border-custom hover:border-primary/30 hover:shadow-2xl active:scale-[0.99] transition-all duration-300 flex cursor-pointer overflow-hidden ${viewMode === 'grid' ? 'flex-col p-6 h-full' : 'flex-col md:flex-row p-6 items-start gap-6'
-                                        }`}
-                                >
-                                    {/* Content Area */}
-                                    <div className="flex-grow flex flex-col min-w-0">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-[10px] font-bold text-primary bg-primary/5 px-3 py-1 rounded-lg uppercase tracking-wider shadow-sm border border-primary/20">
-                                                    {thesis.year_range}
-                                                </span>
-                                                <div className="flex items-center gap-1">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
-                                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{thesis.course}</span>
-                                                </div>
-                                            </div>
-                                            {viewMode === 'list' && (
-                                                <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                                                    <FaFileAlt className="text-primary/50" />
-                                                    <span>{thesis.id}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <h3 className={`font-bold text-foreground mb-3 group-hover:text-primary transition-colors leading-[1.4] tracking-tight ${viewMode === 'grid' ? 'text-base line-clamp-2' : 'text-xl md:text-2xl'
-                                            }`}>
-                                            {thesis.title}
-                                        </h3>
-
-                                        {viewMode === 'list' && (
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <span className="text-[11px] font-black text-primary/70 uppercase tracking-[0.1em]">Author:</span>
-                                                <span className="text-[11px] font-bold text-gray-400 italic uppercase tracking-wider">
-                                                    {thesis.author || 'Institutional Member'}
-                                                </span>
-                                            </div>
-                                        )}
-
-                                        <p className={`text-text-dim leading-relaxed font-medium ${viewMode === 'grid' ? 'text-sm line-clamp-3 mb-6' : 'text-sm md:text-base mb-6 max-w-4xl'
-                                            }`}>
-                                            {viewMode === 'grid'
-                                                ? `${thesis.abstract?.substring(0, 150)}...`
-                                                : thesis.abstract
-                                            }
-                                        </p>
-
-                                        <div className={`mt-auto pt-6 border-t border-white/[0.03] flex flex-wrap items-center justify-between gap-4 w-full`}>
-                                            {viewMode === 'grid' && (
-                                                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest min-w-0">
-                                                    <FaFileAlt className="text-primary/50 flex-shrink-0" />
-                                                    <span className="truncate">{thesis.id}</span>
-                                                </div>
-                                            )}
-
-                                            {viewMode === 'list' && (
-                                                <div className="flex items-center gap-4">
-                                                    <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest">
-                                                        <FaBookOpen className="text-xs" />
-                                                        <span>Full Abstract Available</span>
+                        <div className="flex flex-col lg:flex-row gap-8 relative z-10 w-full">
+                            {/* LEFT SIDEBAR: FILTERS */}
+                            <aside className="w-full lg:w-[280px] flex-shrink-0 flex flex-col gap-4">
+                                
+                                {/* Accordion: Keyword Filter */}
+                                <div className="bg-card border border-border-custom rounded-xl overflow-hidden shadow-sm">
+                                    <button
+                                        onClick={() => toggleAccordion('keyword')}
+                                        className="w-full px-5 py-4 flex items-center justify-between font-bold text-sm text-foreground hover:bg-white/[0.02] cursor-pointer"
+                                    >
+                                        <span>Keyword Filter</span>
+                                        {expandedAccordions.keyword ? <FaChevronUp className="text-xs text-gray-400" /> : <FaChevronDown className="text-xs text-gray-400" />}
+                                    </button>
+                                    
+                                    <AnimatePresence initial={false}>
+                                        {expandedAccordions.keyword && (
+                                            <motion.div
+                                                initial={{ height: 0 }}
+                                                animate={{ height: 'auto' }}
+                                                exit={{ height: 0 }}
+                                                className="overflow-hidden border-t border-border-custom"
+                                            >
+                                                <div className="p-5 flex flex-col gap-3">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Enter full phrase..."
+                                                            value={keywordFilter}
+                                                            onChange={(e) => setKeywordFilter(e.target.value)}
+                                                            className="w-full pl-8 pr-3 py-2 bg-surface border border-border-custom rounded-xl text-xs font-semibold text-foreground placeholder:text-gray-600 outline-none focus:border-primary"
+                                                        />
+                                                        <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-500" />
                                                     </div>
                                                 </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
+                                {/* Accordion: Show */}
+                                <div className="bg-card border border-border-custom rounded-xl overflow-hidden shadow-sm">
+                                    <button
+                                        onClick={() => toggleAccordion('show')}
+                                        className="w-full px-5 py-4 flex items-center justify-between font-bold text-sm text-foreground hover:bg-white/[0.02] cursor-pointer"
+                                    >
+                                        <span>Show</span>
+                                        {expandedAccordions.show ? <FaChevronUp className="text-xs text-gray-400" /> : <FaChevronDown className="text-xs text-gray-400" />}
+                                    </button>
+                                    
+                                    <AnimatePresence initial={false}>
+                                        {expandedAccordions.show && (
+                                            <motion.div
+                                                initial={{ height: 0 }}
+                                                animate={{ height: 'auto' }}
+                                                exit={{ height: 0 }}
+                                                className="overflow-hidden border-t border-border-custom"
+                                            >
+                                                <div className="p-5 flex flex-col gap-3">
+                                                    <label className="flex items-center gap-2.5 text-xs font-semibold text-text-dim cursor-pointer hover:text-white transition-colors">
+                                                        <input
+                                                            type="radio"
+                                                            name="showFilter"
+                                                            checked={!isOpenAccessOnly}
+                                                            onChange={() => setIsOpenAccessOnly(false)}
+                                                            className="text-primary focus:ring-primary bg-surface border-gray-600 cursor-pointer"
+                                                        />
+                                                        <span>All Results</span>
+                                                    </label>
+                                                    <label className="flex items-center gap-2.5 text-xs font-semibold text-text-dim cursor-pointer hover:text-white transition-colors">
+                                                        <input
+                                                            type="radio"
+                                                            name="showFilter"
+                                                            checked={isOpenAccessOnly}
+                                                            onChange={() => setIsOpenAccessOnly(true)}
+                                                            className="text-primary focus:ring-primary bg-surface border-gray-600 cursor-pointer"
+                                                        />
+                                                        <span>Open Access Only</span>
+                                                    </label>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
+                                {/* Accordion: Year (ACM Timeline & Slider) */}
+                                <div className="bg-card border border-border-custom rounded-xl overflow-hidden shadow-sm">
+                                    <button
+                                        onClick={() => toggleAccordion('year')}
+                                        className="w-full px-5 py-4 flex items-center justify-between font-bold text-sm text-foreground hover:bg-white/[0.02] cursor-pointer"
+                                    >
+                                        <span>Year</span>
+                                        {expandedAccordions.year ? <FaChevronUp className="text-xs text-gray-400" /> : <FaChevronDown className="text-xs text-gray-400" />}
+                                    </button>
+                                    
+                                    <AnimatePresence initial={false}>
+                                        {expandedAccordions.year && (
+                                            <motion.div
+                                                initial={{ height: 0 }}
+                                                animate={{ height: 'auto' }}
+                                                exit={{ height: 0 }}
+                                                className="overflow-hidden border-t border-border-custom"
+                                            >
+                                                <div className="p-5 flex flex-col">
+                                                    
+                                                    {/* ACM Timeline Histogram */}
+                                                    {yearsDistribution.length > 0 ? (
+                                                        <div className="h-14 flex items-end gap-1 border-b border-white/5 pb-1.5 mb-4">
+                                                            {yearsDistribution.map((d) => {
+                                                                const yrStr = d.year.toString();
+                                                                const isSel = (!minYearInput || d.year >= parseInt(minYearInput)) && 
+                                                                              (!maxYearInput || yearFilterMode === 'single' || d.year <= parseInt(maxYearInput));
+                                                                return (
+                                                                    <div
+                                                                        key={d.year}
+                                                                        className="flex-1 flex flex-col items-center group relative cursor-pointer"
+                                                                        onClick={() => {
+                                                                            if (yearFilterMode === 'single') {
+                                                                                setMinYearInput(yrStr);
+                                                                            } else {
+                                                                                if (!minYearInput || (minYearInput && maxYearInput)) {
+                                                                                    setMinYearInput(yrStr);
+                                                                                    setMaxYearInput('');
+                                                                                } else {
+                                                                                    const minVal = parseInt(minYearInput);
+                                                                                    if (d.year < minVal) {
+                                                                                        setMinYearInput(yrStr);
+                                                                                        setMaxYearInput(minYearInput);
+                                                                                    } else {
+                                                                                        setMaxYearInput(yrStr);
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <div className="absolute bottom-full mb-1 hidden group-hover:block bg-black/85 border border-white/10 text-[9px] text-white px-2 py-0.5 rounded shadow-xl whitespace-nowrap z-50">
+                                                                            {d.year}: {d.count} theses
+                                                                        </div>
+                                                                        <div
+                                                                            className={`w-full rounded-t-sm transition-all duration-300 ${isSel ? 'bg-primary' : 'bg-gray-700/60 hover:bg-gray-600'}`}
+                                                                            style={{ height: `${Math.max((d.count / maxTimelineCount) * 100, 8)}%` }}
+                                                                        />
+                                                                        <span className="text-[7.5px] text-gray-500 mt-1 select-none font-bold">
+                                                                            {yrStr.slice(-2)}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-[10px] text-gray-500 italic py-2 text-center">No years available</div>
+                                                    )}
+
+                                                    {/* Radio mode toggles */}
+                                                    <div className="flex gap-4 mb-4">
+                                                        <label className="flex items-center gap-1.5 text-xs font-semibold text-text-dim cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name="yearMode"
+                                                                checked={yearFilterMode === 'range'}
+                                                                onChange={() => {
+                                                                    setYearFilterMode('range');
+                                                                    clearYearFilters();
+                                                                }}
+                                                                className="text-primary focus:ring-primary bg-surface border-gray-600 cursor-pointer animate-none"
+                                                            />
+                                                            <span>Range</span>
+                                                        </label>
+                                                        <label className="flex items-center gap-1.5 text-xs font-semibold text-text-dim cursor-pointer">
+                                                            <input
+                                                                type="radio"
+                                                                name="yearMode"
+                                                                checked={yearFilterMode === 'single'}
+                                                                onChange={() => {
+                                                                    setYearFilterMode('single');
+                                                                    clearYearFilters();
+                                                                }}
+                                                                className="text-primary focus:ring-primary bg-surface border-gray-600 cursor-pointer animate-none"
+                                                            />
+                                                            <span>Single Year</span>
+                                                        </label>
+                                                    </div>
+
+                                                    {/* Min/Max Inputs */}
+                                                    <div className="flex items-center gap-2 mb-4">
+                                                        <input
+                                                            type="number"
+                                                            placeholder="YYYY"
+                                                            value={minYearInput}
+                                                            onChange={(e) => setMinYearInput(e.target.value)}
+                                                            className="w-full text-center py-1.5 bg-surface border border-border-custom rounded text-xs font-semibold text-foreground placeholder:text-gray-600 outline-none focus:border-primary"
+                                                        />
+                                                        {yearFilterMode === 'range' && (
+                                                            <>
+                                                                <span className="text-gray-500 text-xs">-</span>
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder="YYYY"
+                                                                    value={maxYearInput}
+                                                                    onChange={(e) => setMaxYearInput(e.target.value)}
+                                                                    className="w-full text-center py-1.5 bg-surface border border-border-custom rounded text-xs font-semibold text-foreground placeholder:text-gray-600 outline-none focus:border-primary"
+                                                                />
+                                                            </>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Clear & Apply buttons */}
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={clearYearFilters}
+                                                            className="flex-1 py-2 rounded bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 transition-colors cursor-pointer border-none"
+                                                        >
+                                                            Clear
+                                                        </button>
+                                                        <button
+                                                            onClick={applyYearFilters}
+                                                            className="flex-1 py-2 rounded bg-primary/10 border border-primary/30 hover:bg-primary/20 text-xs font-bold text-primary transition-all cursor-pointer"
+                                                        >
+                                                            Apply
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
+                                {/* Accordion: Course */}
+                                <div className="bg-card border border-border-custom rounded-xl overflow-hidden shadow-sm">
+                                    <button
+                                        onClick={() => toggleAccordion('course')}
+                                        className="w-full px-5 py-4 flex items-center justify-between font-bold text-sm text-foreground hover:bg-white/[0.02] cursor-pointer"
+                                    >
+                                        <span>Course</span>
+                                        {expandedAccordions.course ? <FaChevronUp className="text-xs text-gray-400" /> : <FaChevronDown className="text-xs text-gray-400" />}
+                                    </button>
+                                    
+                                    <AnimatePresence initial={false}>
+                                        {expandedAccordions.course && (
+                                            <motion.div
+                                                initial={{ height: 0 }}
+                                                animate={{ height: 'auto' }}
+                                                exit={{ height: 0 }}
+                                                className="overflow-hidden border-t border-border-custom"
+                                            >
+                                                <div className="p-5 flex flex-col gap-2.5 max-h-60 overflow-y-auto custom-scrollbar">
+                                                    {availableCourses.length > 0 ? (
+                                                        availableCourses.map((c) => (
+                                                            <label key={c.name} className="flex items-center gap-2.5 text-xs font-semibold text-text-dim cursor-pointer hover:text-white transition-colors">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedCourses.includes(c.name)}
+                                                                    onChange={() => toggleCourse(c.name)}
+                                                                    className="text-primary focus:ring-primary bg-surface border-gray-600 rounded cursor-pointer"
+                                                                />
+                                                                <span className="flex-1 truncate">{c.name}</span>
+                                                                <span className="text-[10px] text-gray-500 font-bold bg-white/5 px-1.5 py-0.5 rounded">{c.count}</span>
+                                                            </label>
+                                                        ))
+                                                    ) : (
+                                                        <div className="text-[10px] text-gray-500 italic py-1 text-center">No courses found</div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
+                                {/* Accordion: Author */}
+                                <div className="bg-card border border-border-custom rounded-xl overflow-hidden shadow-sm">
+                                    <button
+                                        onClick={() => toggleAccordion('author')}
+                                        className="w-full px-5 py-4 flex items-center justify-between font-bold text-sm text-foreground hover:bg-white/[0.02] cursor-pointer"
+                                    >
+                                        <span>Author</span>
+                                        {expandedAccordions.author ? <FaChevronUp className="text-xs text-gray-400" /> : <FaChevronDown className="text-xs text-gray-400" />}
+                                    </button>
+                                    
+                                    <AnimatePresence initial={false}>
+                                        {expandedAccordions.author && (
+                                            <motion.div
+                                                initial={{ height: 0 }}
+                                                animate={{ height: 'auto' }}
+                                                exit={{ height: 0 }}
+                                                className="overflow-hidden border-t border-border-custom"
+                                            >
+                                                <div className="p-5 flex flex-col gap-2.5 max-h-60 overflow-y-auto custom-scrollbar">
+                                                    {availableAuthors.length > 0 ? (
+                                                        availableAuthors.map((a) => (
+                                                            <label key={a.name} className="flex items-center gap-2.5 text-xs font-semibold text-text-dim cursor-pointer hover:text-white transition-colors">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedAuthors.includes(a.name)}
+                                                                    onChange={() => toggleAuthor(a.name)}
+                                                                    className="text-primary focus:ring-primary bg-surface border-gray-600 rounded cursor-pointer"
+                                                                />
+                                                                <span className="flex-1 truncate">{a.name}</span>
+                                                                <span className="text-[10px] text-gray-500 font-bold bg-white/5 px-1.5 py-0.5 rounded">{a.count}</span>
+                                                            </label>
+                                                        ))
+                                                    ) : (
+                                                        <div className="text-[10px] text-gray-500 italic py-1 text-center">No authors found</div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
+                            </aside>
+
+                            {/* RIGHT PANEL: MAIN RESULTS LISTING */}
+                            <div className="flex-1 flex flex-col gap-5 min-w-0">
+                                
+                                {/* IEEE Metadata Bar */}
+                                <div className="bg-card border border-border-custom rounded-xl p-5 flex flex-col gap-4 shadow-sm">
+                                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                                        <div className="text-xs sm:text-sm font-semibold text-foreground flex flex-wrap items-center gap-1.5">
+                                            Showing 1-{sortedFilteredResults.length} of {sortedFilteredResults.length} results
+                                            {query && (
+                                                <>
+                                                    {" "}for{" "}
+                                                    <span className="inline-flex items-center gap-1 bg-primary/10 border border-primary/20 text-primary px-2 py-0.5 rounded font-black text-xs">
+                                                        {query}
+                                                        <button
+                                                            onClick={() => router.push('/search_result')}
+                                                            className="text-red-400 hover:text-red-300 font-bold cursor-pointer bg-transparent border-none p-0 flex items-center justify-center text-[10px]"
+                                                            title="Clear search query"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </span>
+                                                </>
                                             )}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Select All & Sort By Row */}
+                                    <div className="flex items-center justify-between border-t border-white/[0.04] pt-4 flex-wrap gap-3">
+                                        <label className="flex items-center gap-2 text-xs font-bold text-text-dim cursor-pointer hover:text-white transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectAll}
+                                                onChange={handleSelectAllChange}
+                                                className="text-primary focus:ring-primary bg-surface border-gray-600 rounded cursor-pointer"
+                                            />
+                                            <span>Select All on Page</span>
+                                        </label>
 
-                                            <div className="flex gap-2 ml-auto">
-                                                {isUndergrad && thesis.createdBy && !thesis.isUploadedByUndergrad && String(thesis.createdBy) !== String(currentUser?._id) && (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            if (thesis.hasRequestedCollaboration) return;
-                                                            setCollaborationThesis(thesis);
-                                                            setIsCollaborationModalOpen(true);
-                                                        }}
-                                                        disabled={thesis.hasRequestedCollaboration}
-                                                        className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all active:scale-95 group z-20 ${thesis.hasRequestedCollaboration
-                                                            ? 'bg-gray-500/10 border border-gray-500/20 text-gray-500 cursor-not-allowed'
-                                                            : 'bg-primary/5 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'
-                                                            }`}
-                                                    >
-                                                        <FaHandshake className={thesis.hasRequestedCollaboration ? "" : "group-hover:rotate-12 transition-transform"} />
-                                                        <span>{thesis.hasRequestedCollaboration ? 'Request Sent' : 'Request Collaboration'}</span>
-                                                    </button>
-                                                )}
-
-                                                <button className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/5 border border-primary/30 px-4 py-2 rounded-xl transition-all duration-300 hover:bg-primary/20 hover:border-primary/50 z-20 whitespace-nowrap">
-                                                    View Details
-                                                </button>
-                                            </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold text-text-dim uppercase tracking-wider">Sort By:</span>
+                                            <select
+                                                value={sortBy}
+                                                onChange={(e) => setSortBy(e.target.value)}
+                                                className="py-1.5 px-3 rounded-lg border border-border-custom text-xs font-bold text-foreground bg-surface outline-none focus:border-primary cursor-pointer"
+                                            >
+                                                <option value="relevance">Relevance</option>
+                                                <option value="newest">Newest Year</option>
+                                                <option value="oldest">Oldest Year</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
-                            ))}
-                        </motion.div>
+
+                                {/* Results listing items */}
+                                {sortedFilteredResults.length > 0 ? (
+                                    <div className="flex flex-col gap-4">
+                                        {sortedFilteredResults.map((thesis) => (
+                                            <div
+                                                key={thesis.id}
+                                                className="bg-card rounded-xl border border-border-custom hover:border-primary/20 shadow-md p-5 flex flex-col sm:flex-row items-start gap-4 transition-all duration-300"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!!selectedResults[thesis.id]}
+                                                    onChange={() => handleCheckboxChange(thesis.id)}
+                                                    className="mt-1.5 cursor-pointer rounded border-gray-600 bg-surface text-primary focus:ring-primary flex-shrink-0"
+                                                />
+                                                
+                                                <div className="flex-1 min-w-0 flex flex-col">
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <h3 className="font-bold text-lg text-sky-400 hover:text-sky-300 leading-snug">
+                                                            <Link href={`/search_result?id=${thesis.id}`} className="hover:underline transition-colors">
+                                                                {highlightText(thesis.title, query, keywordFilter)}
+                                                            </Link>
+                                                        </h3>
+                                                        
+                                                        {/* Open Access status tag */}
+                                                        <div className="flex-shrink-0">
+                                                            {thesis.attachments && thesis.attachments.length > 0 ? (
+                                                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-green-400 bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">
+                                                                    <FaUnlock className="text-[8px]" /> Open Access
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                                                    <FaLock className="text-[8px]" /> Restricted
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Authors */}
+                                                    <div className="text-xs text-[#2DD4BF] font-semibold mt-1">
+                                                        {thesis.author ? thesis.author.split(/;\s*/).join('; ') : 'Institutional Submission'}
+                                                    </div>
+
+                                                    {/* Metadata line */}
+                                                    <div className="text-xs text-gray-400 mt-2 font-medium">
+                                                        Year: {thesis.year_range || 'Archive'} | Course: {thesis.course || 'General'} | Downloads: {thesis.downloads || 0} | Publisher: TUPT Digital Archives
+                                                    </div>
+
+                                                    {/* Action Buttons Row */}
+                                                    <div className="flex items-center gap-5 mt-4 pt-3 border-t border-white/[0.03]">
+                                                        {/* Accordion trigger */}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setExpandedAbstracts(prev => ({
+                                                                    ...prev,
+                                                                    [thesis.id]: !prev[thesis.id]
+                                                                }));
+                                                            }}
+                                                            className="flex items-center gap-1 text-xs font-black uppercase tracking-widest text-[#2DD4BF] hover:text-[#2DD4BF]/85 cursor-pointer bg-transparent border-none p-0"
+                                                        >
+                                                            {expandedAbstracts[thesis.id] ? (
+                                                                <>Hide Abstract <FaChevronUp className="text-[9px]" /></>
+                                                            ) : (
+                                                                <>Abstract <FaChevronDown className="text-[9px]" /></>
+                                                            )}
+                                                        </button>
+
+                                                        {/* PDF Download Button */}
+                                                        {thesis.attachments && thesis.attachments.length > 0 && (
+                                                            <button
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    await handleDownloadClick(thesis);
+                                                                    const url = thesis.attachments![0];
+                                                                    const lowerUrl = url.toLowerCase();
+                                                                    const isDoc = lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc') || lowerUrl.includes('/raw/upload/');
+                                                                    const targetUrl = isDoc
+                                                                        ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/download?url=${encodeURIComponent(url)}`
+                                                                        : url;
+                                                                    window.open(targetUrl, '_blank');
+                                                                }}
+                                                                className="flex items-center gap-1 text-xs font-bold text-[#F38BA8] hover:text-rose-350 cursor-pointer bg-transparent border-none p-0 flex items-center gap-1"
+                                                                title="Download PDF"
+                                                            >
+                                                                <FaFilePdf className="text-xs" /> <span>PDF</span>
+                                                            </button>
+                                                        )}
+
+                                                        {/* HTML / Quick View Button */}
+                                                        <Link
+                                                            href={`/search_result?id=${thesis.id}`}
+                                                            className="flex items-center gap-1 text-xs font-bold text-sky-400 hover:text-sky-300 cursor-pointer ml-auto hover:underline"
+                                                        >
+                                                            <span>Quick View</span> <FaExternalLinkAlt className="text-[9px]" />
+                                                        </Link>
+                                                        
+                                                        {/* Collaboration request button */}
+                                                        {isUndergrad && thesis.createdBy && !thesis.isUploadedByUndergrad && String(thesis.createdBy) !== String(currentUser?._id) && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    if (thesis.hasRequestedCollaboration) return;
+                                                                    setCollaborationThesis(thesis);
+                                                                    setIsCollaborationModalOpen(true);
+                                                                }}
+                                                                disabled={thesis.hasRequestedCollaboration}
+                                                                className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded transition-all active:scale-95 group z-20 ${thesis.hasRequestedCollaboration
+                                                                    ? 'bg-gray-500/10 border border-gray-500/20 text-gray-500 cursor-not-allowed'
+                                                                    : 'bg-[#2DD4BF]/5 border border-[#2DD4BF]/20 text-[#2DD4BF] hover:bg-[#2DD4BF]/10 hover:border-[#2DD4BF]/30'
+                                                                }`}
+                                                            >
+                                                                <FaHandshake className={thesis.hasRequestedCollaboration ? "" : "group-hover:rotate-12 transition-transform"} />
+                                                                <span>{thesis.hasRequestedCollaboration ? 'Proposal Sent' : 'Collaborate'}</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Abstract content panel */}
+                                                    <AnimatePresence>
+                                                        {expandedAbstracts[thesis.id] && (
+                                                            <motion.div
+                                                                initial={{ height: 0, opacity: 0 }}
+                                                                animate={{ height: 'auto', opacity: 1 }}
+                                                                exit={{ height: 0, opacity: 0 }}
+                                                                transition={{ duration: 0.25 }}
+                                                                className="overflow-hidden mt-3"
+                                                            >
+                                                                <div className="text-xs leading-relaxed text-gray-300 text-justify bg-white/[0.01] p-4 rounded-xl border border-white/5 whitespace-pre-line">
+                                                                    {highlightText(thesis.abstract, query, keywordFilter)}
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        
+                                        <div className="mt-8 mb-4 text-center">
+                                            <p className="text-xs text-gray-500 font-medium">
+                                                Not finding what you need?{" "}
+                                                <button
+                                                    onClick={handleRecommendByAi}
+                                                    className="text-primary hover:text-primary-hover font-bold hover:underline transition-all cursor-pointer inline-flex items-center gap-1.5 bg-transparent border-none p-0"
+                                                >
+                                                    <FaRobot className="text-[10px]" /> Let AI suggest titles and directions
+                                                </button>
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-4">
+                                        <div className="bg-card border border-border-custom rounded-xl p-12 text-center text-gray-400 font-medium text-xs">
+                                            No items match the active filter criteria. Try clearing some filters.
+                                        </div>
+                                        <div className="mt-4 mb-2 text-center">
+                                            <p className="text-xs text-gray-500 font-medium">
+                                                Not finding the right research?{" "}
+                                                <button
+                                                    onClick={handleRecommendByAi}
+                                                    className="text-primary hover:text-primary-hover font-bold hover:underline transition-all cursor-pointer inline-flex items-center gap-1.5 bg-transparent border-none p-0"
+                                                >
+                                                    <FaRobot className="text-[10px]" /> Let AI recommend titles and directions based on your search query
+                                                </button>
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Recommended Projects Section */}
+                                {recommendedProjects.length > 0 && (
+                                    <div className="mt-12 pt-8 border-t border-border-custom/30 animate-fade-in">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                                <FaMagic className="text-primary text-sm animate-pulse" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-base text-white">Recommended Projects</h3>
+                                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Related research papers from search & filters</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {recommendedProjects.map((thesis) => (
+                                                <div
+                                                    key={`rec-${thesis.id}`}
+                                                    className="bg-card rounded-xl border border-border-custom/50 hover:border-primary/20 p-5 flex flex-col justify-between transition-all duration-300 shadow-sm hover:shadow-md relative overflow-hidden group"
+                                                >
+                                                    <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    
+                                                    <div className="flex flex-col">
+                                                        <div className="flex items-start justify-between gap-2 mb-3">
+                                                            <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
+                                                                {thesis.course || 'General'}
+                                                            </span>
+                                                            <span className="text-[9px] font-bold text-gray-500">
+                                                                {thesis.year_range || 'Archive'}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <h4 className="font-bold text-xs text-sky-400 hover:text-sky-300 transition-colors line-clamp-2 mb-2">
+                                                            <Link href={`/search_result?id=${thesis.id}`}>
+                                                                {thesis.title}
+                                                            </Link>
+                                                        </h4>
+                                                        
+                                                        <p className="text-[10px] leading-relaxed text-gray-400 line-clamp-3 mb-4 text-justify">
+                                                            {thesis.abstract}
+                                                        </p>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center justify-between border-t border-white/[0.03] pt-3 text-[9px] font-bold text-gray-500">
+                                                        <span className="truncate max-w-[100px] italic">
+                                                            By {thesis.author ? thesis.author.split(/;\s*/)[0] : 'Academic Group'}
+                                                        </span>
+                                                        <span className="text-[#2DD4BF] flex items-center gap-1">
+                                                            {thesis.downloads || 0} downloads
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                            </div>
+                        </div>
                     ) : (
                         <motion.div
                             key="empty"
