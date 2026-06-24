@@ -359,6 +359,245 @@ const SearchResultContent = () => {
         }
     };
 
+    const downloadAbstractAsPdf = async (thesis: Thesis) => {
+        try {
+            await handleDownloadClick(thesis);
+            
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                toast.error('Please allow popups to download the PDF.');
+                return;
+            }
+
+            const logoUrl = `${window.location.origin}/assets/tup-logo.png`;
+
+            printWindow.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>${thesis.title} - Abstract</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 0mm; /* This hides default headers and footers */
+        }
+        body {
+            font-family: 'Georgia', serif;
+            color: #1a1a1a;
+            margin: 0;
+            padding: 20mm; /* Keeps content spaced from the edge of the printed page */
+            background-color: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 250mm;
+            border: 2px solid #1a1a1a;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px auto;
+            display: block;
+            object-fit: contain;
+        }
+        .univ-name {
+            font-size: 16px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin: 0 0 5px 0;
+        }
+        .campus-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            margin: 0;
+        }
+        .divider {
+            height: 2px;
+            background-color: #1a1a1a;
+            margin: 20px 0;
+        }
+        .metadata-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 1px solid rgba(26,26,26,0.1);
+            padding-bottom: 15px;
+            margin-bottom: 40px;
+        }
+        .metadata-col {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .metadata-label {
+            font-size: 9px;
+            font-weight: 900;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+        .metadata-value {
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .title-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .thesis-title {
+            font-size: 26px;
+            font-weight: 900;
+            line-height: 1.3;
+            margin: 0 0 15px 0;
+        }
+        .author-label {
+            font-size: 10px;
+            font-weight: 900;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5em;
+            margin-bottom: 5px;
+        }
+        .author-name {
+            font-size: 14px;
+            font-weight: bold;
+            font-style: italic;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 0;
+        }
+        .abstract-section {
+            margin-top: 30px;
+        }
+        .section-header {
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .section-header-line {
+            width: 30px;
+            height: 2px;
+            background-color: #1a1a1a;
+        }
+        .abstract-text {
+            font-size: 13px;
+            line-height: 1.8;
+            text-align: justify;
+            text-justify: inter-word;
+        }
+        .abstract-text::first-letter {
+            font-size: 4rem;
+            font-weight: 900;
+            float: left;
+            margin-right: 10px;
+            margin-top: 5px;
+            line-height: 0.8;
+        }
+        /* Watermarks */
+        .bg-watermark {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50%;
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .diagonal-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-25deg);
+            font-size: 14px;
+            font-weight: 900;
+            color: rgba(220, 38, 38, 0.22);
+            border: 3px dashed rgba(220, 38, 38, 0.3);
+            padding: 20px 40px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            white-space: normal;
+            width: 70%;
+            pointer-events: none;
+            z-index: 10;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Diagonal Text Watermark -->
+        <div class="diagonal-watermark">
+            THIS PAPER IS NOT FOR DISTRIBUTION AND SHALL NOT BE SHARED TO ANYONE WITHOUT PERMISSION
+        </div>
+
+        <!-- Faded TUP Gear Watermark in center background -->
+        <img class="bg-watermark" src="${logoUrl}" alt="TUP Seal" />
+
+        <div class="header">
+            <img class="logo" src="${logoUrl}" alt="TUP Logo" />
+            <h1 class="univ-name">Technological University of the Philippines</h1>
+            <p class="campus-name">Taguig City Campus</p>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="title-section">
+            <h2 class="thesis-title">${thesis.title}</h2>
+            <div class="author-label">Author/s</div>
+            <p class="author-name">${thesis.author || 'Academic Research Group'}</p>
+        </div>
+
+        <div class="abstract-section">
+            <div class="section-header">
+                <span class="section-header-line"></span>
+                <span>Abstract Record</span>
+            </div>
+            <div class="abstract-text">
+                ${thesis.abstract}
+            </div>
+        </div>
+    </div>
+    <script>
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+                setTimeout(function() {
+                    window.close();
+                }, 500);
+            }, 500);
+        };
+    </script>
+</body>
+</html>
+            `);
+            printWindow.document.close();
+        } catch (err) {
+            console.error('Failed to generate abstract PDF:', err);
+        }
+    };
+
     const handleRequestCollaboration = async () => {
         if (!collaborationMessage.trim()) {
             toast.error('Please enter a message for your collaboration request.');
@@ -804,6 +1043,19 @@ const SearchResultContent = () => {
                                                     {singleThesis.abstract}
                                                 </p>
                                             </div>
+
+                                            {/* Abstract Download Option */}
+                                            <div className="mt-8 pt-8 border-t border-[#1A1A1A]/10 flex justify-center">
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => downloadAbstractAsPdf(singleThesis)}
+                                                    className="flex items-center gap-3 px-8 py-3.5 bg-[#1A1A1A] hover:bg-[#2A2A2A] text-white rounded-full text-xs font-black uppercase tracking-[0.2em] shadow-lg cursor-pointer transition-all duration-300"
+                                                >
+                                                    <FaFilePdf className="text-sm text-rose-400" />
+                                                    <span>Download Abstract (PDF)</span>
+                                                </motion.button>
+                                            </div>
                                         </div>
 
                                         {/* Attachments Section (Visible to Admins/Faculty/Librarian) */}
@@ -825,7 +1077,7 @@ const SearchResultContent = () => {
                                                                 const lowerUrl = url.toLowerCase();
                                                                 const isDoc = lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc') || lowerUrl.includes('/raw/upload/');
                                                                 const targetUrl = isDoc
-                                                                    ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/download?url=${encodeURIComponent(url)}`
+                                                                    ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/download?url=${encodeURIComponent(url)}&noIncrement=true`
                                                                     : url;
                                                                 window.open(targetUrl, '_blank');
                                                             }}
@@ -1305,26 +1557,17 @@ const SearchResultContent = () => {
                                                             )}
                                                         </button>
 
-                                                        {/* PDF Download Button */}
-                                                        {thesis.attachments && thesis.attachments.length > 0 && (
-                                                            <button
-                                                                onClick={async (e) => {
-                                                                    e.stopPropagation();
-                                                                    await handleDownloadClick(thesis);
-                                                                    const url = thesis.attachments![0];
-                                                                    const lowerUrl = url.toLowerCase();
-                                                                    const isDoc = lowerUrl.endsWith('.pdf') || lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc') || lowerUrl.includes('/raw/upload/');
-                                                                    const targetUrl = isDoc
-                                                                        ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/user/download?url=${encodeURIComponent(url)}`
-                                                                        : url;
-                                                                    window.open(targetUrl, '_blank');
-                                                                }}
-                                                                className="flex items-center gap-1 text-xs font-bold text-[#F38BA8] hover:text-rose-350 cursor-pointer bg-transparent border-none p-0 flex items-center gap-1"
-                                                                title="Download PDF"
-                                                            >
-                                                                <FaFilePdf className="text-xs" /> <span>PDF</span>
-                                                            </button>
-                                                        )}
+                                                        {/* Abstract Download Button */}
+                                                        <button
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation();
+                                                                await downloadAbstractAsPdf(thesis);
+                                                            }}
+                                                            className="flex items-center gap-1 text-xs font-bold text-[#F38BA8] hover:text-rose-350 cursor-pointer bg-transparent border-none p-0 flex items-center gap-1"
+                                                            title="Download PDF"
+                                                        >
+                                                            <FaFilePdf className="text-xs" /> <span>PDF</span>
+                                                        </button>
 
                                                         {/* HTML / Quick View Button */}
                                                         <Link
