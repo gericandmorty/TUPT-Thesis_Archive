@@ -362,6 +362,20 @@ const CustomHeader = ({
     }, [searchQuery]);
 
     useEffect(() => {
+        if (typeof window !== 'undefined' && pathname === '/search_result') {
+            const params = new URLSearchParams(window.location.search);
+            const queryParam = params.get('query') || '';
+            const typeParam = params.get('type') || 'all';
+            if (queryParam !== localSearchQuery) {
+                setLocalSearchQuery(queryParam);
+            }
+            if (typeParam !== filters.searchType) {
+                setFilters(prev => ({ ...prev, searchType: typeParam }));
+            }
+        }
+    }, [pathname, searchQuery]);
+
+    useEffect(() => {
         const timer = setTimeout(() => {
             if (localSearchQuery.trim()) { performSearch(); }
             else { setSearchResults([]); setShowSearchResults(false); }
@@ -531,42 +545,63 @@ const CustomHeader = ({
                         ref={searchContainerRef}
                         className="w-full max-w-2xl relative"
                     >
-                        <div className="relative flex items-center w-full">
-                            <div className={`absolute left-4 text-gray-400 z-10 pointer-events-none transition-colors ${localSearchQuery ? 'text-[#2DD4BF]' : ''}`}>
-                                <FaSearch className="text-sm" />
-                            </div>
-                            <input
-                                type="text"
-                                className={`w-full py-2.5 sm:py-3 pl-10 pr-12 sm:pr-24 rounded-lg border text-foreground text-[11px] sm:text-sm font-medium shadow-sm outline-none transition-all duration-300 focus:bg-card focus:ring-2 focus:ring-[#2DD4BF]/10 ${isRedHeader ? 'bg-card/10 border-white/10 text-white placeholder:text-white/50 focus:bg-card focus:border-white focus:text-foreground' : 'bg-surface border-border-custom text-foreground placeholder:text-gray-400 focus:bg-card focus:border-[#2DD4BF]/30'}`}
-                                placeholder="Search repository..."
-                                value={localSearchQuery}
-                                onChange={(e) => {
-                                    setLocalSearchQuery(e.target.value);
-                                    onSearchChange(e.target.value);
-                                }}
-                                onFocus={handleSearchFocus}
-                                onBlur={handleSearchBlur}
-                                onKeyPress={handleKeyPress}
-                                autoCapitalize="none"
-                                autoCorrect="off"
-                                autoComplete="off"
-                            />
-                            <div className="absolute right-3 flex items-center gap-1">
-                                <div className={`flex items-center justify-center transition-all duration-300 overflow-hidden ${localSearchQuery ? 'w-9 opacity-100' : 'w-0 opacity-0 pointer-events-none'}`}>
-                                    <button
-                                        className={`p-2 rounded-full transition-all duration-300 hover:bg-black/5 flex items-center justify-center border-none cursor-pointer ${isRedHeader ? 'text-white/60 hover:text-white' : 'text-gray-400 hover:text-[#2DD4BF]'}`}
-                                        onClick={clearSearch}
-                                        aria-label="Clear search"
+                        <div className="relative w-full">
+                            <div className="flex items-center w-full bg-[#262637]/90 border border-[#3A3A4F]/80 backdrop-blur-md rounded-lg overflow-hidden shadow-lg">
+                                {/* Category Dropdown (Left) */}
+                                <div className="relative flex-shrink-0 bg-[#2F2F42] hover:bg-[#3A3A4F] border-r border-[#3A3A4F]/80 transition-colors">
+                                    <select
+                                        className="appearance-none bg-transparent py-2.5 sm:py-3 pl-4 pr-7 text-xs sm:text-sm font-semibold text-white cursor-pointer outline-none select-none"
+                                        value={filters.searchType}
+                                        onChange={(e) => handleFilterChange('searchType', e.target.value)}
                                     >
-                                        <FaTimes className="text-xs" />
-                                    </button>
+                                        <option value="all" className="bg-[#2F2F42] text-white">All</option>
+                                        <option value="title" className="bg-[#2F2F42] text-white">Title</option>
+                                        <option value="author" className="bg-[#2F2F42] text-white">Author</option>
+                                        <option value="abstract" className="bg-[#2F2F42] text-white">Abstract</option>
+                                        <option value="year" className="bg-[#2F2F42] text-white">Year</option>
+                                        <option value="course" className="bg-[#2F2F42] text-white">Course</option>
+                                    </select>
+                                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#2DD4BF] font-bold text-[8px]">
+                                        ▼
+                                    </div>
                                 </div>
+
+                                {/* Input Text Box (Middle) */}
+                                <div className="relative flex-grow flex items-center">
+                                    <input
+                                        type="text"
+                                        className="w-full py-2.5 sm:py-3 px-4 text-xs sm:text-sm font-medium text-white placeholder-gray-500 bg-transparent outline-none border-none"
+                                        placeholder="Search repository..."
+                                        value={localSearchQuery}
+                                        onChange={(e) => {
+                                            setLocalSearchQuery(e.target.value);
+                                            onSearchChange(e.target.value);
+                                        }}
+                                        onFocus={handleSearchFocus}
+                                        onBlur={handleSearchBlur}
+                                        onKeyPress={handleKeyPress}
+                                        autoCapitalize="none"
+                                        autoCorrect="off"
+                                        autoComplete="off"
+                                    />
+                                    {localSearchQuery && (
+                                        <button
+                                            className="absolute right-2 p-1 text-gray-400 hover:text-white cursor-pointer flex items-center justify-center border-none bg-transparent"
+                                            onClick={clearSearch}
+                                            aria-label="Clear search"
+                                        >
+                                            <FaTimes className="text-xs" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Search Button (Right) */}
                                 <button
-                                    className={`p-2 rounded-full transition-all duration-300 hover:bg-black/5 flex items-center justify-center border-none cursor-pointer ${isRedHeader ? 'text-white/60 hover:text-white' : 'text-gray-400 hover:text-[#2DD4BF]'}`}
-                                    onClick={() => setShowFilters(!showFilters)}
-                                    aria-label="Search filters"
+                                    onClick={triggerFullSearch}
+                                    className="bg-[#2DD4BF] hover:bg-[#26bba8] text-black h-[38px] sm:h-[46px] px-5 sm:px-6 flex items-center justify-center cursor-pointer transition-colors border-none flex-shrink-0"
+                                    aria-label="Execute Search"
                                 >
-                                    <FaFilter className="text-xs" />
+                                    <FaSearch className="text-black text-sm" />
                                 </button>
                             </div>
                         </div>
@@ -640,7 +675,7 @@ const CustomHeader = ({
                                 {[
                                     { icon: <FaCalendarAlt className="text-[#2DD4BF]" />, label: 'Year:', value: filters.year, options: years, field: 'year' as keyof Filters, labelFn: (v: string) => v === 'all' ? 'All Years' : v },
                                     { icon: <FaFolder className="text-[#2DD4BF]" />, label: 'Course:', value: filters.course, options: courses, field: 'course' as keyof Filters, labelFn: (v: string) => v === 'all' ? 'All Courses' : v },
-                                    { icon: <FaFileAlt className="text-[#2DD4BF]" />, label: 'Search in:', value: filters.searchType, options: ['all', 'title', 'abstract'], field: 'searchType' as keyof Filters, labelFn: (v: string) => v === 'all' ? 'All Fields' : v === 'title' ? 'Title Only' : 'Abstract Only' },
+                                    { icon: <FaFileAlt className="text-[#2DD4BF]" />, label: 'Search in:', value: filters.searchType, options: ['all', 'title', 'author', 'abstract', 'year', 'course'], field: 'searchType' as keyof Filters, labelFn: (v: string) => v === 'all' ? 'All Fields' : v === 'title' ? 'Title Only' : v === 'author' ? 'Author Only' : v === 'abstract' ? 'Abstract Only' : v === 'year' ? 'Year Only' : 'Course Only' },
                                 ].map(({ icon, label, value, options, field, labelFn }) => (
                                     <div key={field} className="flex items-center gap-2">
                                         <label className="flex items-center gap-1.5 text-sm font-semibold text-text-dim min-w-[100px]">
