@@ -132,17 +132,7 @@ const HomePage: React.FC = () => {
     const [historyPage, setHistoryPage] = useState(1);
     const HISTORY_PAGE_SIZE = 5;
 
-    // Initialize expanded states
-    useEffect(() => {
-        if (deptCounts.length > 0) {
-            const initial: Record<string, boolean> = {};
-            deptCounts.forEach(dept => {
-                const collegeName = COURSE_COLLEGE_MAP[dept.course.toUpperCase()] || 'Other Programs';
-                initial[collegeName] = true; // Expand by default
-            });
-            setExpandedColleges(initial);
-        }
-    }, [deptCounts]);
+
 
     const toggleCollege = (name: string) => {
         setExpandedColleges(prev => ({ ...prev, [name]: !prev[name] }));
