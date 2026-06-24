@@ -81,6 +81,31 @@ interface LocalHistoryItem {
     createdAt: string;
 }
 
+/* ───── Course to College Mapping ───── */
+const COURSE_COLLEGE_MAP: Record<string, string> = {
+    // Engineering
+    'BSCE': 'College of Engineering',
+    'BSECE': 'College of Engineering',
+    'BSEE': 'College of Engineering',
+    'BSME': 'College of Engineering',
+    'BSES': 'College of Engineering',
+    // IT & Science
+    'BSIT': 'College of Science & Information Technology',
+    // Industrial Technology
+    'BET': 'College of Industrial Technology',
+    'BENG': 'College of Industrial Technology',
+    'BETEM': 'College of Industrial Technology',
+    'BETMC': 'College of Industrial Technology',
+    'BETMT': 'College of Industrial Technology',
+    'BETNT': 'College of Industrial Technology',
+    'BETICT': 'College of Industrial Technology',
+    'BTAU': 'College of Industrial Technology',
+    // Industrial Education
+    'BTTE': 'College of Industrial Education',
+    'BTVED': 'College of Industrial Education',
+    'BTVTED': 'College of Industrial Education',
+};
+
 /* ───── Component ───── */
 const HomePage: React.FC = () => {
     const router = useRouter();
@@ -89,6 +114,7 @@ const HomePage: React.FC = () => {
     const [user, setUser] = useState<UserData | null>(null);
     const [thesisCount, setThesisCount] = useState<number>(0);
     const [deptCounts, setDeptCounts] = useState<{ course: string, count: number }[]>([]);
+    const [expandedColleges, setExpandedColleges] = useState<Record<string, boolean>>({});
 
     // AI History
     const [loadingAi, setLoadingAi] = useState(false);
@@ -104,8 +130,43 @@ const HomePage: React.FC = () => {
     const [pendingApprovals, setPendingApprovals] = useState<number>(0);
     const [showSkeleton, setShowSkeleton] = useState(false);
     const [historyPage, setHistoryPage] = useState(1);
-    const [showAllCategories, setShowAllCategories] = useState(false);
     const HISTORY_PAGE_SIZE = 5;
+
+    // Initialize expanded states
+    useEffect(() => {
+        if (deptCounts.length > 0) {
+            const initial: Record<string, boolean> = {};
+            deptCounts.forEach(dept => {
+                const collegeName = COURSE_COLLEGE_MAP[dept.course.toUpperCase()] || 'Other Programs';
+                initial[collegeName] = true; // Expand by default
+            });
+            setExpandedColleges(initial);
+        }
+    }, [deptCounts]);
+
+    const toggleCollege = (name: string) => {
+        setExpandedColleges(prev => ({ ...prev, [name]: !prev[name] }));
+    };
+
+    // Group courses by college
+    const collegeGroups = (() => {
+        const colleges: Record<string, { totalCount: number; courses: { course: string, count: number }[] }> = {};
+
+        deptCounts.forEach(dept => {
+            const collegeName = COURSE_COLLEGE_MAP[dept.course.toUpperCase()] || 'Other Programs';
+            if (!colleges[collegeName]) {
+                colleges[collegeName] = { totalCount: 0, courses: [] };
+            }
+            colleges[collegeName].totalCount += dept.count;
+            colleges[collegeName].courses.push(dept);
+        });
+
+        return Object.entries(colleges).map(([name, data]) => ({
+            name,
+            totalCount: data.totalCount,
+            courses: data.courses.sort((a, b) => b.count - a.count)
+        })).sort((a, b) => b.totalCount - a.totalCount);
+    })();
 
     useEffect(() => {
         setMounted(true);
@@ -541,7 +602,7 @@ const HomePage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
                                     <div className="flex flex-col">
                                         <div className="flex items-center justify-between mb-6">
                                             <h2 className="text-[10px] font-bold text-white/40 tracking-[0.3em] uppercase flex items-center gap-4">
@@ -598,31 +659,80 @@ const HomePage: React.FC = () => {
                                             <span className="w-0.5 h-4 bg-primary/40" />
                                             Thesis Courses
                                         </h2>
-                                        <div className="bg-card rounded-2xl border border-border-custom shadow-xl p-4 flex-grow flex flex-col">
-                                            <div className="space-y-1 my-auto">
-                                                {(showAllCategories ? deptCounts : deptCounts.slice(0, 5)).map((dept, idx) => (
+                                        <div className="bg-card rounded-2xl border border-border-custom shadow-xl p-5 flex-grow flex flex-col space-y-4 backdrop-blur-md">
+                                            {collegeGroups.map((group, gIdx) => {
+                                                const isExpanded = !!expandedColleges[group.name];
+                                                return (
                                                     <div
-                                                        key={dept.course + idx}
-                                                        className="flex items-center justify-between p-3.5 rounded-xl hover:bg-white/[0.02] transition-all cursor-pointer group border border-transparent hover:border-white/[0.03]"
-                                                        onClick={() => router.push(`/search_result?course=${encodeURIComponent(dept.course)}`)}
+                                                        key={group.name}
+                                                        className={`relative border transition-all duration-300 bg-white/[0.01] ${
+                                                            isExpanded
+                                                                ? 'border-primary/30 bg-primary/[0.02] rounded-t-xl rounded-b-none shadow-lg'
+                                                                : 'border-white/5 rounded-xl hover:border-white/10'
+                                                        }`}
                                                     >
-                                                        <span className="text-[11px] font-medium text-gray-400 group-hover:text-primary transition-colors tracking-wide">{dept.course}</span>
-                                                        <span className="text-[11px] font-bold text-foreground/40 group-hover:text-foreground transition-colors">{dept.count}</span>
+                                                        <button
+                                                            onClick={() => toggleCollege(group.name)}
+                                                            className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-all cursor-pointer text-left"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${isExpanded ? 'bg-primary' : 'bg-primary/50'}`} />
+                                                                <div>
+                                                                    <h3 className={`text-[11px] font-black uppercase tracking-wider leading-none mb-1 transition-colors duration-300 ${isExpanded ? 'text-primary' : 'text-white'}`}>
+                                                                        {group.name}
+                                                                    </h3>
+                                                                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+                                                                        {group.courses.length} {group.courses.length === 1 ? 'Course' : 'Courses'}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-3">
+                                                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border transition-all duration-300 ${
+                                                                    isExpanded
+                                                                        ? 'text-primary bg-primary/20 border-primary/30'
+                                                                        : 'text-primary bg-primary/10 border-primary/20'
+                                                                }`}>
+                                                                    {group.totalCount}
+                                                                </span>
+                                                                {isExpanded ? (
+                                                                    <FaChevronUp className="text-primary text-xs" />
+                                                                ) : (
+                                                                    <FaChevronDown className="text-gray-500 text-xs" />
+                                                                )}
+                                                            </div>
+                                                        </button>
+
+                                                        <AnimatePresence initial={false}>
+                                                            {isExpanded && (
+                                                                <motion.div
+                                                                    initial={{ height: 0, opacity: 0 }}
+                                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                                    exit={{ height: 0, opacity: 0 }}
+                                                                    transition={{ duration: 0.2 }}
+                                                                    className="absolute top-full left-[-1px] right-[-1px] z-30 overflow-hidden bg-[#242435] border border-primary/30 border-t-0 rounded-b-xl shadow-2xl"
+                                                                >
+                                                                    <div className="p-3 space-y-1">
+                                                                        {group.courses.map((dept, idx) => (
+                                                                            <div
+                                                                                key={dept.course + idx}
+                                                                                className="flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.03] transition-all cursor-pointer group border border-transparent hover:border-white/[0.05]"
+                                                                                onClick={() => router.push(`/search_result?course=${encodeURIComponent(dept.course)}`)}
+                                                                            >
+                                                                                <span className="text-[11px] font-semibold text-gray-400 group-hover:text-primary transition-colors tracking-wide">
+                                                                                    {dept.course}
+                                                                                </span>
+                                                                                <span className="text-[11px] font-bold text-foreground/40 group-hover:text-foreground transition-colors">
+                                                                                    {dept.count}
+                                                                                </span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
                                                     </div>
-                                                ))}
-                                            </div>
-                                            {deptCounts.length > 5 && (
-                                                <button
-                                                    onClick={() => setShowAllCategories(!showAllCategories)}
-                                                    className="mt-4 w-full py-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-primary transition-all flex items-center justify-center gap-2 group"
-                                                >
-                                                    {showAllCategories ? (
-                                                        <>Show Less <FaChevronUp className="group-hover:-translate-y-0.5 transition-transform" /></>
-                                                    ) : (
-                                                        <>Show More Courses ({deptCounts.length - 5} More) <FaChevronDown className="group-hover:translate-y-0.5 transition-transform" /></>
-                                                    )}
-                                                </button>
-                                            )}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 </div>
